@@ -300,7 +300,7 @@ export default function Projects() {
                 <Flex gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem isCurrentPage>
-                            <BreadcrumbLink href='/dashboard'>Összes projekt</BreadcrumbLink>
+                            <BreadcrumbLink href='/dashboard'>Áttekintő</BreadcrumbLink>
                         </BreadcrumbItem>
                     </Breadcrumb>
                     <Stack direction={"row"}>

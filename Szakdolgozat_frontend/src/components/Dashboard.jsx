@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
-import { FaArrowLeft, FaArrowRight, FaMoon, FaSun, FaTasks } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaMoon, FaSun, FaTasks, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
 import { BiLogOut } from 'react-icons/bi';
 import { useState } from 'react';
@@ -61,7 +61,8 @@ export default function Dashboard() {
                     </ModalContent>
                 </Modal>
 
-                <Flex gap={"10px"} pl={opened ? "270px" : "100px"}>
+                <Flex as={motion.div}
+                    transition={"0.3s linear"} gap={"10px"} pl={opened ? "270px" : "100px"}>
                     <Box
                         w={opened ? "250px" : "60px"}
                         h="100vh"
@@ -73,8 +74,7 @@ export default function Dashboard() {
                         display="flex"
                         flexDirection="column"
                         gap="10px"
-                        as={motion.div}
-                        transition={"0.3s linear"}
+
                     >
                         <Stack justify={"center"} align="center" p={4} bg={colorMode === 'light' ? "gray.300" : "#444"}
                             direction={"row"}>
@@ -87,16 +87,16 @@ export default function Dashboard() {
                         </Stack>
 
                         <Stack gap={3} align="center" direction={"row"} p={2}>
-                            <Avatar name={`${user.lastName} ${user.firstName}`} borderRadius={10} />
+                            <Avatar userSelect={"none"} name={`${user.lastName} ${user.firstName}`} borderRadius={10} />
                             <Stack display={opened ? "" : "none"} gap={"2px"}>
                                 <Text fontWeight={"bold"}>{`${user.lastName} ${user.firstName}`}</Text>
                                 <Text fontSize={"small"}>{`${user.email}`}</Text>
                             </Stack>
                         </Stack>
-
                         <Button onClick={() => navigate('/dashboard')} leftIcon={<AiOutlineProject />} variant={"ghost"}>{opened ? "Projektek" : ""} </Button>
-                        <Button leftIcon={<FaTasks />} variant={"ghost"}>{opened ? "Saját feladataim" : ""}</Button>
+                        <Button onClick={() => navigate('/dashboard/tasks')} leftIcon={<FaTasks />} variant={"ghost"}>{opened ? "Saját feladataim" : ""}</Button>
                         <Spacer />
+                        <Button onClick={() => navigate('/dashboard')} leftIcon={<FaUser />} variant="ghost" >{opened ? "Saját fiók" : ""}</Button>
                         <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? "Téma váltása" : ""}</Button>
                         <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? "Kijelentkezés" : ""}</Button>
                     </Box>

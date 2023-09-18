@@ -40,3 +40,9 @@ export const removePeopleFromProject = async (projectId, accessToken, userId) =>
 
     return project
 }
+
+export const getTasks = async () => {
+    const response = await api.get(`ProjectList/GetTasks`)
+
+    return response
+}

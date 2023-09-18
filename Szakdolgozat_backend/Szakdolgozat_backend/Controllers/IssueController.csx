@@ -309,5 +309,6 @@ namespace Szakdolgozat_backend.Controllers
 
             return Ok(i);
         }
+   
     }
 }

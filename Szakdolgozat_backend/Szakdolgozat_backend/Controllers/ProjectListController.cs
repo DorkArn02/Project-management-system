@@ -211,5 +211,59 @@ namespace Szakdolgozat_backend.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("GetTasks/")]
+        public IActionResult GetPersonTasks()
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
+
+            User? u = _db.Users.Find(userId);
+
+            if(u == null)
+            {
+                return Unauthorized();
+            }
+
+            List<AssignedPerson> assignedPeople = _db.AssignedPeople.Where(x => x.UserId == userId).ToList();
+
+            List<Issue> issues = new();
+
+            assignedPeople.ForEach(p =>
+            {
+                Issue i = _db.Issues.Where(x=> x.Id == p.IssueId).First();
+                issues.Add(i);
+            });
+
+            List<TaskResponseDTO> issueResponseDTOs = new();
+
+            issues.ForEach(issue =>
+            {
+                var issueReporter = _db.Users.Find(issue.UserId);
+                var issuePriority = _db.Priorities.Find(issue.PriorityId);
+                var project = _db.Projects.Where(x => x.Id == issue.ProjectId).First();
+                var board = _db.ProjectLists.Where(x=>x.ProjectId == issue.ProjectId && x.Id == issue.ProjectListId).First();
+
+                TaskResponseDTO issueDTO = new()
+                {   
+                    Id = issue.Id,
+                    Description = issue.Description,
+                    Created = issue.Created,
+                    DueDate = issue.DueDate,
+                    Position = issue.Position,
+                    Title = issue.Title,
+                    TimeEstimate = issue.TimeEstimate,
+                    Updated = issue.Updated,
+                    TimeSpent = issue.TimeSpent,
+                    ReporterId = issue.UserId,
+                    ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
+                    Priority = issuePriority,
+                    BoardName = board.Title,
+                    ProjectName = project.Title
+                };
+                issueResponseDTOs.Add(issueDTO);
+            });
+            return Ok(issueResponseDTOs);
+
+        }
     }
 }

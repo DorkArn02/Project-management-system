@@ -1,8 +1,6 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import { Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode } from "@chakra-ui/react"
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getProjectById } from '../api/project'
 import {
@@ -12,21 +10,20 @@ import {
     HStack,
     Box,
     Avatar,
-    Text,
-    Heading,
-    Tooltip, Button, Input, FormLabel, FormErrorMessage,
-    Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton
+    Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
+    Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton,
+    Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
 import { addProjectBoard, getProjectBoards } from '../api/projectBoard'
-import { set, useForm } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
-import { AiFillCheckSquare, AiOutlineArrowDown } from "react-icons/ai"
+import { AiFillCheckSquare } from "react-icons/ai"
 import { addIssueToBoard, deleteIssueFromBoard } from '../api/issue'
-import { FcMediumPriority } from "react-icons/fc"
+import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import { MultiSelect } from "chakra-multiselect"
 
@@ -46,13 +43,12 @@ export default function ProjectBoards() {
 
     const [currentIssue, setCurrentIssue] = useState()
     const [currentBoardId, setCurrentBoardId] = useState()
-    const { colorMode, toggleColorMode } = useColorMode()
+    const { colorMode } = useColorMode()
 
     const [assignedPeople, setAssignedPeople] = useState([])
     const [people, setPeople] = useState([])
 
     const toast = useToast()
-
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -76,7 +72,6 @@ export default function ProjectBoards() {
         }
         fetchProjectBoards()
     }, [])
-
 
     const handleOpenIssue = (issueObject, boardId) => {
         setCurrentIssue(issueObject)
@@ -178,16 +173,16 @@ export default function ProjectBoards() {
         }
     }
 
-    // Add issue to board
     const handleAddIsueOpen = (boardId) => {
         setCurrentBoardId(boardId)
         onOpenAddIssue()
     }
 
     const handleAddIssueForm = async (object) => {
-        try {
-            object = { ...object, position: boards.filter(i => i.id === currentBoardId)[0].issues.length + 1 }
-            await addIssueToBoard(projectId, currentBoardId, object, assignedPeople)
+        const result =
+            await addIssueToBoard(projectId, currentBoardId,
+                { ...object, position: boards.filter(i => i.id === currentBoardId)[0].issues.length + 1 }, assignedPeople)
+        if (result) {
             toast({
                 title: 'Issue sikeresen létrehozva!.',
                 description: "",
@@ -197,14 +192,6 @@ export default function ProjectBoards() {
             })
             await updateProjectBoards()
             onCloseAddIssue()
-        } catch (e) {
-            toast({
-                title: 'Hiba történt az issue létrehozásakor!.',
-                description: "",
-                status: 'error',
-                duration: 4000,
-                isClosable: true,
-            })
         }
     }
 
@@ -214,10 +201,27 @@ export default function ProjectBoards() {
         onCloseAddIssue()
     }
 
-    // Update values after CRUD
     const updateProjectBoards = async () => {
         const result = await getProjectBoards(projectId, user.accessToken)
         setBoards(result.data)
+    }
+
+    const handlePriorityIcon = (priority) => {
+        if (priority.name === "Low") {
+            return <FcLowPriority color={priority.color} />
+        }
+        else if (priority.name === "Medium") {
+            return <FcMediumPriority color={priority.color} />
+        }
+        else if (priority.name === "High") {
+            return <FcHighPriority color={priority.color} />
+        }
+        else if (priority.name === "Lowest") {
+            return <FcLowPriority color={priority.color} />
+        }
+        else if (priority.name === "Highest") {
+            return <FcHighPriority color={priority.color} />
+        }
     }
 
     if (project == null) {
@@ -362,7 +366,7 @@ export default function ProjectBoards() {
                                         </Badge>
                                         <FormLabel>Prioritás</FormLabel>
                                         <HStack align="center">
-                                            <FcMediumPriority color={currentIssue.priority.color} />
+                                            {handlePriorityIcon(currentIssue.priority)}
                                             <Text>{currentIssue.priority.name}</Text>
                                         </HStack>
                                         <FormLabel>Becsült idő (órában)</FormLabel>
@@ -383,7 +387,7 @@ export default function ProjectBoards() {
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
-                            <BreadcrumbLink as={Link} to='/dashboard'>Összes projekt</BreadcrumbLink>
+                            <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbItem isCurrentPage>
                             <BreadcrumbLink href='#'>{project.title}</BreadcrumbLink>
@@ -403,7 +407,7 @@ export default function ProjectBoards() {
                         </AvatarGroup>
                     </HStack>
                     <DragDropContext onDragEnd={handleOnDragEnd}>
-                        <HStack overflow={"scroll"} userSelect={"none"} gap={5} >
+                        <HStack userSelect={"none"} gap={5} >
                             {boards && boards.map((i, k) => {
                                 return <Stack
                                     key={k}
@@ -415,27 +419,29 @@ export default function ProjectBoards() {
                                     gap={5}
                                 >
                                     <HStack>
-                                        <Text textTransform={"uppercase"}>{i.title} - {i.issues.length}</Text>
+                                        <Tooltip label={i.title}>
+                                            <Text noOfLines={"1"} textTransform={"uppercase"}>{i.title} - {i.issues.length}</Text>
+                                        </Tooltip>
                                         <Spacer />
                                         <IconButton variant={"ghost"} icon={<BsThreeDots size={25} />} />
                                     </HStack>
-                                    <Flex onClick={() => handleAddIsueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
+                                    <Flex as={Button} gap={2} onClick={() => handleAddIsueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                         <FaPlus />
                                         <Text>Ügy hozzáadása</Text>
                                     </Flex>
                                     <Droppable droppableId={`${i.id}`} direction='vertical'>
                                         {(provided, snapshot) => (
-                                            <Flex h="100%" {...provided.droppableProps}
-                                                ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? "gray.200" : "#444"}>
+                                            <Flex overflow={"scroll"} overflowX={"hidden"} h="100%" {...provided.droppableProps}
+                                                ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? (snapshot.isDraggingOver ? "gray.100" : "gray.200") : (snapshot.isDraggingOver ? "#333" : "#444")}>
                                                 {
                                                     i.issues.map((issue, key) => {
                                                         return <Draggable key={issue.id} index={key} draggableId={`${issue.id}`}>
                                                             {provided => (
                                                                 <VStack _hover={{ bg: "gray.100", cursor: 'pointer' }} onClick={() => handleOpenIssue(issue, i.id)} ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps} key={key} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                                                     <Text>{issue.title}</Text>
-                                                                    <HStack >
+                                                                    <HStack w={"full"}>
                                                                         <AiFillCheckSquare color='blue' />
-                                                                        <AiOutlineArrowDown color='green' />
+                                                                        {handlePriorityIcon(issue.priority)}
                                                                         <Spacer />
                                                                         <AvatarGroup size="xs" max={2}>
                                                                             {issue.assignedPeople.map((j, k) => {

@@ -1,14 +1,18 @@
 import { api } from "./backend"
 
-export const addIssueToBoard = async (projectId, boardId, issueObject, assignedPeople) => {
+import { createStandaloneToast } from "@chakra-ui/react"
 
+const { toast } = createStandaloneToast();
+
+export const addIssueToBoard = async (projectId, boardId, issueObject, assignedPeople) => {
     api.post(`/Issue/AddIssue/${projectId}/${boardId}`, issueObject)
         .then((result) => {
             for (let i of assignedPeople) {
                 addAssignee(projectId, boardId, result.data.id, parseInt(i.value))
             }
-
             return result
+        }).catch((error) => {
+            return error
         })
 
 }
