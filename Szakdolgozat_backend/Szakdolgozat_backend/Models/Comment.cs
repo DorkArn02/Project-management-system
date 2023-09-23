@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Szakdolgozat_backend.Models;
+﻿namespace Szakdolgozat_backend.Models;
 
 public partial class Comment
 {

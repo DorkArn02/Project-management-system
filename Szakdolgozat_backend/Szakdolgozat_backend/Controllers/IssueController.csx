@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos;
-using Szakdolgozat_backend.Helpers;
-using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.IssueServiceFolder;
 
 namespace Szakdolgozat_backend.Controllers
 {
@@ -12,303 +10,75 @@ namespace Szakdolgozat_backend.Controllers
     [Authorize]
     public class IssueController : ControllerBase
     {
-        private readonly DbCustomContext _db;
-        private readonly IUserHelper _userHelper;
+        private readonly IIssueService _issueService;
 
-        public IssueController(DbCustomContext db, IUserHelper userHelper)
+        public IssueController(IIssueService issueService)
         {
-            _db = db;
-            _userHelper = userHelper;
+            _issueService = issueService;
         }
 
         [HttpPost("AddIssue/{projectId}/{projectListId}")]
-        public IActionResult AddIssueToProjectList(Guid projectId, Guid projectListId, IssueRequestDTO issueRequestDTO)
+        public async Task<IActionResult> AddIssueToProjectList(Guid projectId, Guid projectListId, IssueRequestDTO issueRequestDTO)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-            Project? p = _db.Projects.Find(projectId);
+            var result = await _issueService.AddIssueToProjectList(projectId, projectListId, issueRequestDTO);
 
-            var user = _db.Users.Find(userId);
-
-            if(user == null)
-            {
-                return NotFound("User not found.");
-            }
-
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            if(issueRequestDTO.Position < 0)
-            {
-                return BadRequest("Position can't be negative");
-            }
-
-            bool positionDup = _db.Issues.Where(p => p.ProjectId == projectId && p.ProjectListId == projectListId)
-                .Any(p => p.Position == issueRequestDTO.Position);
-
-            if (positionDup)
-            {
-                return BadRequest("Position duplication not allowed");
-            }
-
-            ProjectList? projectList = _db.ProjectLists.Where(p=>p.ProjectId == projectId
-            && p.Id == projectListId).FirstOrDefault(); 
-
-            if(projectList == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            if(_db.Priorities.Find(issueRequestDTO.PriorityId) == null)
-            {
-                return NotFound("Priority with id not found.");
-            }
-
-            Issue i = new()
-            {
-                Title = issueRequestDTO.Title,
-                Description = issueRequestDTO.Description,
-                Created = DateTime.Now,
-                Updated = DateTime.Now,
-                DueDate = issueRequestDTO.DueDate,
-                Position = issueRequestDTO.Position,
-                Project = p,
-                ProjectList = projectList,
-                TimeEstimate = issueRequestDTO.TimeEstimate,
-                User = user,
-                PriorityId = issueRequestDTO.PriorityId
-            };
-
-            _db.Issues.Add(i);
-            _db.SaveChanges();
-
-            return Ok(i);
+            return Ok(result);
         }
 
         [HttpDelete("DeleteIssue/{projectId}/{projectListId}/{issueId}")]
-        public IActionResult DeleteIssueFromProjectList(Guid projectId, Guid projectListId, Guid issueId)
+        public async Task<IActionResult> DeleteIssueFromProjectList(Guid projectId, Guid projectListId, Guid issueId)
         {
-            Project? p = _db.Projects.Find(projectId);
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if(!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? pl = _db.ProjectLists
-                .Where(x=>x.ProjectId == projectId && x.Id == projectListId).FirstOrDefault();
-
-            if(pl == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            Issue? i = _db.Issues.
-                Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
-                && x.Id == issueId).FirstOrDefault();
-
-            if(i == null)
-            {
-                return NotFound("Issue not found");
-            }
-
-            _db.Issues.Remove(i);
-            _db.SaveChanges();
+            await _issueService.DeleteIssueFromProjectList(projectId, projectListId, issueId);
 
             return NoContent();
         }
         
         [HttpPost("AddAssignee/{projectId}/{projectListId}/{issueId}/{assigneeId}")]    
-        public IActionResult AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int assigneeId)
+        public async Task<IActionResult> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int assigneeId)
         {
-            Project? p = _db.Projects.Find(projectId);
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
+            var result = await _issueService.AddAssigneeToIssue(projectId, projectListId, issueId, assigneeId);
 
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? pl = _db.ProjectLists
-                .Where(x => x.ProjectId == projectId && x.Id == projectListId).FirstOrDefault();
-
-            if (pl == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            Issue? i = _db.Issues.
-                Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
-                && x.Id == issueId)
-                .Include(x=>x.AssignedPeople)
-                .FirstOrDefault();
-
-            if (i == null)
-            {
-                return NotFound("Issue not found");
-            }
-
-            Participant? participant = _db.Participants.Find(assigneeId);
-
-            if(participant == null)
-            {
-                return NotFound("Assignee not found!");
-            }
-
-            User? u = _db.Users.Find(participant.UserId);
-
-            if(u == null)
-            {
-                return NotFound("User not found");
-            }
-
-            AssignedPerson? assignedPerson = _db.AssignedPeople
-                .Where(x => x.IssueId == issueId && x.UserId == participant.UserId).FirstOrDefault();
-
-            if(assignedPerson != null)
-            {
-                return Conflict("User already added as assignee");
-            }
-
-            AssignedPerson assigned = new()
-            {
-                Issue = i,
-                User = u
-            };
-
-            _db.AssignedPeople.Add(assigned);
-            _db.SaveChanges();
-
-            return Ok(i);
+            return Ok(result);
         }
 
         [HttpDelete("DeleteAssignee/{projectId}/{projectListId}/{issueId}/{assigneeId}")]
-        public IActionResult RemoveAssigneeFromIssue(Guid projectId, Guid projectListId, Guid issueId, Guid assigneeId)
+        public async Task<IActionResult> RemoveAssigneeFromIssue(Guid projectId, Guid projectListId, Guid issueId, Guid assigneeId)
         {
-            Project? p = _db.Projects.Find(projectId);
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? pl = _db.ProjectLists
-                .Where(x => x.ProjectId == projectId && x.Id == projectListId).FirstOrDefault();
-
-            if (pl == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            Issue? i = _db.Issues.
-                Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
-                && x.Id == issueId)
-                .Include(x => x.AssignedPeople)
-                .FirstOrDefault();
-
-            if (i == null)
-            {
-                return NotFound("Issue not found");
-            }
-
-            User? assignee = _db.Users.Find(assigneeId);
-
-            if (assignee == null)
-            {
-                return NotFound("Assignee not found!");
-            }
-
-            AssignedPerson? assignedPerson = _db.AssignedPeople
-                .Where(x => x.IssueId == issueId && x.UserId == assigneeId).FirstOrDefault();
-
-            if (assignedPerson == null)
-            {
-                return Conflict("User not found as assignee in this project.");
-            }
-
-            _db.AssignedPeople.Remove(assignedPerson);
-            _db.SaveChanges();
+            await _issueService.RemoveAssigneeFromIssue(projectId, projectListId, issueId, assigneeId);
 
             return NoContent();
         }
 
         [HttpPut("ChangeIssueReporter/{projectId}/{projectListId}/{issueId}/{reporterId}")]
-        public IActionResult ChangeIssueReporter(Guid projectId, Guid projectListId, Guid issueId, Guid reporterId)
+        public async Task<ActionResult> ChangeIssueReporter(Guid projectId, Guid projectListId, Guid issueId, Guid reporterId)
         {
-            Project? p = _db.Projects.Find(projectId);
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
+            var result = await _issueService.ChangeIssueReporter(projectId, projectListId, issueId, reporterId);
 
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? pl = _db.ProjectLists
-                .Where(x => x.ProjectId == projectId && x.Id == projectListId).FirstOrDefault();
-
-            if (pl == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            Issue? i = _db.Issues.
-                Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
-                && x.Id == issueId)
-                .Include(x => x.AssignedPeople)
-                .FirstOrDefault();
-
-            if (i == null)
-            {
-                return NotFound("Issue not found");
-            }
-
-            User? r = _db.Users.Find(reporterId);
-
-            if(r == null)
-            {
-                return NotFound("User reporter not found.");
-            }
-
-            if(i.UserId == reporterId)
-            {
-                return Conflict("User id cannot be same");
-            }
-
-            i.User = r;
-
-            _db.Issues.Update(i);
-            _db.SaveChanges();
-
-            return Ok(i);
+            return Ok(result);
         }
-   
+
+        [HttpPut("ChangePosition/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
+        public async Task<IActionResult> ChangePosition(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        {
+            await _issueService.ChangePosition(projectId, sourceId, destId, sourceIssueId, destIssueId);
+
+            return Ok();
+        }
+
+        [HttpPut("ChangePosition2/{projectId}/{sourceId}/{destId}/{sourceIssueId}")]
+        public async Task<IActionResult> ChangePosition2(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId)
+        {
+            await _issueService.ChangePosition2(projectId, sourceId, destId, sourceIssueId);
+
+            return Ok();
+        }
+
+        [HttpPut("ChangePosition3/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
+        public async Task<IActionResult> ChangePosition3(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        {
+            await _issueService.ChangePosition3(projectId, sourceId, destId, sourceIssueId, destIssueId);
+
+            return Ok();
+        }
     }
 }

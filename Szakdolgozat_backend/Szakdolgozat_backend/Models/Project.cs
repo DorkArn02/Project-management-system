@@ -15,8 +15,6 @@ public partial class Project
     public DateTime Created { get; set; }
 
     public DateTime Updated { get; set; }
-
-    public string? IconName { get; set; }
     [JsonIgnore]
     public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 

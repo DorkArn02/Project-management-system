@@ -4,6 +4,7 @@ namespace Szakdolgozat_backend.Models;
 
 public partial class DbCustomContext : DbContext
 {
+    // Scaffold-DbContext "Server=localhost;Database=DB_TESZT;Integrated Security=true;Encrypt=false;"  Microsoft.EntityFrameworkCore.SqlServer
     public DbCustomContext()
     {
     }
@@ -12,6 +13,7 @@ public partial class DbCustomContext : DbContext
         : base(options)
     {
     }
+
     public virtual DbSet<AssignedPerson> AssignedPeople { get; set; }
 
     public virtual DbSet<Comment> Comments { get; set; }

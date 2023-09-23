@@ -9,7 +9,5 @@ public partial class Role
 
     public string Name { get; set; } = null!;
 
-    public bool IsAdmin { get; set; }
-
     public virtual ICollection<Participant> Participants { get; set; } = new List<Participant>();
 }

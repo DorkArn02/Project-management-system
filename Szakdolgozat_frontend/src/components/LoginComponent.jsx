@@ -8,7 +8,6 @@ import {
     Input,
     Stack,
     Text,
-    Link,
     FormControl,
     FormErrorMessage,
     Spacer
@@ -20,6 +19,7 @@ import { useToast } from '@chakra-ui/react'
 import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function LoginComponent() {
 
@@ -86,9 +86,13 @@ export default function LoginComponent() {
 
                         </FormControl>
                         <Stack direction={"row"}>
-                            <Link href={"/register"} textAlign={"right"} >Nincs fiókja?</Link>
+                            <Link to={"/register"} >
+                                <Text textAlign={"right"} _hover={{ textDecoration: "underline" }}>
+                                    Nincs fiókja?
+                                </Text>
+                            </Link>
                             <Spacer />
-                            <Link textAlign={"right"} >Elfelejtett jelszó?</Link>
+                            <Link >Elfelejtett jelszó?</Link>
                         </Stack>
                         <Button isLoading={loading} type="submit" colorScheme="teal">
                             Bejelentkezés

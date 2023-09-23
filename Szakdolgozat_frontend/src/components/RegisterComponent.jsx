@@ -8,7 +8,6 @@ import {
     Input,
     Stack,
     Text,
-    Link,
     FormControl,
     FormErrorMessage,
     useToast
@@ -16,6 +15,7 @@ import {
 import { useForm } from "react-hook-form";
 import { registerUser } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function RegisterComponent() {
 
@@ -25,17 +25,16 @@ export default function RegisterComponent() {
 
     const onSubmit = async (data) => {
         try {
-            const response = await registerUser(data)
+            await registerUser(data)
             toast({
                 title: 'Sikeres regisztráció.',
                 description: "Mindjárt átirányítunk a főoldalra...",
-                status: 'error',
+                status: 'success',
                 duration: 4000,
                 isClosable: true,
             })
             setTimeout(() => {
                 navigate('/')
-
             }, 2000)
         } catch (error) {
             toast({
@@ -91,7 +90,9 @@ export default function RegisterComponent() {
                             <Input {...register("firstName", { required: true })} type="text" placeholder="Keresztnév" />
                             {errors.firstName ? <FormErrorMessage>Kérem adja meg a keresztnevét</FormErrorMessage> : ""}
                         </FormControl>
-                        <Link href="/" textAlign={"right"} >Vissza a bejelentkezéshez</Link>
+                        <Link to="/">
+                            <Text _hover={{ textDecoration: "underline" }} textAlign={"right"}>Vissza a bejelentkezéshez</Text>
+                        </Link>
                         <Button type="submit" colorScheme="teal">
                             Fiók létrehozása
                         </Button>

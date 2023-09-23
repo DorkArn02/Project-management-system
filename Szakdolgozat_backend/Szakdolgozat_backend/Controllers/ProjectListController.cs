@@ -1,11 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
-using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Dtos.ProjectListDtos;
-using Szakdolgozat_backend.Helpers;
-using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.ProjectListServiceFolder;
 
 namespace Szakdolgozat_backend.Controllers
 {
@@ -14,256 +10,51 @@ namespace Szakdolgozat_backend.Controllers
     [Authorize]
     public class ProjectListController : ControllerBase
     {
-        private readonly DbCustomContext _db;
-        private readonly IUserHelper _userHelper;
+        private readonly IProjectListService _projectListService;
 
-        public ProjectListController(DbCustomContext db, IUserHelper userHelper)
+        public ProjectListController(IProjectListService projectListService)
         {
-            _db = db;
-            _userHelper = userHelper;
+            _projectListService = projectListService;
         }
 
         [HttpPost("Add/{projectId}")]
-        public IActionResult AddListToProject(Guid projectId, ProjectListRequestDTO listRequestDTO)
+        public async Task<IActionResult> AddListToProject(Guid projectId, ProjectListRequestDTO listRequestDTO)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-            Project? p = _db.Projects.Find(projectId);
+            var result = await _projectListService.AddListToProject(projectId, listRequestDTO);
 
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            if (listRequestDTO.Position < 0)
-            {
-                return BadRequest("Position can't be negative");
-            }
-
-            bool positionDup = _db.ProjectLists.Where(p => p.ProjectId == projectId)
-                .Any(p => p.Position == listRequestDTO.Position);
-
-            if (positionDup)
-            {
-                return BadRequest("Position duplication not allowed");
-            }
-
-            ProjectList l = new()
-            {
-                Project = p,
-                Title = listRequestDTO.Title,
-                Color = listRequestDTO.Color,
-                Position = listRequestDTO.Position
-            };
-
-            _db.ProjectLists.Add(l);
-            _db.SaveChanges();
-
-            return Ok(l);
+            return Ok(result);
         }
 
         [HttpGet("GetAll/{projectId}")]
-        public IActionResult GetAllListByProject(Guid projectId)
+        public async Task<IActionResult> GetAllListByProject(Guid projectId)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-            Project? p = _db.Projects.Find(projectId);
+            var result = await _projectListService.GetAllListByProject(projectId);
 
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            List<ProjectList> projectLists = _db.ProjectLists.Where(p => p.ProjectId == projectId)
-                .Include(p=>p.Issues)
-                    .ThenInclude(p=>p.AssignedPeople).AsQueryable()
-                .ToList();
-
-            List<ProjectListResponseDTO> projectListResponseDTO = new();
-
-            foreach(var item in projectLists)
-            {
-                List<IssueResponseDTO> issueResponseDTOs = new();
-
-                foreach(var issue in item.Issues.ToList())
-                {
-                    var issueReporter = _db.Users.Find(issue.UserId);
-                    var issuePriority = _db.Priorities.Find(issue.PriorityId);
-
-                    List<AssignedPersonDTO> assignedPersonDTOs = new();
-                    
-                    foreach(var assignedPerson in issue.AssignedPeople)
-                    {
-                        User u = _db.Users.Find(assignedPerson.UserId);
-
-                        AssignedPersonDTO assignedPersonDTO = new()
-                        {
-                            Id = assignedPerson.Id,
-                            IssueId = assignedPerson.IssueId,
-                            UserId = assignedPerson.UserId,
-                            PersonName = u.LastName + " " + u.FirstName
-                        };
-
-                        assignedPersonDTOs.Add(assignedPersonDTO);
-                    }
-
-                    IssueResponseDTO issueDTO = new()
-                    {
-                        Id = issue.Id,
-                        Description = issue.Description,
-                        Created = issue.Created,
-                        DueDate = issue.DueDate,
-                        Position = issue.Position,
-                        Title = issue.Title,
-                        TimeEstimate = issue.TimeEstimate,
-                        Updated = issue.Updated,
-                        TimeSpent = issue.TimeSpent,
-                        ReporterId = issue.UserId,
-                        ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
-                        Priority = issuePriority,
-                        AssignedPeople = assignedPersonDTOs,
-                        Comments = issue.Comments.ToList(),
-                        
-                    };
-
-                    issueResponseDTOs.Add(issueDTO);
-                }
-
-                ProjectListResponseDTO itemDTO = new()
-                {
-                    Id = item.Id,
-                    Color = item.Color,
-                    Position = item.Position,
-                    Title = item.Title,
-                    ProjectId = item.ProjectId,
-                    Issues = issueResponseDTOs
-                };
-
-                projectListResponseDTO.Add(itemDTO);
-            }
-
-
-            return Ok(projectListResponseDTO);
-
+            return Ok(result);
         }
 
         [HttpGet("Get/{projectId}/{projectListId}")]
-        public IActionResult GetListByProject(Guid projectId, Guid projectListId)
+        public async Task<IActionResult> GetListByProject(Guid projectId, Guid projectListId)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-            Project? p = _db.Projects.Find(projectId);
+            var result = await _projectListService.GetListByProject(projectId, projectListId);
 
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? projectList = _db.ProjectLists.Where(p => p.ProjectId == projectId
-            && p.Id == projectListId).Include(p=> p.Issues).FirstOrDefault();
-
-            if(projectList == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            return Ok(projectList);
+            return Ok(result);
         }
 
         [HttpDelete("Delete/{projectId}/{projectListId}")]
-        public IActionResult DeleteListFromProject(Guid projectId, Guid projectListId)
+        public async Task<IActionResult> DeleteListFromProject(Guid projectId, Guid projectListId)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-            Project? p = _db.Projects.Find(projectId);
-
-            if (p == null)
-            {
-                return NotFound("Project not found.");
-            }
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-            {
-                return Unauthorized();
-            }
-
-            ProjectList? projectList = _db.ProjectLists.Where(p => p.ProjectId == projectId
-            && p.Id == projectListId).FirstOrDefault();
-
-            if(projectList == null)
-            {
-                return NotFound("Project list not found.");
-            }
-
-            _db.ProjectLists.Remove(projectList);
-            _db.SaveChanges();
+            await _projectListService.DeleteListFromProject(projectId, projectListId);
 
             return NoContent();
         }
 
         [HttpGet("GetTasks/")]
-        public IActionResult GetPersonTasks()
+        public async Task<IActionResult> GetPersonTasks()
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
+            var result = await _projectListService.GetPersonTasks();
 
-            User? u = _db.Users.Find(userId);
-
-            if(u == null)
-            {
-                return Unauthorized();
-            }
-
-            List<AssignedPerson> assignedPeople = _db.AssignedPeople.Where(x => x.UserId == userId).ToList();
-
-            List<Issue> issues = new();
-
-            assignedPeople.ForEach(p =>
-            {
-                Issue i = _db.Issues.Where(x=> x.Id == p.IssueId).First();
-                issues.Add(i);
-            });
-
-            List<TaskResponseDTO> issueResponseDTOs = new();
-
-            issues.ForEach(issue =>
-            {
-                var issueReporter = _db.Users.Find(issue.UserId);
-                var issuePriority = _db.Priorities.Find(issue.PriorityId);
-                var project = _db.Projects.Where(x => x.Id == issue.ProjectId).First();
-                var board = _db.ProjectLists.Where(x=>x.ProjectId == issue.ProjectId && x.Id == issue.ProjectListId).First();
-
-                TaskResponseDTO issueDTO = new()
-                {   
-                    Id = issue.Id,
-                    Description = issue.Description,
-                    Created = issue.Created,
-                    DueDate = issue.DueDate,
-                    Position = issue.Position,
-                    Title = issue.Title,
-                    TimeEstimate = issue.TimeEstimate,
-                    Updated = issue.Updated,
-                    TimeSpent = issue.TimeSpent,
-                    ReporterId = issue.UserId,
-                    ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
-                    Priority = issuePriority,
-                    BoardName = board.Title,
-                    ProjectName = project.Title
-                };
-                issueResponseDTOs.Add(issueDTO);
-            });
-            return Ok(issueResponseDTOs);
-
+            return Ok(result);
         }
     }
 }

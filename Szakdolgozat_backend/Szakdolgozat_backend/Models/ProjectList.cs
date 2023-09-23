@@ -12,8 +12,6 @@ public partial class ProjectList
 
     public int Position { get; set; }
 
-    public string? Color { get; set; }
-
     public Guid ProjectId { get; set; }
 
     public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();

@@ -46,13 +46,14 @@ api.interceptors.response.use((response) => {
                 return Promise.reject(e);
             }
         }
-    toast({
-        title: 'Hiba történt a művelet végrehajtása során...', status: 'error',
-        description: error.response.data.title
-    })
+
+    // toast({
+    //     title: 'Hiba történt a művelet végrehajtása során...', status: 'error',
+    //     description: error.response.data.title
+    // })
 
     const { accessToken } = JSON.parse(localStorage.getItem("user"));
-
+    console.log(error)
     if (isAccessTokenExpired(accessToken)) {
         window.location.href = "/"
     }

@@ -5,8 +5,13 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 using Szakdolgozat_backend.Helpers;
+using Szakdolgozat_backend.Middlewares;
 using Szakdolgozat_backend.Models;
-using Szakdolgozat_backend.Services;
+using Szakdolgozat_backend.Services.AuthServiceFolder;
+using Szakdolgozat_backend.Services.IssueServiceFolder;
+using Szakdolgozat_backend.Services.ProjectListServiceFolder;
+using Szakdolgozat_backend.Services.ProjectServiceFolder;
+using Szakdolgozat_backend.Services.TokenServiceFolder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +21,10 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IUserHelper, UserHelper>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProjectListService, ProjectListService>();
+builder.Services.AddScoped<IIssueService, IssueService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -81,6 +90,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -106,6 +117,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("MyPolicy");
 app.UseHttpsRedirection();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

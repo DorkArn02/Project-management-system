@@ -22,7 +22,7 @@ import { BsThreeDots } from "react-icons/bs"
 
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
-import { addIssueToBoard, deleteIssueFromBoard } from '../api/issue'
+import { addIssueToBoard, changeIssuePosition, changeIssuePosition2, changeIssuePosition3, deleteIssueFromBoard } from '../api/issue'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import { MultiSelect } from "chakra-multiselect"
@@ -52,7 +52,7 @@ export default function ProjectBoards() {
 
     useEffect(() => {
         const fetchProject = async () => {
-            const result = await getProjectById(user.accessToken, projectId)
+            const result = await getProjectById(projectId)
             setTimeout(() => {
                 setProject(result.data)
 
@@ -60,14 +60,12 @@ export default function ProjectBoards() {
                 result.data.participants.forEach(item => {
                     arr.push({ label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
                 })
-
                 setPeople(arr)
-
             }, 500)
         }
         fetchProject()
         const fetchProjectBoards = async () => {
-            const result = await getProjectBoards(projectId, user.accessToken)
+            const result = await getProjectBoards(projectId)
             setBoards(result.data)
         }
         fetchProjectBoards()
@@ -79,9 +77,14 @@ export default function ProjectBoards() {
         onOpenIssue()
     }
 
+    const refreshBoards = async () => {
+        const result = await getProjectBoards(projectId)
+        setBoards(result.data)
+    }
+
     const handleAddBoard = async (data) => {
         try {
-            await addProjectBoard(project.id, user.accessToken, { title: data.title, position: boards.length + 1 })
+            await addProjectBoard(project.id, { title: data.title, position: boards.length + 1 })
             toast({
                 title: 'Board sikeresen létrehozva a projekthez.',
                 description: "",
@@ -89,6 +92,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
+            refreshBoards()
             handleCloseAddBoard()
         } catch (e) {
             toast({
@@ -132,15 +136,45 @@ export default function ProjectBoards() {
     }
 
     // react-beautiful-dnd handle logic
-    const handleOnDragEnd = (result) => {
+    const handleOnDragEnd = async (result) => {
         if (!result.destination) {
             return;
         }
+        // csere oszlopok között
         if (result.source.droppableId !== result.destination.droppableId) {
             const sourceList = boards.filter(b => b.id === result.source.droppableId)[0]
             const destinationList = boards.filter(b => b.id === result.destination.droppableId)[0]
-            const [removed] = sourceList.issues.splice(result.source.index, 1);
-            destinationList.issues.splice(result.destination.index, 0, removed);
+
+            const sourceItem = sourceList.issues[result.source.index]
+            const destItem = destinationList.issues[result.destination.index]
+            // helyet cserélne
+            if (destItem) {
+                const tempPosition = sourceItem.position;
+                sourceItem.position = destItem.position;
+                destItem.position = tempPosition;
+
+                const [removed] = sourceList.issues.splice(result.source.index, 1);
+                destinationList.issues.splice(result.destination.index, 0, removed);
+
+                const resss = await changeIssuePosition(projectId, result.source.droppableId,
+                    result.destination.droppableId, sourceItem.id,
+                    destItem.id)
+            }
+            else {
+                sourceList.issues.splice(result.source.index, 1);
+                destinationList.issues.splice(result.destination.index, 0, sourceItem);
+                // utolsó helyre és előtte van elem
+                if (destinationList.issues[result.destination.index - 1]) {
+                    const resss = await changeIssuePosition3(projectId, result.source.droppableId,
+                        result.destination.droppableId, sourceItem.id,
+                        destinationList.issues[result.destination.index - 1].id)
+                } else {
+                    sourceItem.position = 1
+                    const resss = await changeIssuePosition2(projectId, result.source.droppableId,
+                        result.destination.droppableId, sourceItem.id)
+                }
+
+            }
 
             const newBoards = boards.map(item => {
                 if (item.id === result.source.droppableId) {
@@ -155,10 +189,17 @@ export default function ProjectBoards() {
             setBoards(newBoards)
 
         }
+        // csere soron belül
         else {
             const sourceList = boards.filter(b => b.id === result.source.droppableId)[0]
+
             const [removed] = sourceList.issues.splice(result.source.index, 1);
             sourceList.issues.splice(result.destination.index, 0, removed);
+
+
+            const tempPosition = sourceList.issues[result.source.index].position;
+            sourceList.issues[result.source.index].position = sourceList.issues[result.destination.index].position;
+            sourceList.issues[result.destination.index].position = tempPosition;
 
             const newBoards = boards.map(item => {
                 if (item.id === result.source.droppableId) {
@@ -169,6 +210,9 @@ export default function ProjectBoards() {
             })
 
             setBoards(newBoards)
+            await changeIssuePosition(projectId, result.source.droppableId,
+                result.source.droppableId, sourceList.issues[result.source.index].id,
+                sourceList.issues[result.destination.index].id)
 
         }
     }
@@ -179,20 +223,26 @@ export default function ProjectBoards() {
     }
 
     const handleAddIssueForm = async (object) => {
-        const result =
-            await addIssueToBoard(projectId, currentBoardId,
-                { ...object, position: boards.filter(i => i.id === currentBoardId)[0].issues.length + 1 }, assignedPeople)
-        if (result) {
-            toast({
-                title: 'Issue sikeresen létrehozva!.',
-                description: "",
-                status: 'success',
-                duration: 4000,
-                isClosable: true,
-            })
-            await updateProjectBoards()
-            onCloseAddIssue()
-        }
+        // Legnagyobb position megkeresése
+        const b = boards.filter(i => i.id === currentBoardId)[0].issues
+        let maxPos = 0
+        b.forEach(i => {
+            if (i.position > maxPos)
+                maxPos = i.position
+        })
+
+        await addIssueToBoard(projectId, currentBoardId,
+            { ...object, position: maxPos + 1 }, assignedPeople)
+        toast({
+            title: 'Issue sikeresen létrehozva!.',
+            description: "",
+            status: 'success',
+            duration: 4000,
+            isClosable: true,
+        })
+        await updateProjectBoards()
+        onCloseAddIssue()
+
     }
 
     const handleAddIssueClose = () => {
@@ -202,7 +252,7 @@ export default function ProjectBoards() {
     }
 
     const updateProjectBoards = async () => {
-        const result = await getProjectBoards(projectId, user.accessToken)
+        const result = await getProjectBoards(projectId)
         setBoards(result.data)
     }
 
@@ -232,12 +282,13 @@ export default function ProjectBoards() {
     else
         return (
             <>
+                {/* Board létrehozása */}
                 <Modal isOpen={isOpen} onClose={handleCloseAddBoard}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Board hozzáadása a projekthez</ModalHeader>
                         <ModalCloseButton />
-                        <form onSubmit={handleSubmit(handleAddBoard)}>
+                        <form autoComplete='off' onSubmit={handleSubmit(handleAddBoard)}>
                             <ModalBody>
                                 <FormControl isInvalid={errors.title}>
                                     <FormLabel>Tábla neve</FormLabel>
@@ -254,12 +305,12 @@ export default function ProjectBoards() {
                         </form>
                     </ModalContent>
                 </Modal>
-
+                {/* Issue létrehozása */}
                 <Modal size="xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Ügy létrehozása</ModalHeader>
-                        <form onSubmit={handleSubmit(handleAddIssueForm)}>
+                        <form autoComplete='off' onSubmit={handleSubmit(handleAddIssueForm)}>
                             <ModalBody>
                                 <Stack spacing={5}>
                                     <FormControl isRequired>
@@ -303,7 +354,7 @@ export default function ProjectBoards() {
                         </form>
                     </ModalContent>
                 </Modal>
-
+                {/* Issue törlése */}
                 <Modal isOpen={isOpenDelete} onClose={onCloseDelete}>
                     <ModalOverlay />
                     <ModalContent>
@@ -320,7 +371,7 @@ export default function ProjectBoards() {
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
-
+                {/* Issue megtekintése */}
                 <Modal size="3xl" isOpen={isOpenIssue} onClose={onCloseIssue}>
                     <ModalOverlay />
                     {currentIssue ?
@@ -347,7 +398,7 @@ export default function ProjectBoards() {
                                     </Flex>
                                     <Box w="full">
                                         <FormLabel>Státusz</FormLabel>
-                                        <Select>
+                                        <Select defaultValue={currentBoardId}>
                                             {boards.map((j, k) => {
                                                 return <option key={k} value={j.id}>{j.title}</option>
                                             })}
@@ -420,8 +471,9 @@ export default function ProjectBoards() {
                                 >
                                     <HStack>
                                         <Tooltip label={i.title}>
-                                            <Text noOfLines={"1"} textTransform={"uppercase"}>{i.title} - {i.issues.length}</Text>
+                                            <Text noOfLines={"1"} textTransform={"uppercase"}>{i.title}</Text>
                                         </Tooltip>
+                                        <Text>{i.issues.length}</Text>
                                         <Spacer />
                                         <IconButton variant={"ghost"} icon={<BsThreeDots size={25} />} />
                                     </HStack>
@@ -438,9 +490,9 @@ export default function ProjectBoards() {
                                                         return <Draggable key={issue.id} index={key} draggableId={`${issue.id}`}>
                                                             {provided => (
                                                                 <VStack _hover={{ bg: "gray.100", cursor: 'pointer' }} onClick={() => handleOpenIssue(issue, i.id)} ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps} key={key} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
-                                                                    <Text>{issue.title}</Text>
+                                                                    <Text>{issue.title} {issue.position}</Text>
                                                                     <HStack w={"full"}>
-                                                                        <AiFillCheckSquare color='blue' />
+                                                                        <AiFillCheckSquare color='rgb(100,50,200)' />
                                                                         {handlePriorityIcon(issue.priority)}
                                                                         <Spacer />
                                                                         <AvatarGroup size="xs" max={2}>

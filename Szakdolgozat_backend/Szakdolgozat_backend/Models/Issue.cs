@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Szakdolgozat_backend.Models;
 
@@ -35,6 +33,7 @@ public partial class Issue
     public virtual ICollection<AssignedPerson> AssignedPeople { get; set; } = new List<AssignedPerson>();
 
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
+
     [JsonIgnore]
     public virtual Priority? Priority { get; set; }
     [JsonIgnore]

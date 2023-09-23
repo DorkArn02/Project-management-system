@@ -10,6 +10,7 @@ import Projects from './components/Projects.jsx'
 import ProjectBoards from './components/ProjectBoards.jsx'
 import { MultiSelectTheme } from 'chakra-multiselect'
 import MyTasks from './components/MyTasks.jsx'
+import MyProfile from './components/MyProfile.jsx'
 
 const theme = extendTheme({
   components: {
@@ -41,6 +42,10 @@ const router = createBrowserRouter([
       {
         path: '/dashboard/tasks',
         element: <MyTasks />
+      },
+      {
+        path: '/dashboard/myprofile',
+        element: <MyProfile />
       }
     ]
   }

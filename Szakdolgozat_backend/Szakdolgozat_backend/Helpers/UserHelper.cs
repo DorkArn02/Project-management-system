@@ -22,5 +22,10 @@ namespace Szakdolgozat_backend.Helpers
         {
             return Guid.Parse(c.User.FindFirstValue(ClaimTypes.NameIdentifier));
         }
+
+        public Guid GetAuthorizedUserGuid2(IHttpContextAccessor httpContext)
+        {
+            return Guid.Parse(httpContext.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier));
+        }
     }
 }

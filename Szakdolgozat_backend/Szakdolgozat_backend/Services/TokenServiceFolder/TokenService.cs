@@ -5,7 +5,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Szakdolgozat_backend.Services
+namespace Szakdolgozat_backend.Services.TokenServiceFolder
 {
     public class TokenService : ITokenService
     {
@@ -17,7 +17,7 @@ namespace Szakdolgozat_backend.Services
             _config = config;
             _distributedCache = distributedCache;
         }
-    
+
         public string GenerateAccessToken(List<Claim> claims)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));

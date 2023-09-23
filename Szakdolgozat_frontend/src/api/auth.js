@@ -15,14 +15,3 @@ export const registerUser = async (registerObject) => {
     })
     return user.data
 }
-
-// export const renewAccessTokenWithRefreshToken = async (accessToken, refreshToken) => {
-//     const config = {
-//         headers: {
-//             Authorization: `Bearer ${accessToken}`
-//         },
-//     }
-//     const response = await axios.post(`https://localhost:7093/api/Auth/refresh/${refreshToken}`, null, config)
-//     const data = await response.data
-//     return data
-// }

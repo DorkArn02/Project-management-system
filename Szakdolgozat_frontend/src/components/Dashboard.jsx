@@ -17,7 +17,7 @@ import {
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
 import { FaArrowLeft, FaArrowRight, FaMoon, FaSun, FaTasks, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
-import { BiLogOut } from 'react-icons/bi';
+import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -27,7 +27,7 @@ export default function Dashboard() {
     const { user, logout } = useAuth()
     const navigate = useNavigate()
 
-    const [opened, setOpened] = useState(true)
+    const [opened, setOpened] = useState(JSON.parse(localStorage.getItem("opened")))
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -37,6 +37,11 @@ export default function Dashboard() {
         }
 
     }, [user])
+
+    const handleOpened = () => {
+        setOpened(!opened)
+        localStorage.setItem("opened", JSON.stringify(!opened))
+    }
 
     if (user == null) {
         return ""
@@ -53,7 +58,7 @@ export default function Dashboard() {
                             <Text>Biztos kijelentkezel?</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button onClick={() => logout()} colorScheme='blue' mr={3} variant='solid'>Kijelentkezés</Button>
+                            <Button onClick={logout} colorScheme='blue' mr={3} variant='solid'>Kijelentkezés</Button>
                             <Button onClick={onClose}>
                                 Visszavonás
                             </Button>
@@ -81,9 +86,10 @@ export default function Dashboard() {
                             {opened ? <><AiFillProject color={colorMode === 'light' ? 'black' : 'white'} size={30} />
                                 <Text fontSize="lg" fontWeight="bold">
                                     PM
-                                </Text>                        <Spacer />
+                                </Text>
+                                <Spacer />
                             </> : ""}
-                            <IconButton onClick={() => setOpened(!opened)} icon={opened ? <FaArrowLeft /> : <FaArrowRight />} />
+                            <IconButton onClick={handleOpened} icon={opened ? <FaArrowLeft /> : <FaArrowRight />} />
                         </Stack>
 
                         <Stack gap={3} align="center" direction={"row"} p={2}>
@@ -95,8 +101,11 @@ export default function Dashboard() {
                         </Stack>
                         <Button onClick={() => navigate('/dashboard')} leftIcon={<AiOutlineProject />} variant={"ghost"}>{opened ? "Projektek" : ""} </Button>
                         <Button onClick={() => navigate('/dashboard/tasks')} leftIcon={<FaTasks />} variant={"ghost"}>{opened ? "Saját feladataim" : ""}</Button>
+                        <Button variant={"ghost"} leftIcon={<BiStats />}>
+                            {opened ? "Statisztikák" : ""}
+                        </Button>
                         <Spacer />
-                        <Button onClick={() => navigate('/dashboard')} leftIcon={<FaUser />} variant="ghost" >{opened ? "Saját fiók" : ""}</Button>
+                        <Button onClick={() => navigate('/dashboard/myprofile')} leftIcon={<FaUser />} variant="ghost" >{opened ? "Saját fiók" : ""}</Button>
                         <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? "Téma váltása" : ""}</Button>
                         <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? "Kijelentkezés" : ""}</Button>
                     </Box>

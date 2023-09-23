@@ -11,10 +11,6 @@ public partial class Priority
     public string Name { get; set; } = null!;
 
     public int Lvl { get; set; }
-
-    public string? Color { get; set; }
-
-    public string? IconName { get; set; }
     [JsonIgnore]
     public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
 }

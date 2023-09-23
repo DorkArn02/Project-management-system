@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 
-namespace Szakdolgozat_backend.Services
+namespace Szakdolgozat_backend.Services.TokenServiceFolder
 {
     public interface ITokenService
     {

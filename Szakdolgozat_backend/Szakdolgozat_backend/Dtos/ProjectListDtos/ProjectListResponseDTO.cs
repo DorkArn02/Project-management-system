@@ -10,7 +10,6 @@ namespace Szakdolgozat_backend.Dtos.ProjectListDtos
 
         public int Position { get; set; }
 
-        public string? Color { get; set; }
 
         public Guid ProjectId { get; set; }
 

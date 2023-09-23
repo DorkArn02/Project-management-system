@@ -6,5 +6,6 @@ namespace Szakdolgozat_backend.Helpers
     {
         public bool IsUserMemberOfProject(Guid userId, Guid projectId);
         public Guid GetAuthorizedUserGuid(ControllerBase c);
+        public Guid GetAuthorizedUserGuid2(IHttpContextAccessor httpContext);
     }
 }

@@ -6,6 +6,5 @@
 
         public int Position { get; set; }
 
-        public string? Color { get; set; }
     }
 }

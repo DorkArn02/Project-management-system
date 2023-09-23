@@ -1,9 +1,9 @@
 import React from 'react'
-import { Heading, Flex, Skeleton, Spinner, Stack, Input, InputGroup, InputRightElement, Table, Avatar, Thead, Tr, Th, Td, useDisclosure, AvatarGroup, Tooltip, IconButton, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, Textarea, FormLabel, useToast, Text, FormErrorMessage } from "@chakra-ui/react"
+import { Flex, Spinner, Stack, Input, InputGroup, InputRightElement, Table, Avatar, Thead, Tr, Th, Td, useDisclosure, AvatarGroup, Tooltip, IconButton, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, Textarea, FormLabel, useToast, Text, FormErrorMessage } from "@chakra-ui/react"
 import { FaArrowRight, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
 import { useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { assignPeopleToProject, createUserProject, deleteProject, getUserProjects, updateProject } from '../api/project'
+import { assignPeopleToProject, createUserProject, deleteProject, getUserProjects, removePeopleFromProject, updateProject } from '../api/project'
 import { useState } from 'react'
 import moment from "moment"
 import { FiSettings } from 'react-icons/fi'
@@ -26,41 +26,31 @@ export default function Projects() {
     const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
     const { isOpen: isOpenModify, onOpen: onOpenModify, onClose: onCloseModify } = useDisclosure()
     const { isOpen: isOpenPeople, onOpen: onOpenPeople, onClose: onClosePeople } = useDisclosure()
+    const { isOpen: isOpenDeletePeople, onOpen: onOpenDeletePeople, onClose: onCloseDeletePeople } = useDisclosure()
 
-    const [title, setTitle] = useState("")
-    const [description, setDescription] = useState("")
     const [currentProject, setCurrentProject] = useState({})
+    const [personId, setPersonId] = useState()
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    const { register: registerAddPerson, handleSubmit: handleSubmitAddPerson, reset: resetAddPerson, formState: { errors: errorsAddPerson } } = useForm();
+    const { register: registerCreate, handleSubmit: handleSubmitCreate, reset: resetCreate, formState: { errors: errorsCreate } } = useForm();
+    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
 
     const toast = useToast()
     const navigate = useNavigate()
 
-    const createProject = async () => {
-        try {
-            await createUserProject({ title, description }, user.accessToken)
-            toast({
-                title: 'Projekt létrehozva.',
-                description: "",
-                status: 'success',
-                duration: 4000,
-                isClosable: true,
-            })
-            onClose()
-        } catch (error) {
-            toast({
-                title: 'Hiba.',
-                description: "Projekt létrehozása sikertelen",
-                status: 'error',
-                duration: 4000,
-                isClosable: true,
-            })
+    useEffect(() => {
+        const fetchProjects = async () => {
+            const result = await getUserProjects()
+            setTimeout(() => {
+                setProject(result.data)
+            }, 500)
         }
-    }
+        fetchProjects()
+    }, [])
 
-    const handleDeleteProject = async (projectObject) => {
+    const handleDeleteProject = async () => {
         try {
-            await deleteProject(projectObject.id, user.accessToken)
+            await deleteProject(currentProject.id)
             toast({
                 title: 'Projekt törlése sikeres.',
                 description: "",
@@ -69,6 +59,7 @@ export default function Projects() {
                 isClosable: true,
             })
             onCloseDelete()
+            await refreshProjectList()
             setCurrentProject({})
         } catch (error) {
             toast({
@@ -94,7 +85,7 @@ export default function Projects() {
 
     const handleAddPeople = async (data) => {
         try {
-            await assignPeopleToProject(currentProject.id, user.accessToken, data.email)
+            await assignPeopleToProject(currentProject.id, data.email)
             toast({
                 title: 'Siker.',
                 description: "Személy hozzárendelés sikeres",
@@ -102,8 +93,9 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
+            await refreshProjectList()
             onClosePeople()
-            reset()
+            resetAddPerson()
         } catch (e) {
             toast({
                 title: 'Hiba.',
@@ -112,24 +104,24 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
-            reset()
+            resetAddPerson()
+            onClosePeople()
         }
     }
 
-    const handleDeletePeople = async (userId) => {
-
+    const handleModifyClose = () => {
+        resetEdit()
+        onCloseModify()
     }
 
     const handleModifyOpen = (projectObject) => {
         setCurrentProject(projectObject)
-        setTitle(projectObject.title)
-        setDescription(projectObject.description)
         onOpenModify()
     }
 
-    const handleModifyProject = async (projectObject) => {
+    const handleModifyProject = async (object) => {
         try {
-            await updateProject(projectObject.id, user.accessToken, { title, description })
+            await updateProject(currentProject.id, { title: object.title, description: object.description })
             toast({
                 title: 'Projekt adatainak módosítása sikeres.',
                 description: "",
@@ -137,6 +129,7 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
+            await refreshProjectList()
             onCloseModify()
             setCurrentProject({})
         } catch (error) {
@@ -147,8 +140,19 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
+            onCloseModify()
             setCurrentProject({})
         }
+    }
+
+    const handleCloseAddPerson = () => {
+        resetAddPerson()
+        onClosePeople()
+    }
+
+    const refreshProjectList = async () => {
+        const result = await getUserProjects()
+        setProject(result.data)
     }
 
     const IsUserProjectOwner = (participants) => {
@@ -158,15 +162,55 @@ export default function Projects() {
         return false
     }
 
-    useEffect(() => {
-        const fetchProjects = async () => {
-            const result = await getUserProjects(user.accessToken)
-            setTimeout(() => {
-                setProject(result.data)
-            }, 500)
+    const createProject = async (object) => {
+        try {
+            await createUserProject({ title: object.title, description: object.description })
+            toast({
+                title: 'Projekt létrehozva.',
+                description: "",
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            await refreshProjectList()
+            handleProjectCreateClose()
+        } catch (error) {
+            toast({
+                title: 'Hiba.',
+                description: "Projekt létrehozása sikertelen",
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
         }
-        fetchProjects()
-    }, [])
+    }
+
+    const handleProjectCreateClose = () => {
+        resetCreate()
+        onClose()
+    }
+
+    const handleOpenDeletePeople = (id) => {
+        setPersonId(id)
+        onOpenDeletePeople()
+    }
+
+    const handleDeletePeople = async () => {
+        try {
+            await removePeopleFromProject(currentProject.id, personId)
+            toast({
+                title: 'Személy törölve..',
+                description: "",
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            await refreshProjectList()
+            onCloseDeletePeople()
+        } catch (e) {
+            console.log(e)
+        }
+    }
 
     if (project == null) {
         return <Flex h="100vh" w="full" align="center" justify="center">
@@ -177,32 +221,34 @@ export default function Projects() {
         return (
             <>
                 {/* Project létrehozás */}
-                <Modal isOpen={isOpen} onClose={onClose}>
+                <Modal isOpen={isOpen} onClose={handleProjectCreateClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Projekt létrehozása</ModalHeader>
                         <ModalCloseButton />
-                        <ModalBody>
-                            <form>
+                        <form autoComplete='off' onSubmit={handleSubmitCreate(createProject)}>
+                            <ModalBody>
                                 <Stack>
-                                    <FormControl>
+                                    <FormControl isRequired isInvalid={errorsCreate.title}>
                                         <FormLabel>Projekt cím</FormLabel>
-                                        <Input onChange={(e) => setTitle(e.target.value)} placeholder="Projekt cím" />
+                                        <Input {...registerCreate("title", { required: true })} placeholder="Projekt cím" />
+                                        {errorsCreate.title ? <FormErrorMessage>
+                                            Kérem adja meg a projekt címét.
+                                        </FormErrorMessage> : ""}
                                     </FormControl>
-                                    <FormControl>
+                                    <FormControl isInvalid={errorsAddPerson.description}>
                                         <FormLabel>Projekt leírás</FormLabel>
-                                        <Textarea onChange={(e) => setDescription(e.target.value)} placeholder="Projekt leírás" />
+                                        <Textarea {...registerCreate("description", { required: false })} placeholder="Projekt leírás" />
                                     </FormControl>
                                 </Stack>
-                            </form>
-                        </ModalBody>
-
-                        <ModalFooter>
-                            <Button colorScheme='blue' mr={3} onClick={onClose}>
-                                Visszavonás
-                            </Button>
-                            <Button onClick={() => createProject()} variant='ghost'>Létrehozás</Button>
-                        </ModalFooter>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button mr={3} onClick={onClose}>
+                                    Visszavonás
+                                </Button>
+                                <Button type="submit" colorScheme='blue'>Létrehozás</Button>
+                            </ModalFooter>
+                        </form>
                     </ModalContent>
                 </Modal>
                 {/* Project törlése */}
@@ -215,50 +261,56 @@ export default function Projects() {
                             <Text>Biztosan szeretné törölni a projektet? A hozzá tartozó táblák és ticket-ek is törlésre kerülnek.</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button colorScheme='blue' mr={3} onClick={() => handleDeleteProject(currentProject.id)} variant='solid'>Törlés</Button>
-                            <Button onClick={onCloseDelete}>
+                            <Button mr={3} onClick={onCloseDelete}>
                                 Visszavonás
                             </Button>
+                            <Button colorScheme='blue' onClick={() => handleDeleteProject()} variant='solid'>Törlés</Button>
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
                 {/* Project frissítése */}
-                <Modal isOpen={isOpenModify} onClose={onCloseModify}>
+                <Modal isOpen={isOpenModify} onClose={handleModifyClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Projekt adatainak módosítása</ModalHeader>
                         <ModalCloseButton />
-                        <ModalBody>
+                        <form onSubmit={handleSubmitEdit(handleModifyProject)}>
                             <ModalBody>
-                                <form>
+                                <ModalBody>
                                     <Stack>
-                                        <FormControl>
+                                        <FormControl isRequired isInvalid={errorsEdit.title}>
                                             <FormLabel>Projekt cím</FormLabel>
-                                            <Input defaultValue={currentProject.title} onChange={(e) => setTitle(e.target.value)} placeholder="Projekt cím" />
+                                            <Input defaultValue={currentProject.title} {...registerEdit("title", { required: true, })} placeholder="Projekt cím" />
+                                            {errorsEdit && errorsEdit.title ?
+                                                <FormErrorMessage>
+                                                    Kérem adja meg a projekt címét.
+                                                </FormErrorMessage>
+                                                : ""}
                                         </FormControl>
                                         <FormControl>
                                             <FormLabel>Projekt leírás</FormLabel>
-                                            <Textarea defaultValue={currentProject.description} onChange={(e) => setDescription(e.target.value)} placeholder="Projekt leírás" />
+                                            <Textarea {...registerEdit("description")} defaultValue={currentProject.description} placeholder="Projekt leírás" />
                                         </FormControl>
                                     </Stack>
-                                </form>
+                                </ModalBody>
                             </ModalBody>
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button colorScheme='blue' mr={3} onClick={() => handleModifyProject(currentProject)} variant='solid'>Módosít</Button>
-                            <Button onClick={onCloseModify}>
-                                Visszavonás
-                            </Button>
-                        </ModalFooter>
+                            <ModalFooter>
+                                <Button colorScheme='blue' mr={3} type="submit" variant='solid'>Módosít</Button>
+                                <Button onClick={onCloseModify}>
+                                    Visszavonás
+                                </Button>
+                            </ModalFooter>
+                        </form>
+
                     </ModalContent>
                 </Modal>
                 {/* Project személyek kezelése */}
-                <Modal size={"3xl"} isOpen={isOpenPeople} onClose={onClosePeople}>
+                <Modal size={"3xl"} isOpen={isOpenPeople} onClose={handleCloseAddPerson}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Projekthez hozzárendelt személyek módosítása</ModalHeader>
                         <ModalCloseButton />
-                        <form onSubmit={handleSubmit(handleAddPeople)}>
+                        <form onSubmit={handleSubmitAddPerson(handleAddPeople)}>
                             <ModalBody>
                                 <Stack>
                                     <Table>
@@ -275,16 +327,16 @@ export default function Projects() {
                                                     <Td>{`${i.lastName} ${i.firstName}`}</Td>
                                                     <Td>{i.roleName}</Td>
                                                     <Td>
-                                                        <IconButton isDisabled={i.userId === user.id} colorScheme='red' icon={<FaTrash />} />
+                                                        <IconButton isDisabled={i.userId === user.id} colorScheme='red' onClick={() => handleOpenDeletePeople(i.userId)} icon={<FaTrash />} />
                                                     </Td>
                                                 </Tr>
                                             })}
                                         </Tbody>
                                     </Table>
-                                    <FormControl isInvalid={errors.email}>
+                                    <FormControl isRequired isInvalid={errorsAddPerson.email}>
                                         <FormLabel>Személy meghívása a projektbe</FormLabel>
-                                        <Input  {...register("email", { required: true })} type="email" placeholder="E-mail cím" />
-                                        {errors.email ? <FormErrorMessage>Kérem adja meg a meghívandó személy e-mail címét</FormErrorMessage> : ""}
+                                        <Input  {...registerAddPerson("email", { required: true })} type="email" placeholder="E-mail cím" />
+                                        {errorsAddPerson.email ? <FormErrorMessage>Kérem adja meg a meghívandó személy e-mail címét</FormErrorMessage> : ""}
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
@@ -295,6 +347,23 @@ export default function Projects() {
                                 </Button>
                             </ModalFooter>
                         </form>
+                    </ModalContent>
+                </Modal>
+                {/* Projekt személy törlés megerősítés */}
+                <Modal isOpen={isOpenDeletePeople} onClose={onCloseDeletePeople}>
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>Személy törlése</ModalHeader>
+                        <ModalCloseButton />
+                        <ModalBody>
+                            <Text>Biztosan törölnéd ezt a személyt a projekről?</Text>
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button mr={3} onClick={onCloseDeletePeople}>
+                                Visszavonás
+                            </Button>
+                            <Button colorScheme='blue' onClick={() => handleDeletePeople()} variant='solid'>Törlés</Button>
+                        </ModalFooter>
                     </ModalContent>
                 </Modal>
                 <Flex gap={"20px"} flexDirection={"column"} mt={5}>
