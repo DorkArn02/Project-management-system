@@ -335,7 +335,7 @@ export default function Projects() {
                                     </Table>
                                     <FormControl isRequired isInvalid={errorsAddPerson.email}>
                                         <FormLabel>Személy meghívása a projektbe</FormLabel>
-                                        <Input  {...registerAddPerson("email", { required: true })} type="email" placeholder="E-mail cím" />
+                                        <Input autoComplete='new-password' {...registerAddPerson("email", { required: true })} type="email" placeholder="E-mail cím" />
                                         {errorsAddPerson.email ? <FormErrorMessage>Kérem adja meg a meghívandó személy e-mail címét</FormErrorMessage> : ""}
                                     </FormControl>
                                 </Stack>

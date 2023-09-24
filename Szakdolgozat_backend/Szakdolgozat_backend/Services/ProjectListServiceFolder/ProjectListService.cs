@@ -29,8 +29,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             if (p == null)
                 throw new NotFoundException("Project not found.");
 
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             if (listRequestDTO.Position < 0)
                 throw new BadRequestException("Position can not be negative.");
@@ -62,8 +62,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             if (p == null)
                 throw new NotFoundException("Project not found.");
 
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             ProjectList? projectList = await _db.ProjectLists.Where(p => p.ProjectId == projectId
             && p.Id == projectListId).FirstOrDefaultAsync();
@@ -236,6 +236,29 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 }
             }
             return issueResponseDTOs;
+        }
+
+        public async Task<ProjectList> UpdateProjectList(Guid projectId, Guid projectListID, string title)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+            Project? p = await _db.Projects.FindAsync(projectId);
+            ProjectList? projectList = await _db.ProjectLists.FindAsync(projectListID);
+
+            if (p == null)
+                throw new NotFoundException("Project not found.");
+
+            if (projectList == null)
+                throw new NotFoundException("Project list not found.");
+
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+
+            projectList.Title = title;
+
+            _db.ProjectLists.Update(projectList);
+            await _db.SaveChangesAsync();
+
+            return projectList;
         }
     }
 }

@@ -12,6 +12,7 @@ using Szakdolgozat_backend.Services.IssueServiceFolder;
 using Szakdolgozat_backend.Services.ProjectListServiceFolder;
 using Szakdolgozat_backend.Services.ProjectServiceFolder;
 using Szakdolgozat_backend.Services.TokenServiceFolder;
+using Szakdolgozat_backend.Services.UserServiceFolder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectListService, ProjectListService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

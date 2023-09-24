@@ -14,7 +14,7 @@ export default function MyProfile() {
     const handlePasswordChange = async (object) => {
         const result = await changePassword(object)
 
-
+        console.log(result)
     }
 
     return (

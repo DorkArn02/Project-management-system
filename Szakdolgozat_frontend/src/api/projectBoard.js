@@ -12,3 +12,10 @@ export const addProjectBoard = async (projectId, boardObject) => {
 
     return projects
 }
+
+export const editProjectBoard = async (projectId, projectListId, title) => {
+    const project =
+        await api.put(`/ProjectList/Edit/${projectId}/${projectListId}`, `${title.title}`)
+
+    return project
+}

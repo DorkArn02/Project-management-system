@@ -56,5 +56,13 @@ namespace Szakdolgozat_backend.Controllers
 
             return Ok(result);
         }
+
+        [HttpPut("Edit/{projectId}/{projectListId}")]
+        public async Task<IActionResult> EditProjectList(Guid projectId, Guid projectListId, [FromBody] string title)
+        {
+            var result = await _projectListService.UpdateProjectList(projectId, projectListId, title);
+
+            return Ok(result);
+        }
     }
 }

@@ -12,11 +12,12 @@ import {
     Avatar,
     Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
     Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton,
-    Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode
+    Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode,
+    Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
-import { FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
-import { addProjectBoard, getProjectBoards } from '../api/projectBoard'
+import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
+import { addProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
 import { useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 
@@ -26,6 +27,13 @@ import { addIssueToBoard, changeIssuePosition, changeIssuePosition2, changeIssue
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import { MultiSelect } from "chakra-multiselect"
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { EditorState, convertFromRaw, convertToRaw } from 'draft-js';
+import { Editor } from 'react-draft-wysiwyg';
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { convertToHTML, convertFromHTML } from "draft-convert"
+import DOMPurify from 'dompurify';
 
 export default function ProjectBoards() {
 
@@ -38,8 +46,10 @@ export default function ProjectBoards() {
     const { isOpen: isOpenAddIssue, onOpen: onOpenAddIssue, onClose: onCloseAddIssue } = useDisclosure()
     const { isOpen: isOpenIssue, onOpen: onOpenIssue, onClose: onCloseIssue } = useDisclosure()
     const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
+    const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
 
     const [currentIssue, setCurrentIssue] = useState()
     const [currentBoardId, setCurrentBoardId] = useState()
@@ -217,6 +227,22 @@ export default function ProjectBoards() {
         }
     }
 
+    const [editorState, setEditorState] = useState(
+        () => EditorState.createEmpty(),
+    );
+    const [convertedContent, setConvertedContent] = useState(null);
+
+    useEffect(() => {
+        let html = convertToHTML(editorState.getCurrentContent());
+        setConvertedContent(html);
+    }, [editorState]);
+
+    function createMarkup(html) {
+        return {
+            __html: DOMPurify.sanitize(html)
+        }
+    }
+
     const handleAddIsueOpen = (boardId) => {
         setCurrentBoardId(boardId)
         onOpenAddIssue()
@@ -232,7 +258,7 @@ export default function ProjectBoards() {
         })
 
         await addIssueToBoard(projectId, currentBoardId,
-            { ...object, position: maxPos + 1 }, assignedPeople)
+            { ...object, description: convertToHTML(editorState.getCurrentContent()), position: maxPos + 1 }, assignedPeople)
         toast({
             title: 'Issue sikeresen létrehozva!.',
             description: "",
@@ -242,14 +268,16 @@ export default function ProjectBoards() {
         })
         await updateProjectBoards()
         onCloseAddIssue()
-
     }
 
     const handleAddIssueClose = () => {
         reset()
+        setConvertedContent("")
+        setEditorState(EditorState.createEmpty())
         setAssignedPeople([])
         onCloseAddIssue()
     }
+
 
     const updateProjectBoards = async () => {
         const result = await getProjectBoards(projectId)
@@ -271,6 +299,50 @@ export default function ProjectBoards() {
         }
         else if (priority.name === "Highest") {
             return <FcHighPriority color={priority.color} />
+        }
+    }
+
+    const [title, setTitle] = useState("")
+
+    const handleBoardEditOpen = (obj, obj2) => {
+        setTitle(obj)
+        setCurrentBoardId(obj2)
+        onOpenBoardEdit()
+    }
+
+    const handleBoardEditClose = () => {
+        setCurrentBoardId()
+        resetEdit()
+        setTitle("")
+        onCloseBoardEdit()
+    }
+
+    const IsUserProjectOwner = (participants) => {
+        if (participants.filter(i => i.userId === user.id && i.roleName === "Owner").length !== 0) {
+            return true
+        }
+        return false
+    }
+
+    const handleBoardEdit = async (obj) => {
+        try {
+            const response = await editProjectBoard(projectId, currentBoardId, obj)
+            toast({
+                title: 'Board címe frissítve.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            await updateProjectBoards()
+            handleBoardEditClose()
+        } catch (e) {
+            toast({
+                title: 'Sikertelen művelet.',
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+            handleBoardEditClose()
         }
     }
 
@@ -306,7 +378,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal>
                 {/* Issue létrehozása */}
-                <Modal size="xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
+                <Modal size="3xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Ügy létrehozása</ModalHeader>
@@ -319,7 +391,12 @@ export default function ProjectBoards() {
                                     </FormControl>
                                     <FormControl>
                                         <FormLabel>Leírás</FormLabel>
-                                        <Textarea type="text" {...register("description", { required: false })} />
+                                        {/*<ReactQuill onChange={(e) => setTxt(e)} />*/}
+                                        <Editor
+                                            editorStyle={{ border: "1px solid gray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                            editorState={editorState}
+                                            onEditorStateChange={setEditorState}
+                                        />
                                     </FormControl>
                                     <FormControl>
                                         {project &&
@@ -389,7 +466,12 @@ export default function ProjectBoards() {
                                     <Flex w="full" direction={"column"}>
                                         <Input mb={5} fontSize={"3xl"} variant={"unstyled"} defaultValue={currentIssue.title} />
                                         <FormLabel>Leírás</FormLabel>
-                                        <Textarea defaultValue={currentIssue.description} mb={5} />
+                                        {/*<ReactQuill value={currentIssue.description} mb={5} />*/}
+                                        {/* <Editor
+                                            editorStyle={{ border: "1px solid gray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                            editorState={EditorState.createWithContent(JSON.parse(convertFromRaw(currentIssue.description)))}
+                                            onEditorStateChange={setEditorState}
+                                        /> */}
                                         <FormLabel>Hozzászólások</FormLabel>
                                         <HStack align="baseline">
                                             <Avatar size="sm" name={currentIssue.reporterName} />
@@ -434,6 +516,31 @@ export default function ProjectBoards() {
                         </ModalContent>
                         : ""}
                 </Modal>
+                {/* Board név módosítása */}
+                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose}>
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>
+                            <Text>Board nevének módosítása</Text>
+                        </ModalHeader>
+                        <ModalCloseButton />
+                        <form autoComplete='off' onSubmit={handleSubmitEdit(handleBoardEdit)}>
+                            <ModalBody>
+                                <FormControl isInvalid={errorsEdit.title}>
+                                    <FormLabel>Tábla neve</FormLabel>
+                                    <Input defaultValue={title} {...registerEdit("title", { required: true })} type="text" />
+                                    {errorsEdit.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
+                                </FormControl>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button onClick={handleBoardEditClose}>
+                                    Visszavonás
+                                </Button>
+                            </ModalFooter>
+                        </form>
+                    </ModalContent>
+                </Modal>
 
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
@@ -475,7 +582,23 @@ export default function ProjectBoards() {
                                         </Tooltip>
                                         <Text>{i.issues.length}</Text>
                                         <Spacer />
-                                        <IconButton variant={"ghost"} icon={<BsThreeDots size={25} />} />
+                                        <Menu>
+                                            <MenuButton
+                                                isDisabled={IsUserProjectOwner(project.participants) ? false : true}
+                                                as={IconButton}
+                                                aria-label='Options'
+                                                icon={<BsThreeDots />}
+                                                variant='outline'
+                                            />
+                                            <MenuList>
+                                                <MenuItem icon={<FaTrash />}>
+                                                    Board törlése
+                                                </MenuItem>
+                                                <MenuItem onClick={() => handleBoardEditOpen(i.title, i.id)} icon={<FaPen />}>
+                                                    Board átnevezése
+                                                </MenuItem>
+                                            </MenuList>
+                                        </Menu>
                                     </HStack>
                                     <Flex as={Button} gap={2} onClick={() => handleAddIsueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                         <FaPlus />
