@@ -1,9 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using Szakdolgozat_backend.Dtos.UserDtos;
-using Szakdolgozat_backend.Helpers;
-using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.UserServiceFolder;
 
 namespace Szakdolgozat_backend.Controllers
 {
@@ -12,88 +10,33 @@ namespace Szakdolgozat_backend.Controllers
     [Authorize]
     public class UserController : ControllerBase
     {
-        private readonly DbCustomContext _db;
-        private readonly IUserHelper _userHelper;
+        private readonly IUserService _userService;
 
-        public UserController(DbCustomContext dbTesztContext, IUserHelper userHelper)
+        public UserController(IUserService userService)
         {
-            _db = dbTesztContext;
-            _userHelper = userHelper;
+            _userService = userService;
         }
 
         [HttpGet("get/{userId}")]
-        public IActionResult GetUserById(Guid userId)
+        public async Task<IActionResult> GetUserById(Guid userId)
         {
-            var user = _db.Users.Find(userId);
+            var result = await _userService.GetUserById(userId);
 
-            if(user == null)
-            {
-                return NotFound("User not found.");
-            }
-
-            UserInfoDTO u = new()
-            {
-                Email = user.Email,
-                FirstName = user.FirstName,
-                Id = user.Id,
-                LastName = user.LastName,
-                ProfilePic = user.ProfilePic,
-                Registered = user.Registered
-            };
-
-            return Ok(u);
+            return Ok(result);
         }
 
         [HttpGet("GetAll")]
-        public IActionResult GetAllResults()
+        public async Task<IActionResult> GetAllResults()
         {
-            List<User> users = _db.Users.ToList();
-            List<UserInfoDTO> result = new();
+            var result = await _userService.GetAllResults();
 
-            foreach(var user in users)
-            {
-                UserInfoDTO u = new()
-                {
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    Id = user.Id,
-                    LastName = user.LastName,
-                    ProfilePic = user.ProfilePic,
-                    Registered = user.Registered
-                };
-
-                result.Add(u);
-            }
             return Ok(result);
         }
 
         [HttpPut("PasswordChange")]
-        public IActionResult ChangeUserPassword(string oldPassword, string password1, string password2)
+        public async Task<IActionResult> ChangeUserPassword([FromBody] ChangePasswordRequestDTO changePasswordRequestDTO)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid(this);
-
-            User? u = _db.Users.Find(userId);
-
-            if(u == null)
-            {
-                return NotFound();
-            }
-
-            string passwordHash =
-                BCrypt.Net.BCrypt.HashPassword(oldPassword);
-
-            if(passwordHash != u.PasswordHash)
-            {
-                return Unauthorized();
-            }
-
-            if(password1 != password2)
-            {
-                return Unauthorized();
-            }
-
-            u.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password1);
-            _db.SaveChanges();
+            await _userService.ChangeUserPassword(changePasswordRequestDTO);
 
             return Ok("Password changed");
         }
