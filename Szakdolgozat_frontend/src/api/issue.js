@@ -4,7 +4,7 @@ import { createStandaloneToast } from "@chakra-ui/react"
 
 const { toast } = createStandaloneToast();
 
-export const addIssueToBoard = async (projectId, boardId, issueObject, assignedPeople) => {
+export const addIssueToBoard = async (projectId, boardId, issueObject, assignedPeople, updateProjectBoards) => {
 
     Object.keys(issueObject).forEach(k => (!issueObject[k] && issueObject[k] !== undefined) && delete issueObject[k]);
 
@@ -16,6 +16,8 @@ export const addIssueToBoard = async (projectId, boardId, issueObject, assignedP
             return result
         }).catch((error) => {
             return error
+        }).finally(() => {
+            updateProjectBoards()
         })
 
 }

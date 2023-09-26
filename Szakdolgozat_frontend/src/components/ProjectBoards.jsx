@@ -13,7 +13,7 @@ import {
     Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
     Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton,
     Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode,
-    Menu, MenuButton, MenuList, MenuItem
+    Menu, MenuButton, MenuList, MenuItem, Progress
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
@@ -23,17 +23,21 @@ import { BsThreeDots } from "react-icons/bs"
 
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
-import { addIssueToBoard, changeIssuePosition, changeIssuePosition2, changeIssuePosition3, deleteIssueFromBoard } from '../api/issue'
+import { addIssueToBoard, deleteIssueFromBoard } from '../api/issue'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import { MultiSelect } from "chakra-multiselect"
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { EditorState, convertFromRaw, convertToRaw } from 'draft-js';
+import { ContentState, EditorState, convertFromRaw, convertToRaw, convertFromHTML } from 'draft-js';
 import { Editor } from 'react-draft-wysiwyg';
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
-import { convertToHTML, convertFromHTML } from "draft-convert"
+import { convertToHTML, } from "draft-convert"
 import DOMPurify from 'dompurify';
+import { createEditor } from 'slate'
+import { Slate, Editable, withReact } from 'slate-react'
+import { useMemo } from 'react'
+import debounce from "lodash/debounce"
 
 export default function ProjectBoards() {
 
@@ -84,6 +88,12 @@ export default function ProjectBoards() {
     const handleOpenIssue = (issueObject, boardId) => {
         setCurrentIssue(issueObject)
         setCurrentBoardId(boardId)
+
+        const contentAsHTML = issueObject.description;
+        const contentBl = convertFromHTML(contentAsHTML);
+        const contentState = ContentState.createFromBlockArray(contentBl.contentBlocks, contentBl.entityMap);
+        const newEditorState = EditorState.createWithContent(contentState);
+        setEditorState(newEditorState)
         onOpenIssue()
     }
 
@@ -152,77 +162,111 @@ export default function ProjectBoards() {
         }
         // csere oszlopok között
         if (result.source.droppableId !== result.destination.droppableId) {
-            const sourceList = boards.filter(b => b.id === result.source.droppableId)[0]
-            const destinationList = boards.filter(b => b.id === result.destination.droppableId)[0]
+            const sourceColumn = boards.find((b) => b.id === result.source.droppableId);
+            const destinationColumn = boards.find((b) => b.id === result.destination.droppableId);
 
-            const sourceItem = sourceList.issues[result.source.index]
-            const destItem = destinationList.issues[result.destination.index]
-            // helyet cserélne
-            if (destItem) {
-                const tempPosition = sourceItem.position;
-                sourceItem.position = destItem.position;
-                destItem.position = tempPosition;
+            const sourceIndex = result.source.index;
+            const destinationIndex = result.destination.index;
 
-                const [removed] = sourceList.issues.splice(result.source.index, 1);
-                destinationList.issues.splice(result.destination.index, 0, removed);
+            const movedIssue = sourceColumn.issues[sourceIndex];
 
-                const resss = await changeIssuePosition(projectId, result.source.droppableId,
-                    result.destination.droppableId, sourceItem.id,
-                    destItem.id)
-            }
-            else {
-                sourceList.issues.splice(result.source.index, 1);
-                destinationList.issues.splice(result.destination.index, 0, sourceItem);
-                // utolsó helyre és előtte van elem
-                if (destinationList.issues[result.destination.index - 1]) {
-                    const resss = await changeIssuePosition3(projectId, result.source.droppableId,
-                        result.destination.droppableId, sourceItem.id,
-                        destinationList.issues[result.destination.index - 1].id)
-                } else {
-                    sourceItem.position = 1
-                    const resss = await changeIssuePosition2(projectId, result.source.droppableId,
-                        result.destination.droppableId, sourceItem.id)
-                }
+            // Távolítsuk el az elemet a forrás oszlopból
+            sourceColumn.issues.splice(sourceIndex, 1);
 
+            // Az elemet szúrjuk be a cél oszlopba
+            destinationColumn.issues.splice(destinationIndex, 0, movedIssue);
+
+            // Frissítsük a pozíciókat mindkét oszlopban
+            for (let i = 0; i < sourceColumn.issues.length; i++) {
+                sourceColumn.issues[i].position = i + 1;
             }
 
-            const newBoards = boards.map(item => {
-                if (item.id === result.source.droppableId) {
-                    return sourceList
-                }
-                else if (item.id === result.destination.droppableId) {
-                    return destinationList
+            for (let i = 0; i < destinationColumn.issues.length; i++) {
+                destinationColumn.issues[i].position = i + 1;
+            }
+
+            const newBoards = boards.map((item) => {
+                if (item.id === sourceColumn.id) {
+                    return sourceColumn;
+                } else if (item.id === destinationColumn.id) {
+                    return destinationColumn;
                 } else {
-                    return item
+                    return item;
                 }
-            })
+            });
+
+            console.log(newBoards)
             setBoards(newBoards)
+
+            // helyet cserélne
+            // if (destItem) {
+            //     const tempPosition = sourceItem.position;
+            //     sourceItem.position = destItem.position;
+            //     destItem.position = tempPosition;
+
+            //     const [removed] = sourceList.issues.splice(result.source.index, 1);
+            //     destinationList.issues.splice(result.destination.index, 0, removed);
+
+            //     // const resss = await changeIssuePosition(projectId, result.source.droppableId,
+            //     //     result.destination.droppableId, sourceItem.id,
+            //     //     destItem.id)
+            // }
+            // else {
+            //     sourceList.issues.splice(result.source.index, 1);
+            //     destinationList.issues.splice(result.destination.index, 0, sourceItem);
+            //     // utolsó helyre és előtte van elem
+            //     if (destinationList.issues[result.destination.index - 1]) {
+            //         // const resss = await changeIssuePosition3(projectId, result.source.droppableId,
+            //         //     result.destination.droppableId, sourceItem.id,
+            //         //     destinationList.issues[result.destination.index - 1].id)
+            //     } else {
+            //         // sourceItem.position = 1
+            //         // const resss = await changeIssuePosition2(projectId, result.source.droppableId,
+            //         //     result.destination.droppableId, sourceItem.id)
+            //     }
+
+            // }
 
         }
         // csere soron belül
         else {
-            const sourceList = boards.filter(b => b.id === result.source.droppableId)[0]
+            const column = boards.filter(b => b.id === result.source.droppableId)[0]
 
-            const [removed] = sourceList.issues.splice(result.source.index, 1);
-            sourceList.issues.splice(result.destination.index, 0, removed);
+            const sourceIndex = result.source.index;
+            const destinationIndex = result.destination.index;
 
+            // Az összes elem pozíciójának frissítése a forrás és a cél közötti áthelyezés miatt
+            const newIssues = [...column.issues];
+            const [movedIssue] = newIssues.splice(sourceIndex, 1);
+            newIssues.splice(destinationIndex, 0, movedIssue);
 
-            const tempPosition = sourceList.issues[result.source.index].position;
-            sourceList.issues[result.source.index].position = sourceList.issues[result.destination.index].position;
-            sourceList.issues[result.destination.index].position = tempPosition;
+            // Frissítjük az összes elem pozícióját a helyes sorrend érdekében
+            for (let i = 0; i < newIssues.length; i++) {
+                newIssues[i].position = i + 1;
+            }
+
+            // A poziciókat id-vel eltárolom és elküldöm
+            let positions = []
+
+            for (let i = 0; i < newIssues.length; i++) {
+                positions.push({ id: newIssues[i].id, position: newIssues[i].position })
+            }
+
+            // Az új elemekkel frissítjük a 'column' objektumot
+            column.issues = newIssues;
 
             const newBoards = boards.map(item => {
                 if (item.id === result.source.droppableId) {
-                    return sourceList
+                    return column
                 } else {
                     return item
                 }
             })
 
             setBoards(newBoards)
-            await changeIssuePosition(projectId, result.source.droppableId,
-                result.source.droppableId, sourceList.issues[result.source.index].id,
-                sourceList.issues[result.destination.index].id)
+            // await changeIssuePosition(projectId, result.source.droppableId,
+            //     result.source.droppableId, sourceList.issues[result.source.index].id,
+            //     sourceList.issues[result.destination.index].id)
 
         }
     }
@@ -231,6 +275,18 @@ export default function ProjectBoards() {
         () => EditorState.createEmpty(),
     );
     const [convertedContent, setConvertedContent] = useState(null);
+
+    const [search, setSearch] = useState("")
+
+    const debouncedResults = useMemo(() => {
+        return debounce(setSearch, 300);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            debouncedResults.cancel();
+        };
+    });
 
     useEffect(() => {
         let html = convertToHTML(editorState.getCurrentContent());
@@ -243,12 +299,17 @@ export default function ProjectBoards() {
         }
     }
 
-    const handleAddIsueOpen = (boardId) => {
+    const handleAddIssueOpen = (boardId) => {
         setCurrentBoardId(boardId)
         onOpenAddIssue()
     }
 
+    const [txt, setTxt] = useState()
+
     const handleAddIssueForm = async (object) => {
+        const contentState = editorState.getCurrentContent();
+        const contentAsHTML = convertToHTML(contentState);
+
         // Legnagyobb position megkeresése
         const b = boards.filter(i => i.id === currentBoardId)[0].issues
         let maxPos = 0
@@ -257,8 +318,10 @@ export default function ProjectBoards() {
                 maxPos = i.position
         })
 
+        // await addIssueToBoard(projectId, currentBoardId,
+        //     { ...object, description: convertToHTML(editorState.getCurrentContent()), position: maxPos + 1 }, assignedPeople)
         await addIssueToBoard(projectId, currentBoardId,
-            { ...object, description: convertToHTML(editorState.getCurrentContent()), position: maxPos + 1 }, assignedPeople)
+            { ...object, description: contentAsHTML, position: maxPos + 1 }, assignedPeople, updateProjectBoards)
         toast({
             title: 'Issue sikeresen létrehozva!.',
             description: "",
@@ -266,7 +329,6 @@ export default function ProjectBoards() {
             duration: 4000,
             isClosable: true,
         })
-        await updateProjectBoards()
         onCloseAddIssue()
     }
 
@@ -277,7 +339,6 @@ export default function ProjectBoards() {
         setAssignedPeople([])
         onCloseAddIssue()
     }
-
 
     const updateProjectBoards = async () => {
         const result = await getProjectBoards(projectId)
@@ -316,13 +377,13 @@ export default function ProjectBoards() {
         setTitle("")
         onCloseBoardEdit()
     }
-
     const IsUserProjectOwner = (participants) => {
         if (participants.filter(i => i.userId === user.id && i.roleName === "Owner").length !== 0) {
             return true
         }
         return false
     }
+
 
     const handleBoardEdit = async (obj) => {
         try {
@@ -346,6 +407,13 @@ export default function ProjectBoards() {
         }
     }
 
+    const editor = useMemo(() => withReact(createEditor()), [])
+    const [value, setValue] = useState([
+        {
+            type: 'paragraph',
+            children: [{ text: 'I am a Slate rich editor.' }],
+        },
+    ])
     if (project == null) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
@@ -391,7 +459,7 @@ export default function ProjectBoards() {
                                     </FormControl>
                                     <FormControl>
                                         <FormLabel>Leírás</FormLabel>
-                                        {/*<ReactQuill onChange={(e) => setTxt(e)} />*/}
+                                        {/* <ReactQuill onChange={(e) => setTxt(e)} /> */}
                                         <Editor
                                             editorStyle={{ border: "1px solid gray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
                                             editorState={editorState}
@@ -449,7 +517,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal>
                 {/* Issue megtekintése */}
-                <Modal size="3xl" isOpen={isOpenIssue} onClose={onCloseIssue}>
+                <Modal size="5xl" isOpen={isOpenIssue} onClose={onCloseIssue}>
                     <ModalOverlay />
                     {currentIssue ?
                         <ModalContent>
@@ -463,54 +531,78 @@ export default function ProjectBoards() {
                             <ModalCloseButton />
                             <ModalBody>
                                 <HStack gap="30px" align={"flex-start"}>
-                                    <Flex w="full" direction={"column"}>
-                                        <Input mb={5} fontSize={"3xl"} variant={"unstyled"} defaultValue={currentIssue.title} />
-                                        <FormLabel>Leírás</FormLabel>
-                                        {/*<ReactQuill value={currentIssue.description} mb={5} />*/}
-                                        {/* <Editor
-                                            editorStyle={{ border: "1px solid gray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
-                                            editorState={EditorState.createWithContent(JSON.parse(convertFromRaw(currentIssue.description)))}
-                                            onEditorStateChange={setEditorState}
-                                        /> */}
-                                        <FormLabel>Hozzászólások</FormLabel>
-                                        <HStack align="baseline">
-                                            <Avatar size="sm" name={currentIssue.reporterName} />
-                                            <Textarea placeholder='Hozzászólás írása...' />
-                                        </HStack>
+                                    <Flex w="60%" direction={"column"}>
+                                        <FormControl>
+                                            <Input mb={5} fontSize={"3xl"} variant={"filled"} defaultValue={currentIssue.title} />
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Leírás</FormLabel>
+                                            {/* <ReactQuill value={currentIssue.description} mb={5} /> */}
+                                            <Editor
+                                                editorStyle={{ border: "1px solid lightgray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                                editorState={editorState}
+                                                onEditorStateChange={setEditorState}
+                                            />
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Hozzászólások</FormLabel>
+                                            <HStack align="baseline">
+                                                <Avatar size="sm" name={currentIssue.reporterName} />
+                                                <Textarea placeholder='Hozzászólás írása...' />
+                                            </HStack>
+                                        </FormControl>
                                     </Flex>
-                                    <Box w="full">
+                                    <Stack gap={2}>
                                         <FormLabel>Státusz</FormLabel>
-                                        <Select defaultValue={currentBoardId}>
+                                        <Select variant={"filled"} size={"md"} defaultValue={currentBoardId}>
                                             {boards.map((j, k) => {
                                                 return <option key={k} value={j.id}>{j.title}</option>
                                             })}
                                         </Select>
-                                        <FormLabel>Hozzárendelt személyek</FormLabel>
-                                        {currentIssue.assignedPeople.map((i, k) => {
-                                            return <Avatar key={k} size="sm" name={`${i.personName}`} />
+                                        <FormControl>
+                                            <FormLabel>Hozzárendelt személyek</FormLabel>
+                                            {currentIssue.assignedPeople.map((i, k) => {
+                                                return <Avatar key={k} size="sm" name={`${i.personName}`} />
 
-                                        })}
-                                        <FormLabel>Bejelentő</FormLabel>
-                                        <Badge borderRadius={"10px"} p={"5px"}>
-                                            <HStack>
-                                                <Avatar name={currentIssue.reporterName} size="sm" />
-                                                <Text>{currentIssue.reporterName}</Text>
+                                            })}
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Bejelentő</FormLabel>
+                                            <Badge bg={colorMode === 'dark' ? "#353f4f" : "#edf2f7"} borderRadius={7} p={2}>
+                                                <HStack>
+                                                    <Avatar name={currentIssue.reporterName} size="sm" />
+                                                    <Text>{currentIssue.reporterName}</Text>
+                                                </HStack>
+                                            </Badge>
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Prioritás</FormLabel>
+                                            <HStack p={2} borderRadius={7} bg={colorMode === 'dark' ? "#353f4f" : "#edf2f7"} align="center">
+                                                {handlePriorityIcon(currentIssue.priority)}
+                                                <Text>{currentIssue.priority.name}</Text>
                                             </HStack>
-                                        </Badge>
-                                        <FormLabel>Prioritás</FormLabel>
-                                        <HStack align="center">
-                                            {handlePriorityIcon(currentIssue.priority)}
-                                            <Text>{currentIssue.priority.name}</Text>
-                                        </HStack>
-                                        <FormLabel>Becsült idő (órában)</FormLabel>
-                                        <Input type="number" defaultValue={currentIssue.timeEstimate} />
-                                        <FormLabel>Időkövetés</FormLabel>
-                                        <FormLabel>Határidő</FormLabel>
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Feladatra becsült idő (órában)</FormLabel>
+                                            <Input variant={"filled"} type="number" defaultValue={currentIssue.timeEstimate} />
+                                        </FormControl>
+                                        <FormControl>
+                                            <FormLabel>Befektetett idő (órában)</FormLabel>
+                                            <Stack>
+                                                <Progress value={0} />
+                                                <HStack>
+                                                    <Text>0 óra</Text>
+                                                    <Spacer />
+                                                    <Text>{currentIssue.timeEstimate} órából</Text>
+                                                </HStack>
+                                            </Stack>
+                                        </FormControl>
+                                        <FormLabel mb={0}>Határidő (dátum)</FormLabel>
                                         <Text>{moment(currentIssue.dueDate).format("yyyy/MM/DD")}</Text>
-                                        <Divider mt={3} mb={3} />
+                                        <Divider />
                                         <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>
                                         <Text>Frissítve: {moment(currentIssue.updated).fromNow()}</Text>
-                                    </Box>
+                                    </Stack>
                                 </HStack>
                             </ModalBody>
                         </ModalContent>
@@ -556,7 +648,7 @@ export default function ProjectBoards() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input onChange={(e) => setSearch(e.target.value)} type='text' placeholder='Feladat keresése...' />
+                            <Input onChange={debouncedResults} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
                         <AvatarGroup size={"md"}>
                             {project.participants.map((i, k) => {
@@ -600,7 +692,7 @@ export default function ProjectBoards() {
                                             </MenuList>
                                         </Menu>
                                     </HStack>
-                                    <Flex as={Button} gap={2} onClick={() => handleAddIsueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
+                                    <Flex as={Button} gap={2} onClick={() => handleAddIssueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                         <FaPlus />
                                         <Text>Ügy hozzáadása</Text>
                                     </Flex>
