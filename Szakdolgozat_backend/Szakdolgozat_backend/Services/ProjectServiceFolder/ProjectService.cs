@@ -170,9 +170,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             if (u == null)
                 throw new NotFoundException("User not found.");
 
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
-
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             if (_userHelper.IsUserMemberOfProject(u.Id, projectId))
                 throw new UserConflictException("User already added to project.");
@@ -195,12 +194,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             if (existingProject == null)
                 throw new NotFoundException("Project not found.");
 
-            Participant? participant = await _db.Participants
-                .Where(part => part.ProjectId == projectId && part.UserId == userId && part.RoleId == 1)
-                .FirstOrDefaultAsync();
-
-            if (participant == null)
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             _db.Projects.Remove(existingProject);
             await _db.SaveChangesAsync();
@@ -222,8 +217,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             if (u == null)
                 throw new NotFoundException("User not found.");
 
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of this project.");
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             if (!_userHelper.IsUserMemberOfProject(existingUserId, projectId))
                 throw new Exceptions.UnauthorizedAccessException("User not member of this project.");
@@ -243,11 +238,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             if (existingProject == null)
                 throw new NotFoundException("Project not found.");
 
-            Participant? participant = await _db.Participants.Where(part => part.ProjectId == projectId
-            && part.UserId == userId && part.RoleId == 1).FirstOrDefaultAsync();
-
-            if (participant == null)
-                throw new Exceptions.UnauthorizedAccessException("User not member of this project.");
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
 
             existingProject.Title = projectRequestDTO.Title;
             existingProject.Updated = DateTime.Now;

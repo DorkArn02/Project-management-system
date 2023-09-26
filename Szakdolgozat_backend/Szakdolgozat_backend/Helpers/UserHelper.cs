@@ -33,7 +33,8 @@ namespace Szakdolgozat_backend.Helpers
 
         public bool IsUserOwnerOfProject(Guid userId, Guid projectId)
         {
-            return _db.Participants.Any(p => p.UserId == userId && p.ProjectId == projectId && p.RoleId == 1);
+            return _db.Participants
+                .Any(p => p.UserId == userId && p.ProjectId == projectId && p.RoleId == 1);
         }
     }
 }

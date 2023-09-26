@@ -1,12 +1,9 @@
 import { api } from "./backend"
 
-import { createStandaloneToast } from "@chakra-ui/react"
-
-const { toast } = createStandaloneToast();
-
 export const addIssueToBoard = async (projectId, boardId, issueObject, assignedPeople, updateProjectBoards) => {
 
-    Object.keys(issueObject).forEach(k => (!issueObject[k] && issueObject[k] !== undefined) && delete issueObject[k]);
+    Object.keys(issueObject)
+        .forEach(k => (!issueObject[k] && issueObject[k] !== undefined) && delete issueObject[k]);
 
     api.post(`/Issue/AddIssue/${projectId}/${boardId}`, issueObject)
         .then((result) => {
@@ -36,20 +33,16 @@ export const addAssignee = async (projectId, boardId, issueId, assigneeId) => {
     return result
 }
 
-export const changeIssuePosition = async (projectId, sourceId, destId, issueSourceId, issueDestId) => {
+export const changeIssuePosition1 = async (projectId, columnId, positions) => {
     const result =
-        await api.put(`/Issue/ChangePosition/${projectId}/${sourceId}/${destId}/${issueSourceId}/${issueDestId}`)
+        await api.put(`/Issue/ChangePosition1/${projectId}/${columnId}`, positions)
     return result
 }
 
-export const changeIssuePosition2 = async (projectId, sourceId, destId, issueSourceId) => {
+export const changeIssuePosition2 = async (projectId, sourceColumnId, destColumnId, issueId, sourcePos, destPos) => {
     const result =
-        await api.put(`/Issue/ChangePosition2/${projectId}/${sourceId}/${destId}/${issueSourceId}`)
+        await api.put(`/Issue/ChangePosition2/${projectId}/${sourceColumnId}/${destColumnId}/${issueId}`,
+            { sourcePositions: sourcePos, destPositions: destPos })
     return result
 }
 
-export const changeIssuePosition3 = async (projectId, sourceId, destId, issueSourceId, issueDestId) => {
-    const result =
-        await api.put(`/Issue/ChangePosition3/${projectId}/${sourceId}/${destId}/${issueSourceId}/${issueDestId}`)
-    return result
-}

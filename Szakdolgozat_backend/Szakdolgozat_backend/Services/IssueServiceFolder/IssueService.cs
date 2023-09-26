@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Pipelines.Sockets.Unofficial.Arenas;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
@@ -49,7 +51,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Participant? participant = await _db.Participants.FindAsync(assigneeId);
 
             if (participant == null)
-                throw new NotFoundException("Assignee not found.");
+                throw new NotFoundException("User not found.");
 
             User? u = await _db.Users.FindAsync(participant.UserId);
 
@@ -108,8 +110,16 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (projectList == null)
                 throw new NotFoundException("Project list not found.");
 
-            if (await _db.Priorities.FindAsync(issueRequestDTO.PriorityId) == null)
-                throw new NotFoundException("Priority not found.");
+            Priority? priority = await _db.Priorities.FindAsync(issueRequestDTO.PriorityId); ;
+
+            if (priority == null)
+                    throw new NotFoundException("Priority not found.");
+
+            if (issueRequestDTO.TimeEstimate != null && issueRequestDTO.TimeEstimate < 0)
+                throw new BadRequestException("Time estimate can not be negative.");
+
+            if (issueRequestDTO.DueDate != null && issueRequestDTO.DueDate < DateTime.Now)
+                throw new BadRequestException("Due date can not be smaller than now");
 
             Issue i = new()
             {
@@ -123,7 +133,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 ProjectList = projectList,
                 TimeEstimate = issueRequestDTO.TimeEstimate,
                 User = user,
-                PriorityId = issueRequestDTO.PriorityId
+                Priority = priority ?? null
             };
 
             await _db.Issues.AddAsync(i);
@@ -175,116 +185,71 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             return i;
         }
 
-        public async Task ChangePosition(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        public async Task ChangePositionBetweenColumns(Guid projectId, Guid sourceColumnId, Guid destColumnId, Guid issueId, Dictionary<Guid, int> sourcePositions, Dictionary<Guid, int> destPositions)
         {
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
                 throw new NotFoundException("Project not found.");
 
-            ProjectList? source = await _db.ProjectLists.FindAsync(sourceId);
+            ProjectList? sourceColumn = await _db.ProjectLists.FindAsync(sourceColumnId);
 
-            if (source == null)
-                throw new NotFoundException("Source list not found.");
+            if (sourceColumn == null)
+                throw new NotFoundException("Source column not found.");
 
-            ProjectList? dest = await _db.ProjectLists.FindAsync(destId);
+            ProjectList? destColumn = await _db.ProjectLists.FindAsync(destColumnId);
 
-            if (dest == null)
-                throw new NotFoundException("Destination list not found.");
+            if (destColumn == null)
+                throw new NotFoundException("Destination column not found.");
 
-            Issue? sourceIssue = await _db.Issues.FindAsync(sourceIssueId);
-            Issue? destIssue = await _db.Issues.FindAsync(destIssueId);
+            Issue? issue = await _db.Issues.FindAsync(issueId);
 
-            if (sourceIssue == null)
-                throw new NotFoundException("Source issue not found.");
+            if (issue == null)
+                throw new NotFoundException("Issue not found.");
 
-            if (destIssue == null)
-                throw new NotFoundException("Destination issue not found.");
+            issue.ProjectList = destColumn;
 
-            // Move inside list
-            if (sourceId == destId)
+            foreach (var t in sourcePositions)
             {
-                int sourcePos = sourceIssue.Position;
-                int destPos = destIssue.Position;
-
-                sourceIssue.Position = destPos;
-                destIssue.Position = sourcePos;
-
+                Issue? temp = await _db.Issues.FindAsync(t.Key);
+                if (temp != null)
+                {
+                    temp.Position = t.Value;
+                }
             }
-            // Move between to list
-            else
+
+            foreach (var t in destPositions)
             {
-                int sourcePos = sourceIssue.Position;
-                int destPos = destIssue.Position;
-
-                sourceIssue.ProjectList = dest;
-
-                sourceIssue.Position = destPos;
-                destIssue.Position = sourcePos;
+                Issue? temp = await _db.Issues.FindAsync(t.Key);
+                if (temp != null)
+                {
+                    temp.Position = t.Value;
+                }
             }
 
             await _db.SaveChangesAsync();
         }
 
-        public async Task ChangePosition2(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId)
+        public async Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions)
         {
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
                 throw new NotFoundException("Project not found.");
 
-            ProjectList? source = await _db.ProjectLists.FindAsync(sourceId);
+            ProjectList? column = await _db.ProjectLists.FindAsync(columnId);
+            
+            if (column == null)
+                throw new NotFoundException("Column not found.");
 
-            if (source == null)
-                throw new NotFoundException("Source list not found.");
-
-            ProjectList? dest = await _db.ProjectLists.FindAsync(destId);
-
-            if (dest == null)
-                throw new NotFoundException("Destination list not found.");
-
-            Issue? sourceIssue = await _db.Issues.FindAsync(sourceIssueId);
-
-            if (sourceIssue == null)
-                throw new NotFoundException("Source issue not found.");
-
-            sourceIssue.Position = 1;
-            sourceIssue.ProjectList = dest;
-
-            await _db.SaveChangesAsync();
-        }
-
-        public async Task ChangePosition3(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
-        {
-            Project? p = await _db.Projects.FindAsync(projectId);
-
-            if (p == null)
-                throw new NotFoundException("Project not found.");
-
-            ProjectList? source = await _db.ProjectLists.FindAsync(sourceId);
-
-            if (source == null)
-                throw new NotFoundException("Source list not found.");
-
-
-            ProjectList? dest = await _db.ProjectLists.FindAsync(destId);
-
-            if (dest == null)
-                throw new NotFoundException("Destination list not found.");
-
-
-            Issue? sourceIssue = await _db.Issues.FindAsync(sourceIssueId);
-            Issue? destIssue = await _db.Issues.FindAsync(destIssueId);
-
-            if (sourceIssue == null)
-                throw new NotFoundException("Source issue not found.");
-
-
-            if (destIssue == null)
-                throw new NotFoundException("Destination issue not found.");
-
-            sourceIssue.Position = destIssue.Position + 1;
-            sourceIssue.ProjectList = dest;
+            foreach(var t in positions)        
+            {
+                Issue? temp = await _db.Issues.FindAsync(t.Key);
+                if(temp != null)
+                {
+                    temp.Position = t.Value;
+                }
+            }
 
             await _db.SaveChangesAsync();
         }

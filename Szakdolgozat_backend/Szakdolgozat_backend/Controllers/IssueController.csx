@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Szakdolgozat_backend.Dtos;
+using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Services.IssueServiceFolder;
 
 namespace Szakdolgozat_backend.Controllers
@@ -57,28 +58,45 @@ namespace Szakdolgozat_backend.Controllers
             return Ok(result);
         }
 
-        [HttpPut("ChangePosition/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
-        public async Task<IActionResult> ChangePosition(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        //[HttpPut("ChangePosition/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
+        //public async Task<IActionResult> ChangePosition(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        //{
+        //    await _issueService.ChangePosition(projectId, sourceId, destId, sourceIssueId, destIssueId);
+
+        //    return Ok();
+        //}
+
+        //[HttpPut("ChangePosition2/{projectId}/{sourceId}/{destId}/{sourceIssueId}")]
+        //public async Task<IActionResult> ChangePosition2(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId)
+        //{
+        //    await _issueService.ChangePosition2(projectId, sourceId, destId, sourceIssueId);
+
+        //    return Ok();
+        //}
+
+        //[HttpPut("ChangePosition3/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
+        //public async Task<IActionResult> ChangePosition3(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
+        //{
+        //    await _issueService.ChangePosition3(projectId, sourceId, destId, sourceIssueId, destIssueId);
+
+        //    return Ok();
+        //}
+
+        [HttpPut("ChangePosition1/{projectId}/{columnId}")]
+        public async Task<IActionResult> ChangePosition1(Guid projectId, Guid columnId, [FromBody] Dictionary<Guid, int> positions)
         {
-            await _issueService.ChangePosition(projectId, sourceId, destId, sourceIssueId, destIssueId);
+            await _issueService.ChangePositionInColumn(projectId, columnId, positions);
 
             return Ok();
         }
 
-        [HttpPut("ChangePosition2/{projectId}/{sourceId}/{destId}/{sourceIssueId}")]
-        public async Task<IActionResult> ChangePosition2(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId)
+        [HttpPut("ChangePosition2/{projectId}/{sourceColumnId}/{destColumnId}/{issueId}")]
+        public async Task<IActionResult> ChangePosition2(Guid projectId, Guid sourceColumnId, Guid destColumnId, Guid issueId, [FromBody] IssueColumnPositionChangeDTO dto)
         {
-            await _issueService.ChangePosition2(projectId, sourceId, destId, sourceIssueId);
-
+            await _issueService
+                .ChangePositionBetweenColumns(projectId, sourceColumnId, destColumnId, issueId, dto.sourcePositions, dto.destPositions);
             return Ok();
         }
 
-        [HttpPut("ChangePosition3/{projectId}/{sourceId}/{destId}/{sourceIssueId}/{destIssueId}")]
-        public async Task<IActionResult> ChangePosition3(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId)
-        {
-            await _issueService.ChangePosition3(projectId, sourceId, destId, sourceIssueId, destIssueId);
-
-            return Ok();
-        }
     }
 }

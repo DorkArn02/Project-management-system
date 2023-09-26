@@ -7,37 +7,40 @@ import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
-    HStack,
-    Box,
-    Avatar,
+    HStack, Avatar,
     Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
     Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton,
     Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode,
-    Menu, MenuButton, MenuList, MenuItem, Progress
+    Menu, MenuButton, MenuList, MenuItem, Progress, NumberInput,
+    NumberInputField,
+    NumberInputStepper,
+    NumberIncrementStepper,
+    NumberDecrementStepper,
+    TagCloseButton,
+    Tag, TagLabel
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
 import { addProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
 import { useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
-
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
-import { addIssueToBoard, deleteIssueFromBoard } from '../api/issue'
+import { addIssueToBoard, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
+import 'moment/dist/locale/hu'
 import { MultiSelect } from "chakra-multiselect"
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import { ContentState, EditorState, convertFromRaw, convertToRaw, convertFromHTML } from 'draft-js';
-import { Editor } from 'react-draft-wysiwyg';
-import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+import { ContentState, EditorState, convertFromHTML } from 'draft-js'
+import { Editor } from 'react-draft-wysiwyg'
+import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 import { convertToHTML, } from "draft-convert"
-import DOMPurify from 'dompurify';
+import DOMPurify from 'dompurify'
 import { createEditor } from 'slate'
-import { Slate, Editable, withReact } from 'slate-react'
+import { withReact } from 'slate-react'
 import { useMemo } from 'react'
 import debounce from "lodash/debounce"
+import "../styles.css"
 
 export default function ProjectBoards() {
 
@@ -185,6 +188,17 @@ export default function ProjectBoards() {
                 destinationColumn.issues[i].position = i + 1;
             }
 
+            // A poziciókat id-vel eltárolom Dict-be és elküldöm
+            const sourcePositions = {};
+            for (let i = 0; i < sourceColumn.issues.length; i++) {
+                sourcePositions[sourceColumn.issues[i].id] = sourceColumn.issues[i].position;
+            }
+
+            const destPositions = {};
+            for (let i = 0; i < destinationColumn.issues.length; i++) {
+                destPositions[destinationColumn.issues[i].id] = destinationColumn.issues[i].position;
+            }
+
             const newBoards = boards.map((item) => {
                 if (item.id === sourceColumn.id) {
                     return sourceColumn;
@@ -195,37 +209,10 @@ export default function ProjectBoards() {
                 }
             });
 
-            console.log(newBoards)
             setBoards(newBoards)
 
-            // helyet cserélne
-            // if (destItem) {
-            //     const tempPosition = sourceItem.position;
-            //     sourceItem.position = destItem.position;
-            //     destItem.position = tempPosition;
-
-            //     const [removed] = sourceList.issues.splice(result.source.index, 1);
-            //     destinationList.issues.splice(result.destination.index, 0, removed);
-
-            //     // const resss = await changeIssuePosition(projectId, result.source.droppableId,
-            //     //     result.destination.droppableId, sourceItem.id,
-            //     //     destItem.id)
-            // }
-            // else {
-            //     sourceList.issues.splice(result.source.index, 1);
-            //     destinationList.issues.splice(result.destination.index, 0, sourceItem);
-            //     // utolsó helyre és előtte van elem
-            //     if (destinationList.issues[result.destination.index - 1]) {
-            //         // const resss = await changeIssuePosition3(projectId, result.source.droppableId,
-            //         //     result.destination.droppableId, sourceItem.id,
-            //         //     destinationList.issues[result.destination.index - 1].id)
-            //     } else {
-            //         // sourceItem.position = 1
-            //         // const resss = await changeIssuePosition2(projectId, result.source.droppableId,
-            //         //     result.destination.droppableId, sourceItem.id)
-            //     }
-
-            // }
+            await changeIssuePosition2(projectId, result.source.droppableId, result.destination.droppableId,
+                movedIssue.id, sourcePositions, destPositions)
 
         }
         // csere soron belül
@@ -245,11 +232,11 @@ export default function ProjectBoards() {
                 newIssues[i].position = i + 1;
             }
 
-            // A poziciókat id-vel eltárolom és elküldöm
-            let positions = []
+            // A poziciókat id-vel eltárolom Dict-be és elküldöm
 
+            const positions = {};
             for (let i = 0; i < newIssues.length; i++) {
-                positions.push({ id: newIssues[i].id, position: newIssues[i].position })
+                positions[newIssues[i].id] = newIssues[i].position;
             }
 
             // Az új elemekkel frissítjük a 'column' objektumot
@@ -262,49 +249,35 @@ export default function ProjectBoards() {
                     return item
                 }
             })
-
             setBoards(newBoards)
-            // await changeIssuePosition(projectId, result.source.droppableId,
-            //     result.source.droppableId, sourceList.issues[result.source.index].id,
-            //     sourceList.issues[result.destination.index].id)
-
+            await changeIssuePosition1(projectId, result.source.droppableId, JSON.stringify(positions))
         }
     }
 
     const [editorState, setEditorState] = useState(
         () => EditorState.createEmpty(),
     );
-    const [convertedContent, setConvertedContent] = useState(null);
-
     const [search, setSearch] = useState("")
 
     const debouncedResults = useMemo(() => {
         return debounce(setSearch, 300);
     }, []);
 
+    const debouncedResults2 = useMemo(() => {
+        return debounce(setEditorState, 100);
+    }, []);
+
     useEffect(() => {
         return () => {
             debouncedResults.cancel();
+            debouncedResults2.cancel();
         };
     });
-
-    useEffect(() => {
-        let html = convertToHTML(editorState.getCurrentContent());
-        setConvertedContent(html);
-    }, [editorState]);
-
-    function createMarkup(html) {
-        return {
-            __html: DOMPurify.sanitize(html)
-        }
-    }
 
     const handleAddIssueOpen = (boardId) => {
         setCurrentBoardId(boardId)
         onOpenAddIssue()
     }
-
-    const [txt, setTxt] = useState()
 
     const handleAddIssueForm = async (object) => {
         const contentState = editorState.getCurrentContent();
@@ -334,7 +307,6 @@ export default function ProjectBoards() {
 
     const handleAddIssueClose = () => {
         reset()
-        setConvertedContent("")
         setEditorState(EditorState.createEmpty())
         setAssignedPeople([])
         onCloseAddIssue()
@@ -377,13 +349,13 @@ export default function ProjectBoards() {
         setTitle("")
         onCloseBoardEdit()
     }
+
     const IsUserProjectOwner = (participants) => {
         if (participants.filter(i => i.userId === user.id && i.roleName === "Owner").length !== 0) {
             return true
         }
         return false
     }
-
 
     const handleBoardEdit = async (obj) => {
         try {
@@ -408,12 +380,16 @@ export default function ProjectBoards() {
     }
 
     const editor = useMemo(() => withReact(createEditor()), [])
+
     const [value, setValue] = useState([
         {
             type: 'paragraph',
             children: [{ text: 'I am a Slate rich editor.' }],
         },
     ])
+
+    moment.locale('hu')
+
     if (project == null) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
@@ -523,7 +499,7 @@ export default function ProjectBoards() {
                         <ModalContent>
                             <ModalHeader>
                                 <HStack>
-                                    <AiFillCheckSquare color='blue' />
+                                    <AiFillCheckSquare color='#42a4ff' />
                                     <Text>{project.title} - {currentIssue.title}</Text>
                                 </HStack>
                             </ModalHeader>
@@ -539,9 +515,10 @@ export default function ProjectBoards() {
                                             <FormLabel>Leírás</FormLabel>
                                             {/* <ReactQuill value={currentIssue.description} mb={5} /> */}
                                             <Editor
-                                                editorStyle={{ border: "1px solid lightgray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                                toolbarClassName='rdw-editor-toolbar'
+                                                editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
                                                 editorState={editorState}
-                                                onEditorStateChange={setEditorState}
+                                                onEditorStateChange={debouncedResults2}
                                             />
                                         </FormControl>
                                         <FormControl>
@@ -561,19 +538,20 @@ export default function ProjectBoards() {
                                         </Select>
                                         <FormControl>
                                             <FormLabel>Hozzárendelt személyek</FormLabel>
-                                            {currentIssue.assignedPeople.map((i, k) => {
-                                                return <Avatar key={k} size="sm" name={`${i.personName}`} />
-
-                                            })}
+                                            {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
+                                                return <Tag size="lg" borderRadius={"full"}>
+                                                    <Avatar key={k} ml={-1} mr={2} size="xs" name={`${i.personName}`} />
+                                                    <TagLabel>{i.personName}</TagLabel>
+                                                    <TagCloseButton />
+                                                </Tag>
+                                            }) : "Nincs hozzárendelve."}
                                         </FormControl>
                                         <FormControl>
                                             <FormLabel>Bejelentő</FormLabel>
-                                            <Badge bg={colorMode === 'dark' ? "#353f4f" : "#edf2f7"} borderRadius={7} p={2}>
-                                                <HStack>
-                                                    <Avatar name={currentIssue.reporterName} size="sm" />
-                                                    <Text>{currentIssue.reporterName}</Text>
-                                                </HStack>
-                                            </Badge>
+                                            <Tag borderRadius={"full"} size="lg">
+                                                <Avatar ml={-1} mr={2} name={currentIssue.reporterName} size="xs" />
+                                                <TagLabel>{currentIssue.reporterName}</TagLabel>
+                                            </Tag>
                                         </FormControl>
                                         <FormControl>
                                             <FormLabel>Prioritás</FormLabel>
@@ -584,21 +562,27 @@ export default function ProjectBoards() {
                                         </FormControl>
                                         <FormControl>
                                             <FormLabel>Feladatra becsült idő (órában)</FormLabel>
-                                            <Input variant={"filled"} type="number" defaultValue={currentIssue.timeEstimate} />
+                                            <NumberInput variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
+                                                <NumberInputField />
+                                                <NumberInputStepper>
+                                                    <NumberIncrementStepper />
+                                                    <NumberDecrementStepper />
+                                                </NumberInputStepper>
+                                            </NumberInput>
                                         </FormControl>
                                         <FormControl>
                                             <FormLabel>Befektetett idő (órában)</FormLabel>
                                             <Stack>
                                                 <Progress value={0} />
                                                 <HStack>
-                                                    <Text>0 óra</Text>
+                                                    <Text>{currentIssue.timeSpent} óra</Text>
                                                     <Spacer />
                                                     <Text>{currentIssue.timeEstimate} órából</Text>
                                                 </HStack>
                                             </Stack>
                                         </FormControl>
                                         <FormLabel mb={0}>Határidő (dátum)</FormLabel>
-                                        <Text>{moment(currentIssue.dueDate).format("yyyy/MM/DD")}</Text>
+                                        <Text>{currentIssue.dueDate ? moment(currentIssue.dueDate).format("yyyy/MM/DD") : "Nincs megadva"}</Text>
                                         <Divider />
                                         <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>
                                         <Text>Frissítve: {moment(currentIssue.updated).fromNow()}</Text>
@@ -704,10 +688,10 @@ export default function ProjectBoards() {
                                                     i.issues.map((issue, key) => {
                                                         return <Draggable key={issue.id} index={key} draggableId={`${issue.id}`}>
                                                             {provided => (
-                                                                <VStack _hover={{ bg: "gray.100", cursor: 'pointer' }} onClick={() => handleOpenIssue(issue, i.id)} ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps} key={key} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
+                                                                <VStack _hover={{ bg: (colorMode === 'light' ? "gray.100" : "gray.500"), cursor: 'pointer' }} onClick={() => handleOpenIssue(issue, i.id)} ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps} key={key} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                                                     <Text>{issue.title} {issue.position}</Text>
                                                                     <HStack w={"full"}>
-                                                                        <AiFillCheckSquare color='rgb(100,50,200)' />
+                                                                        <AiFillCheckSquare color='#42a4ff' />
                                                                         {handlePriorityIcon(issue.priority)}
                                                                         <Spacer />
                                                                         <AvatarGroup size="xs" max={2}>

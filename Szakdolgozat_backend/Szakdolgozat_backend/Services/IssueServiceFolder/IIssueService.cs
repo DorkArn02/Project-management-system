@@ -10,8 +10,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int assigneeId);
         Task RemoveAssigneeFromIssue(Guid projectId, Guid projectListId, Guid issueId, Guid assigneeId);
         Task<Issue> ChangeIssueReporter(Guid projectId, Guid projectListId, Guid issueId, Guid reporterId);
-        Task ChangePosition(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId);
-        Task ChangePosition2(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId);
-        Task ChangePosition3(Guid projectId, Guid sourceId, Guid destId, Guid sourceIssueId, Guid destIssueId);
+        Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions);
+        Task ChangePositionBetweenColumns(Guid projectId, Guid sourceColumnId, Guid destColumnId, Guid issueId, Dictionary<Guid, int> sourcePositions, Dictionary<Guid, int> destPositions);
     }
 }
