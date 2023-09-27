@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Pipelines.Sockets.Unofficial.Arenas;
 using Szakdolgozat_backend.Dtos;
+using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
@@ -324,6 +325,47 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             _db.AssignedPeople.Remove(assignedPerson);
             await _db.SaveChangesAsync();
+        }
+
+        public async Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, IssueUpdateRequestDTO issueUpdateRequestDTO)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+            Project? p = await _db.Projects.FindAsync(projectId);
+
+            var user = await _db.Users.FindAsync(userId);
+
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            if (p == null)
+                throw new NotFoundException("Project not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+
+            ProjectList? projectList = await _db.ProjectLists
+                .Where(p => p.ProjectId == projectId
+            && p.Id == projectListId).FirstOrDefaultAsync();
+
+            if (projectList == null)
+                throw new NotFoundException("Project list not found.");
+
+            Issue? i = await _db.Issues.
+                Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
+                && x.Id == issueId)
+                .Include(x => x.AssignedPeople)
+                .FirstOrDefaultAsync();
+
+            if (i == null)
+                throw new NotFoundException("Issue not found.");
+
+            i.Description = issueUpdateRequestDTO.Description;
+            i.Title = issueUpdateRequestDTO.Title;
+            i.Updated = DateTime.Now;
+            i.DueDate = issueUpdateRequestDTO.DueDate;
+            i.TimeEstimate = issueUpdateRequestDTO.TimeEstimate;
+            i.TimeSpent = issueUpdateRequestDTO.TimeSpent;
+            i.ProjectList = issueUpdateRequestDTO.ProjectList;
         }
     }
 }

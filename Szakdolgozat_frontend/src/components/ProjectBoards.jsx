@@ -10,7 +10,7 @@ import {
     HStack, Avatar,
     Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
     Modal, ModalOverlay, Stack, ModalContent, Select, Textarea, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, useDisclosure, useToast, Spacer, IconButton,
-    Flex, VStack, InputGroup, InputRightElement, AvatarGroup, Badge, Divider, Spinner, useColorMode,
+    Flex, InputGroup, InputRightElement, AvatarGroup, Divider, Spinner, useColorMode,
     Menu, MenuButton, MenuList, MenuItem, Progress, NumberInput,
     NumberInputField,
     NumberInputStepper,
@@ -24,7 +24,7 @@ import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
 import { addProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
 import { useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd"
+import { DragDropContext, Droppable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
 import { addIssueToBoard, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
@@ -35,12 +35,10 @@ import { ContentState, EditorState, convertFromHTML } from 'draft-js'
 import { Editor } from 'react-draft-wysiwyg'
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 import { convertToHTML, } from "draft-convert"
-import DOMPurify from 'dompurify'
-import { createEditor } from 'slate'
-import { withReact } from 'slate-react'
 import { useMemo } from 'react'
 import debounce from "lodash/debounce"
 import "../styles.css"
+import Issue from './IssueComponents/Issue'
 
 export default function ProjectBoards() {
 
@@ -57,6 +55,8 @@ export default function ProjectBoards() {
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
     const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
+    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView } } = useForm();
+
 
     const [currentIssue, setCurrentIssue] = useState()
     const [currentBoardId, setCurrentBoardId] = useState()
@@ -257,22 +257,21 @@ export default function ProjectBoards() {
     const [editorState, setEditorState] = useState(
         () => EditorState.createEmpty(),
     );
-    const [search, setSearch] = useState("")
+    const [search, setSearch] = useState('');
 
-    const debouncedResults = useMemo(() => {
-        return debounce(setSearch, 300);
-    }, []);
+    const changeHandler = event => {
+        setSearch(event.target.value);
+    };
 
-    const debouncedResults2 = useMemo(() => {
-        return debounce(setEditorState, 100);
-    }, []);
+    const debouncedChangeHandler = useMemo(
+        () => debounce(changeHandler, 300)
+        , []);
 
     useEffect(() => {
         return () => {
-            debouncedResults.cancel();
-            debouncedResults2.cancel();
-        };
-    });
+            debouncedChangeHandler.cancel();
+        }
+    }, []);
 
     const handleAddIssueOpen = (boardId) => {
         setCurrentBoardId(boardId)
@@ -379,15 +378,12 @@ export default function ProjectBoards() {
         }
     }
 
-    const editor = useMemo(() => withReact(createEditor()), [])
+    const handleOnCloseIssue = async () => {
+        resetView()
+        onCloseIssue()
+    }
 
-    const [value, setValue] = useState([
-        {
-            type: 'paragraph',
-            children: [{ text: 'I am a Slate rich editor.' }],
-        },
-    ])
-
+    // Moment locale
     moment.locale('hu')
 
     if (project == null) {
@@ -437,7 +433,7 @@ export default function ProjectBoards() {
                                         <FormLabel>Leírás</FormLabel>
                                         {/* <ReactQuill onChange={(e) => setTxt(e)} /> */}
                                         <Editor
-                                            editorStyle={{ border: "1px solid gray", minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                            editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
                                             editorState={editorState}
                                             onEditorStateChange={setEditorState}
                                         />
@@ -447,24 +443,27 @@ export default function ProjectBoards() {
                                             <MultiSelect value={assignedPeople} onChange={setAssignedPeople} options={people} label='Személyek hozzárendelése' />
                                         }
                                     </FormControl>
-                                    <FormControl>
+                                    <FormControl isInvalid={errors.priorityId} isRequired>
                                         <FormLabel>Prioritás</FormLabel>
-                                        <Select {...register("priorityId", { required: false })}>
-                                            <option value={null}>-</option>
+                                        <Select {...register("priorityId", { required: true })}>
+                                            <option value={""} disabled>-</option>
                                             <option value='5'>Legmagasabb</option>
                                             <option value='4'>Magas</option>
                                             <option value='3'>Közepes</option>
                                             <option value='2'>Alacsony</option>
                                             <option value='1'>Legalacsonyabb</option>
                                         </Select>
+                                        <FormErrorMessage>{errors.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl>
+                                    <FormControl isInvalid={errors.timeEstimate}>
                                         <FormLabel>Becsült idő (óra)</FormLabel>
-                                        <Input  {...register("timeEstimate", { required: false })} type="number" />
+                                        <Input  {...register("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} type="number" />
+                                        <FormErrorMessage>{errors.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl>
+                                    <FormControl isInvalid={errors.dueDate}>
                                         <FormLabel>Határidő</FormLabel>
-                                        <Input {...register("dueDate", { required: false })} type="date" />
+                                        <Input {...register("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" />
+                                        <FormErrorMessage>{errors.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
@@ -474,9 +473,9 @@ export default function ProjectBoards() {
                             </ModalFooter>
                         </form>
                     </ModalContent>
-                </Modal>
+                </Modal >
                 {/* Issue törlése */}
-                <Modal isOpen={isOpenDelete} onClose={onCloseDelete}>
+                < Modal isOpen={isOpenDelete} onClose={onCloseDelete} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -491,109 +490,122 @@ export default function ProjectBoards() {
                             <Button onClick={onCloseDelete}>Visszavonás</Button>
                         </ModalFooter>
                     </ModalContent>
-                </Modal>
+                </Modal >
                 {/* Issue megtekintése */}
-                <Modal size="5xl" isOpen={isOpenIssue} onClose={onCloseIssue}>
+                <Modal size="5xl" isOpen={isOpenIssue} onClose={handleOnCloseIssue} >
                     <ModalOverlay />
-                    {currentIssue ?
-                        <ModalContent>
-                            <ModalHeader>
-                                <HStack>
-                                    <AiFillCheckSquare color='#42a4ff' />
-                                    <Text>{project.title} - {currentIssue.title}</Text>
-                                </HStack>
-                            </ModalHeader>
-                            <IconButton onClick={onOpenDelete} size="sm" right={14} top={2} position={"absolute"} variant="ghost" icon={<FaTrash />} />
-                            <ModalCloseButton />
-                            <ModalBody>
-                                <HStack gap="30px" align={"flex-start"}>
-                                    <Flex w="60%" direction={"column"}>
-                                        <FormControl>
-                                            <Input mb={5} fontSize={"3xl"} variant={"filled"} defaultValue={currentIssue.title} />
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Leírás</FormLabel>
-                                            {/* <ReactQuill value={currentIssue.description} mb={5} /> */}
-                                            <Editor
-                                                toolbarClassName='rdw-editor-toolbar'
-                                                editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
-                                                editorState={editorState}
-                                                onEditorStateChange={debouncedResults2}
-                                            />
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Hozzászólások</FormLabel>
-                                            <HStack align="baseline">
-                                                <Avatar size="sm" name={currentIssue.reporterName} />
-                                                <Textarea placeholder='Hozzászólás írása...' />
-                                            </HStack>
-                                        </FormControl>
-                                    </Flex>
-                                    <Stack gap={2}>
-                                        <FormLabel>Státusz</FormLabel>
-                                        <Select variant={"filled"} size={"md"} defaultValue={currentBoardId}>
-                                            {boards.map((j, k) => {
-                                                return <option key={k} value={j.id}>{j.title}</option>
-                                            })}
-                                        </Select>
-                                        <FormControl>
-                                            <FormLabel>Hozzárendelt személyek</FormLabel>
-                                            {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
-                                                return <Tag size="lg" borderRadius={"full"}>
-                                                    <Avatar key={k} ml={-1} mr={2} size="xs" name={`${i.personName}`} />
-                                                    <TagLabel>{i.personName}</TagLabel>
-                                                    <TagCloseButton />
-                                                </Tag>
-                                            }) : "Nincs hozzárendelve."}
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Bejelentő</FormLabel>
-                                            <Tag borderRadius={"full"} size="lg">
-                                                <Avatar ml={-1} mr={2} name={currentIssue.reporterName} size="xs" />
-                                                <TagLabel>{currentIssue.reporterName}</TagLabel>
-                                            </Tag>
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Prioritás</FormLabel>
-                                            <HStack p={2} borderRadius={7} bg={colorMode === 'dark' ? "#353f4f" : "#edf2f7"} align="center">
-                                                {handlePriorityIcon(currentIssue.priority)}
-                                                <Text>{currentIssue.priority.name}</Text>
-                                            </HStack>
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Feladatra becsült idő (órában)</FormLabel>
-                                            <NumberInput variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
-                                                <NumberInputField />
-                                                <NumberInputStepper>
-                                                    <NumberIncrementStepper />
-                                                    <NumberDecrementStepper />
-                                                </NumberInputStepper>
-                                            </NumberInput>
-                                        </FormControl>
-                                        <FormControl>
-                                            <FormLabel>Befektetett idő (órában)</FormLabel>
-                                            <Stack>
-                                                <Progress value={0} />
-                                                <HStack>
-                                                    <Text>{currentIssue.timeSpent} óra</Text>
-                                                    <Spacer />
-                                                    <Text>{currentIssue.timeEstimate} órából</Text>
-                                                </HStack>
+                    {
+                        currentIssue ?
+                            <ModalContent>
+                                <form>
+                                    <ModalHeader>
+                                        <HStack>
+                                            <AiFillCheckSquare color='#42a4ff' />
+                                            <Text>{project.title} - {currentIssue.title}</Text>
+                                        </HStack>
+                                    </ModalHeader>
+                                    <IconButton onClick={onOpenDelete} size="sm" right={14} top={2} position={"absolute"} variant="ghost" icon={<FaTrash />} />
+                                    <ModalCloseButton />
+                                    <ModalBody>
+                                        <HStack gap="30px" align={"flex-start"}>
+                                            <Flex w="60%" direction={"column"}>
+                                                <FormControl>
+                                                    <Input {...registerView("title", { required: true })} mb={5} fontSize={"3xl"} variant={"filled"} defaultValue={currentIssue.title} />
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Leírás</FormLabel>
+                                                    <Editor
+                                                        toolbarClassName='rdw-editor-toolbar'
+                                                        editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                                        editorState={editorState}
+                                                    //onEditorStateChange={debouncedResults2}
+                                                    />
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Hozzászólások</FormLabel>
+                                                    <HStack align="baseline">
+                                                        <Avatar size="sm" name={currentIssue.reporterName} />
+                                                        <Textarea placeholder='Hozzászólás írása...' />
+                                                    </HStack>
+                                                </FormControl>
+                                            </Flex>
+                                            <Stack gap={2}>
+                                                <FormControl>
+                                                    <FormLabel>Státusz</FormLabel>
+                                                    <Select {...registerView("projectList", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
+                                                        {boards.map((j, k) => {
+                                                            return <option key={k} value={j.id}>{j.title}</option>
+                                                        })}
+                                                    </Select>
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Hozzárendelt személyek</FormLabel>
+                                                    {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
+                                                        return <Tag size="lg" borderRadius={"full"}>
+                                                            <Avatar key={k} ml={-1} mr={2} size="xs" name={`${i.personName}`} />
+                                                            <TagLabel>{i.personName}</TagLabel>
+                                                            <TagCloseButton />
+                                                        </Tag>
+                                                    }) : "Nincs hozzárendelve."}
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Bejelentő</FormLabel>
+                                                    <Tag borderRadius={"full"} size="lg">
+                                                        <Avatar ml={-1} mr={2} name={currentIssue.reporterName} size="xs" />
+                                                        <TagLabel>{currentIssue.reporterName}</TagLabel>
+                                                    </Tag>
+                                                </FormControl>
+                                                <FormControl isInvalid={errorsView.priorityId} >
+                                                    <FormLabel>Prioritás</FormLabel>
+                                                    <Select {...registerView("priorityId", { required: true })} defaultValue={`${currentIssue.priority.id}`}>
+                                                        <option value={""} disabled>-</option>
+                                                        <option value='5'>Legmagasabb</option>
+                                                        <option value='4'>Magas</option>
+                                                        <option value='3'>Közepes</option>
+                                                        <option value='2'>Alacsony</option>
+                                                        <option value='1'>Legalacsonyabb</option>
+                                                    </Select>
+                                                    <FormErrorMessage>{errorsView.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Feladatra becsült idő (órában)</FormLabel>
+                                                    <NumberInput variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
+                                                        <NumberInputField />
+                                                        <NumberInputStepper>
+                                                            <NumberIncrementStepper />
+                                                            <NumberDecrementStepper />
+                                                        </NumberInputStepper>
+                                                    </NumberInput>
+                                                </FormControl>
+                                                <FormControl>
+                                                    <FormLabel>Befektetett idő (órában)</FormLabel>
+                                                    <Stack>
+                                                        <Progress value={0} />
+                                                        <HStack>
+                                                            <Text>{currentIssue.timeSpent} óra</Text>
+                                                            <Spacer />
+                                                            <Text>{currentIssue.timeEstimate} órából</Text>
+                                                        </HStack>
+                                                    </Stack>
+                                                </FormControl>
+                                                <FormControl isInvalid={errorsView.dueDate}>
+                                                    <FormLabel>Határidő (dátum)</FormLabel>
+                                                    <Input {...registerView("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} />
+                                                    <FormErrorMessage>{errorsView.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
+                                                </FormControl>
+                                                <Divider />
+                                                <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>
+                                                <Text>Frissítve: {moment(currentIssue.updated).fromNow()}</Text>
                                             </Stack>
-                                        </FormControl>
-                                        <FormLabel mb={0}>Határidő (dátum)</FormLabel>
-                                        <Text>{currentIssue.dueDate ? moment(currentIssue.dueDate).format("yyyy/MM/DD") : "Nincs megadva"}</Text>
-                                        <Divider />
-                                        <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>
-                                        <Text>Frissítve: {moment(currentIssue.updated).fromNow()}</Text>
-                                    </Stack>
-                                </HStack>
-                            </ModalBody>
-                        </ModalContent>
-                        : ""}
-                </Modal>
+                                        </HStack>
+                                    </ModalBody>
+                                </form>
+                            </ModalContent>
+                            : ""
+                    }
+                </Modal >
                 {/* Board név módosítása */}
-                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose}>
+                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -616,7 +628,7 @@ export default function ProjectBoards() {
                             </ModalFooter>
                         </form>
                     </ModalContent>
-                </Modal>
+                </Modal >
 
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
@@ -632,7 +644,7 @@ export default function ProjectBoards() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input onChange={debouncedResults} type='text' placeholder='Feladat keresése...' />
+                            <Input onChange={debouncedChangeHandler} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
                         <AvatarGroup size={"md"}>
                             {project.participants.map((i, k) => {
@@ -685,25 +697,8 @@ export default function ProjectBoards() {
                                             <Flex overflow={"scroll"} overflowX={"hidden"} h="100%" {...provided.droppableProps}
                                                 ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? (snapshot.isDraggingOver ? "gray.100" : "gray.200") : (snapshot.isDraggingOver ? "#333" : "#444")}>
                                                 {
-                                                    i.issues.map((issue, key) => {
-                                                        return <Draggable key={issue.id} index={key} draggableId={`${issue.id}`}>
-                                                            {provided => (
-                                                                <VStack _hover={{ bg: (colorMode === 'light' ? "gray.100" : "gray.500"), cursor: 'pointer' }} onClick={() => handleOpenIssue(issue, i.id)} ref={provided.innerRef} {...provided.dragHandleProps} {...provided.draggableProps} key={key} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
-                                                                    <Text>{issue.title} {issue.position}</Text>
-                                                                    <HStack w={"full"}>
-                                                                        <AiFillCheckSquare color='#42a4ff' />
-                                                                        {handlePriorityIcon(issue.priority)}
-                                                                        <Spacer />
-                                                                        <AvatarGroup size="xs" max={2}>
-                                                                            {issue.assignedPeople.map((j, k) => {
-                                                                                return <Avatar key={k} name={j.personName} />
-                                                                            })}
-                                                                        </AvatarGroup>
-                                                                    </HStack>
-                                                                </VStack>
-                                                            )
-                                                            }
-                                                        </Draggable>
+                                                    i.issues.filter(i => i.title.toLowerCase().includes(search)).map((issue, key) => {
+                                                        return <Issue index={key} issue={issue} handleOpenIssue={handleOpenIssue} handlePriorityIcon={handlePriorityIcon} boardId={i.id} />
                                                     })
                                                 }
                                                 {provided.placeholder}

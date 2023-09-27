@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Azure;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Dtos.IssueDtos;
@@ -96,6 +97,12 @@ namespace Szakdolgozat_backend.Controllers
             await _issueService
                 .ChangePositionBetweenColumns(projectId, sourceColumnId, destColumnId, issueId, dto.sourcePositions, dto.destPositions);
             return Ok();
+        }
+
+        [HttpPatch("UpdateIssueDetails/{projectId}/{projectListId}/{issueId}")]
+        public async Task<IActionResult> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s)
+        {
+
         }
 
     }
