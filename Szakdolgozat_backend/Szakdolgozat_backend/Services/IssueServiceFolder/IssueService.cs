@@ -1,8 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Pipelines.Sockets.Unofficial.Arenas;
+﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos;
-using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
@@ -327,7 +325,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             await _db.SaveChangesAsync();
         }
 
-        public async Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, IssueUpdateRequestDTO issueUpdateRequestDTO)
+        public async Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s)
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
             Project? p = await _db.Projects.FindAsync(projectId);
@@ -358,7 +356,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             if (i == null)
                 throw new NotFoundException("Issue not found.");
-
+            /*
             i.Description = issueUpdateRequestDTO.Description;
             i.Title = issueUpdateRequestDTO.Title;
             i.Updated = DateTime.Now;
@@ -366,6 +364,12 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             i.TimeEstimate = issueUpdateRequestDTO.TimeEstimate;
             i.TimeSpent = issueUpdateRequestDTO.TimeSpent;
             i.ProjectList = issueUpdateRequestDTO.ProjectList;
+            */
+
+            s.ApplyTo(i);
+
+            await _db.SaveChangesAsync();
+            return i;
         }
     }
 }

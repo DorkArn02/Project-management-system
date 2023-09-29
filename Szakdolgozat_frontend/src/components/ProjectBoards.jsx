@@ -21,8 +21,9 @@ import {
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
+import { ImCross } from "react-icons/im"
 import { addProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 import { DragDropContext, Droppable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
@@ -55,7 +56,11 @@ export default function ProjectBoards() {
 
     const { register, handleSubmit, reset, formState: { errors } } = useForm();
     const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
-    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView } } = useForm();
+    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView }, control: controlView } = useForm({
+        defaultValues: {
+            description: EditorState.createEmpty()
+        }
+    });
 
 
     const [currentIssue, setCurrentIssue] = useState()
@@ -75,7 +80,7 @@ export default function ProjectBoards() {
 
                 const arr = []
                 result.data.participants.forEach(item => {
-                    arr.push({ label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
+                    arr.push({ label: (<><Avatar ml={-1} mr={2} size="xs" name={`${item.lastName} ${item.firstName}`} /> {item.lastName} {item.firstName}</>), value: `${item.id}` })
                 })
                 setPeople(arr)
             }, 500)
@@ -378,8 +383,10 @@ export default function ProjectBoards() {
         }
     }
 
-    const handleOnCloseIssue = async () => {
+    const handleOnCloseIssue = async (obj) => {
         resetView()
+        console.log(obj)
+        console.log(convertToHTML(obj.description.getCurrentContent()))
         onCloseIssue()
     }
 
@@ -492,12 +499,12 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Issue megtekintése */}
-                <Modal size="5xl" isOpen={isOpenIssue} onClose={handleOnCloseIssue} >
+                <Modal closeOnOverlayClick={false} size="5xl" isOpen={isOpenIssue} onClose={handleOnCloseIssue} >
                     <ModalOverlay />
                     {
                         currentIssue ?
                             <ModalContent>
-                                <form>
+                                <form onSubmit={handleSubmitView(handleOnCloseIssue)}>
                                     <ModalHeader>
                                         <HStack>
                                             <AiFillCheckSquare color='#42a4ff' />
@@ -505,21 +512,26 @@ export default function ProjectBoards() {
                                         </HStack>
                                     </ModalHeader>
                                     <IconButton onClick={onOpenDelete} size="sm" right={14} top={2} position={"absolute"} variant="ghost" icon={<FaTrash />} />
-                                    <ModalCloseButton />
+                                    <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     <ModalBody>
                                         <HStack gap="30px" align={"flex-start"}>
                                             <Flex w="60%" direction={"column"}>
                                                 <FormControl>
-                                                    <Input {...registerView("title", { required: true })} mb={5} fontSize={"3xl"} variant={"filled"} defaultValue={currentIssue.title} />
+                                                    <Input defaultValue={currentIssue.title} {...registerView("title", { required: true })} mb={5} fontSize={"3xl"} variant={"filled"} />
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Leírás</FormLabel>
-                                                    <Editor
-                                                        toolbarClassName='rdw-editor-toolbar'
-                                                        editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
-                                                        editorState={editorState}
-                                                    //onEditorStateChange={debouncedResults2}
-                                                    />
+                                                    <Controller defaultValue={currentIssue.description} name='description' control={controlView} render={({ field: { value, onChange } }) => (
+                                                        <Editor
+                                                            toolbarClassName='rdw-editor-toolbar'
+                                                            editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
+                                                            editorState={value}
+                                                            onEditorStateChange={onChange}
+                                                        />
+                                                    )}>
+
+                                                    </Controller>
+
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Hozzászólások</FormLabel>
@@ -540,13 +552,15 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Hozzárendelt személyek</FormLabel>
-                                                    {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
+                                                    <MultiSelect defaultValue={"f5f8658a-4c83-466f-8034-08dbba766402"} value={assignedPeople} onChange={setAssignedPeople} options={people} label='Személyek hozzárendelése' />
+                                                    { }
+                                                    {/* {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
                                                         return <Tag size="lg" borderRadius={"full"}>
                                                             <Avatar key={k} ml={-1} mr={2} size="xs" name={`${i.personName}`} />
                                                             <TagLabel>{i.personName}</TagLabel>
                                                             <TagCloseButton />
                                                         </Tag>
-                                                    }) : "Nincs hozzárendelve."}
+                                                    }) : "Nincs hozzárendelve."} */}
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Bejelentő</FormLabel>
@@ -569,7 +583,7 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Feladatra becsült idő (órában)</FormLabel>
-                                                    <NumberInput variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
+                                                    <NumberInput {...registerView("timeEstimate", { required: false })} variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
                                                         <NumberInputField />
                                                         <NumberInputStepper>
                                                             <NumberIncrementStepper />
@@ -588,10 +602,10 @@ export default function ProjectBoards() {
                                                         </HStack>
                                                     </Stack>
                                                 </FormControl>
-                                                <FormControl isInvalid={errorsView.dueDate}>
+                                                <FormControl >
                                                     <FormLabel>Határidő (dátum)</FormLabel>
-                                                    <Input {...registerView("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} />
-                                                    <FormErrorMessage>{errorsView.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
+                                                    <Input defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: false, valueAsDate: true })} type="date" />
+                                                    <FormErrorMessage>{errorsView.dueDate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <Divider />
                                                 <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>

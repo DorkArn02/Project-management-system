@@ -1,8 +1,9 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Dtos.IssueDtos;
+using Szakdolgozat_backend.Models;
 using Szakdolgozat_backend.Services.IssueServiceFolder;
 
 namespace Szakdolgozat_backend.Controllers
@@ -100,9 +101,11 @@ namespace Szakdolgozat_backend.Controllers
         }
 
         [HttpPatch("UpdateIssueDetails/{projectId}/{projectListId}/{issueId}")]
-        public async Task<IActionResult> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s)
+        public async Task<IActionResult> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, [FromBody] JsonPatchDocument<Issue> s)
         {
+            var res = await _issueService.UpdateIssueDetails(projectId, projectListId, issueId, s);
 
+            return Ok(res);
         }
 
     }
