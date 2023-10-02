@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { getProjectById } from '../api/project'
 import {
-    Breadcrumb,
+    Breadcrumb, Icon,
     BreadcrumbItem,
+    Editable,
+    EditablePreview,
     BreadcrumbLink,
     HStack, Avatar,
     Text, Tooltip, Button, Input, FormLabel, FormErrorMessage,
@@ -16,30 +18,38 @@ import {
     NumberInputStepper,
     NumberIncrementStepper,
     NumberDecrementStepper,
-    TagCloseButton,
-    Tag, TagLabel
+    Tag, TagLabel, EditableInput
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
 import { ImCross } from "react-icons/im"
-import { addProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
+import { addProjectBoard, deleteProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
 import { Controller, useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 import { DragDropContext, Droppable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
-import { addIssueToBoard, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
+import { addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import 'moment/dist/locale/hu'
-import { MultiSelect } from "chakra-multiselect"
 import { ContentState, EditorState, convertFromHTML } from 'draft-js'
-import { Editor } from 'react-draft-wysiwyg'
 import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
-import { convertToHTML, } from "draft-convert"
 import { useMemo } from 'react'
 import debounce from "lodash/debounce"
 import "../styles.css"
 import Issue from './IssueComponents/Issue'
+import { Select as ChakraSelect, chakraComponents } from "chakra-react-select"
+import EditorComp from './EditorComp'
+import { addCommentToIssue } from '../api/comment'
+import EditableControls from './EditableControl'
+
+const customComponents = {
+    Option: ({ children, ...props }) => (
+        <chakraComponents.Option {...props}>
+            {props.data.icon} {children}
+        </chakraComponents.Option>
+    ),
+};
 
 export default function ProjectBoards() {
 
@@ -47,42 +57,59 @@ export default function ProjectBoards() {
     const { projectId } = useParams()
     const [project, setProject] = useState()
     const [boards, setBoards] = useState()
-
-    const { isOpen, onOpen, onClose } = useDisclosure()
-    const { isOpen: isOpenAddIssue, onOpen: onOpenAddIssue, onClose: onCloseAddIssue } = useDisclosure()
-    const { isOpen: isOpenIssue, onOpen: onOpenIssue, onClose: onCloseIssue } = useDisclosure()
-    const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
-    const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
-
-    const { register, handleSubmit, reset, formState: { errors } } = useForm();
-    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
-    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView }, control: controlView } = useForm({
-        defaultValues: {
-            description: EditorState.createEmpty()
-        }
-    });
-
-
     const [currentIssue, setCurrentIssue] = useState()
     const [currentBoardId, setCurrentBoardId] = useState()
     const { colorMode } = useColorMode()
 
     const [assignedPeople, setAssignedPeople] = useState([])
     const [people, setPeople] = useState([])
+    const [editorState, setEditorState] = useState(
+        () => EditorState.createEmpty(),
+    );
+    const [search, setSearch] = useState('');
+    const [title, setTitle] = useState("")
+    const [priority, setPriority] = useState(null)
+    const [selectedPeople, setSelectedPeople] = useState([])
+
+    const [comment, setComment] = useState("")
 
     const toast = useToast()
+
+    const { isOpen, onOpen, onClose } = useDisclosure()
+    const { isOpen: isOpenAddIssue, onOpen: onOpenAddIssue, onClose: onCloseAddIssue } = useDisclosure()
+    const { isOpen: isOpenIssue, onOpen: onOpenIssue, onClose: onCloseIssue } = useDisclosure()
+    const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
+    const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
+    const { isOpen: isOpenBoardDelete, onOpen: onOpenBoardDelete, onClose: onCloseBoardDelete } = useDisclosure()
+
+    const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    const { register: registerCreate, handleSubmit: handleSubmitCreate, reset: resetCreate, formState: { errors: errorsCreate }, control: controlCreate } = useForm();
+    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
+    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields }, control: controlView } = useForm({
+        shouldUnregister: true
+    });
+
+    const priorities = [
+        { value: "1", label: "Legalacsonyabb", icon: <Icon mr={2} as={FcLowPriority} /> },
+        { value: "2", label: "Alacsony", icon: <Icon mr={2} as={FcLowPriority} /> },
+        { value: "3", label: "Közepes", icon: <Icon mr={2} as={FcMediumPriority} /> },
+        { value: "4", label: "Magas", icon: <Icon mr={2} as={FcHighPriority} /> },
+        { value: "5", label: "Legmagasabb", icon: <Icon mr={2} as={FcHighPriority} /> },
+    ]
 
     useEffect(() => {
         const fetchProject = async () => {
             const result = await getProjectById(projectId)
             setTimeout(() => {
                 setProject(result.data)
-
                 const arr = []
+                const arr2 = []
                 result.data.participants.forEach(item => {
-                    arr.push({ label: (<><Avatar ml={-1} mr={2} size="xs" name={`${item.lastName} ${item.firstName}`} /> {item.lastName} {item.firstName}</>), value: `${item.id}` })
+                    arr.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
+                    arr2.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, selected: false })
                 })
                 setPeople(arr)
+                setSelectedPeople(arr2)
             }, 500)
         }
         fetchProject()
@@ -96,7 +123,13 @@ export default function ProjectBoards() {
     const handleOpenIssue = (issueObject, boardId) => {
         setCurrentIssue(issueObject)
         setCurrentBoardId(boardId)
-
+        const arr = []
+        project.participants.map(p => {
+            if (issueObject.assignedPeople.some(a => a.userId === p.userId)) {
+                arr.push({ id: p.id, label: `${p.lastName} ${p.firstName}`, value: `${p.id}` })
+            }
+        })
+        setAssignedPeople(arr)
         const contentAsHTML = issueObject.description;
         const contentBl = convertFromHTML(contentAsHTML);
         const contentState = ContentState.createFromBlockArray(contentBl.contentBlocks, contentBl.entityMap);
@@ -120,7 +153,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
-            refreshBoards()
+            await refreshBoards()
             handleCloseAddBoard()
         } catch (e) {
             toast({
@@ -163,7 +196,6 @@ export default function ProjectBoards() {
         }
     }
 
-    // react-beautiful-dnd handle logic
     const handleOnDragEnd = async (result) => {
         if (!result.destination) {
             return;
@@ -259,11 +291,6 @@ export default function ProjectBoards() {
         }
     }
 
-    const [editorState, setEditorState] = useState(
-        () => EditorState.createEmpty(),
-    );
-    const [search, setSearch] = useState('');
-
     const changeHandler = event => {
         setSearch(event.target.value);
     };
@@ -285,9 +312,11 @@ export default function ProjectBoards() {
 
     const handleAddIssueForm = async (object) => {
         const contentState = editorState.getCurrentContent();
-        const contentAsHTML = convertToHTML(contentState);
 
-        // Legnagyobb position megkeresése
+        const aPeople = object.assignedPeople.map(a => {
+            return a.value
+        })
+
         const b = boards.filter(i => i.id === currentBoardId)[0].issues
         let maxPos = 0
         b.forEach(i => {
@@ -295,10 +324,8 @@ export default function ProjectBoards() {
                 maxPos = i.position
         })
 
-        // await addIssueToBoard(projectId, currentBoardId,
-        //     { ...object, description: convertToHTML(editorState.getCurrentContent()), position: maxPos + 1 }, assignedPeople)
         await addIssueToBoard(projectId, currentBoardId,
-            { ...object, description: contentAsHTML, position: maxPos + 1 }, assignedPeople, updateProjectBoards)
+            { ...object, description: JSON.stringify(object.description), priorityId: object.priorityId.value, position: maxPos + 1 }, aPeople, updateProjectBoards)
         toast({
             title: 'Issue sikeresen létrehozva!.',
             description: "",
@@ -310,7 +337,7 @@ export default function ProjectBoards() {
     }
 
     const handleAddIssueClose = () => {
-        reset()
+        resetCreate()
         setEditorState(EditorState.createEmpty())
         setAssignedPeople([])
         onCloseAddIssue()
@@ -339,12 +366,37 @@ export default function ProjectBoards() {
         }
     }
 
-    const [title, setTitle] = useState("")
-
     const handleBoardEditOpen = (obj, obj2) => {
         setTitle(obj)
         setCurrentBoardId(obj2)
         onOpenBoardEdit()
+    }
+
+    const handleBoardDeleteOpen = (boardId) => {
+        setCurrentBoardId(boardId)
+        onOpenBoardDelete()
+    }
+
+    const handleBoardDelete = async () => {
+        try {
+            const result = await deleteProjectBoard(projectId, currentBoardId)
+            toast({
+                title: 'Board törölve.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            await updateProjectBoards()
+            onCloseBoardDelete()
+        } catch (e) {
+            toast({
+                title: 'Board törlése sikertelen.',
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+            onCloseBoardDelete()
+        }
     }
 
     const handleBoardEditClose = () => {
@@ -383,14 +435,83 @@ export default function ProjectBoards() {
         }
     }
 
-    const handleOnCloseIssue = async (obj) => {
+    const handleOnCloseIssue = async (e) => {
         resetView()
-        console.log(obj)
-        console.log(convertToHTML(obj.description.getCurrentContent()))
         onCloseIssue()
+
+        if (isDirty) {
+            const patchData = [];
+            for (const key in dirtyFields) {
+                if (dirtyFields.hasOwnProperty(key) && dirtyFields[key]) {
+                    if (key === "description") {
+                        patchData.push({
+                            op: 'replace',
+                            path: `/${key}`,
+                            value: JSON.stringify(e[key])
+                        })
+                    } else
+                        patchData.push({
+                            op: 'replace',
+                            path: `/${key}`,
+                            value: e[key]
+                        })
+                }
+            }
+            const result = await changeIssue(projectId, currentBoardId, currentIssue.id, patchData)
+            await updateProjectBoards()
+            console.log(result)
+        }
+        setEditorState()
+        setAssignedPeople([])
     }
 
-    // Moment locale
+    const handleFilterPeople = (id) => {
+        const items = [...selectedPeople]
+
+        const result = items.map(i => {
+            if (i.id === id) {
+                return { ...i, selected: !i.selected }
+            } else {
+                return i;
+            }
+        });
+
+        setSelectedPeople(result)
+    }
+
+    const handlePriorityFilter = (e) => {
+        if (e)
+            setPriority(e.value)
+        else
+            setPriority(null)
+    }
+
+    const handleComment = async () => {
+        try {
+            await addCommentToIssue(projectId, currentIssue.id, comment)
+
+            toast({
+                title: 'Komment sikeresen hozzáadva.',
+                description: "",
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+
+            await updateProjectBoards()
+            handleOnCloseIssue()
+        } catch (e) {
+            toast({
+                title: 'Komment rögzítése sikertelen.',
+                description: "",
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+            handleOnCloseIssue()
+        }
+    }
+
     moment.locale('hu')
 
     if (project == null) {
@@ -428,49 +549,56 @@ export default function ProjectBoards() {
                 <Modal size="3xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
                     <ModalOverlay />
                     <ModalContent>
+                        <ModalCloseButton />
                         <ModalHeader>Ügy létrehozása</ModalHeader>
-                        <form autoComplete='off' onSubmit={handleSubmit(handleAddIssueForm)}>
+                        <form autoComplete='off' onSubmit={handleSubmitCreate(handleAddIssueForm)}>
                             <ModalBody>
                                 <Stack spacing={5}>
-                                    <FormControl isRequired>
+                                    <FormControl isInvalid={errorsCreate.title}>
                                         <FormLabel>Cím</FormLabel>
-                                        <Input type="text" {...register("title", { required: true })} />
+                                        <Input variant={"filled"} type="text" {...registerCreate("title", { required: true })} />
+                                        <FormErrorMessage>{errorsCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl>
                                         <FormLabel>Leírás</FormLabel>
-                                        {/* <ReactQuill onChange={(e) => setTxt(e)} /> */}
-                                        <Editor
+                                        {/* <Editor
                                             editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
                                             editorState={editorState}
                                             onEditorStateChange={setEditorState}
-                                        />
+                                        /> */}
+                                        <Controller name="description" rules={{ required: false }} control={controlCreate}
+                                            render={({ field: { value, onChange } }) => (
+                                                <EditorComp data={value} setData={onChange} />
+                                            )} />
                                     </FormControl>
                                     <FormControl>
+                                        <FormLabel>Személyek hozzárendelése</FormLabel>
                                         {project &&
-                                            <MultiSelect value={assignedPeople} onChange={setAssignedPeople} options={people} label='Személyek hozzárendelése' />
+                                            <Controller name="assignedPeople" rules={{ required: false }} control={controlCreate}
+                                                render={({ field: { value, onChange } }) => (
+                                                    <ChakraSelect isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} components={customComponents} onChange={onChange} value={value}>
+                                                    </ChakraSelect>
+                                                )} />
+
                                         }
                                     </FormControl>
-                                    <FormControl isInvalid={errors.priorityId} isRequired>
+                                    <FormControl isInvalid={errorsCreate.priorityId}>
                                         <FormLabel>Prioritás</FormLabel>
-                                        <Select {...register("priorityId", { required: true })}>
-                                            <option value={""} disabled>-</option>
-                                            <option value='5'>Legmagasabb</option>
-                                            <option value='4'>Magas</option>
-                                            <option value='3'>Közepes</option>
-                                            <option value='2'>Alacsony</option>
-                                            <option value='1'>Legalacsonyabb</option>
-                                        </Select>
-                                        <FormErrorMessage>{errors.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
+                                        <Controller name="priorityId" rules={{ required: true }} control={controlCreate} render={({ field: { value, onChange } }) => (
+                                            <ChakraSelect placeholder="Szűrés prioritás szerint..." isClearable={true} variant='filled' options={priorities} components={customComponents} onChange={onChange} value={value}>
+                                            </ChakraSelect>
+                                        )} />
+                                        <FormErrorMessage>{errorsCreate.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl isInvalid={errors.timeEstimate}>
+                                    <FormControl isInvalid={errorsCreate.timeEstimate}>
                                         <FormLabel>Becsült idő (óra)</FormLabel>
-                                        <Input  {...register("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} type="number" />
-                                        <FormErrorMessage>{errors.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                        <Input variant={"filled"}  {...registerCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} type="number" />
+                                        <FormErrorMessage>{errorsCreate.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl isInvalid={errors.dueDate}>
+                                    <FormControl isInvalid={errorsCreate.dueDate}>
                                         <FormLabel>Határidő</FormLabel>
-                                        <Input {...register("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" />
-                                        <FormErrorMessage>{errors.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
+                                        <Input variant={"filled"} {...registerCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" />
+                                        <FormErrorMessage>{errorsCreate.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
@@ -482,7 +610,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Issue törlése */}
-                < Modal isOpen={isOpenDelete} onClose={onCloseDelete} >
+                <Modal isOpen={isOpenDelete} onClose={onCloseDelete} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -499,7 +627,11 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Issue megtekintése */}
-                <Modal closeOnOverlayClick={false} size="5xl" isOpen={isOpenIssue} onClose={handleOnCloseIssue} >
+
+                <Modal closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
+                    handleOnCloseIssue();
+                }
+                }>
                     <ModalOverlay />
                     {
                         currentIssue ?
@@ -515,31 +647,53 @@ export default function ProjectBoards() {
                                     <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     <ModalBody>
                                         <HStack gap="30px" align={"flex-start"}>
-                                            <Flex w="60%" direction={"column"}>
-                                                <FormControl>
-                                                    <Input defaultValue={currentIssue.title} {...registerView("title", { required: true })} mb={5} fontSize={"3xl"} variant={"filled"} />
+                                            <Flex maxH="100vh" overflowX={"hidden"} overflowY={"scroll"} w="60%" direction={"column"}>
+                                                <FormControl mt={1}>
+                                                    <Editable mb={5} defaultValue={currentIssue.title} fontSize={"3xl"}>
+                                                        <EditablePreview />
+                                                        <EditableInput {...registerView("title", { required: true })} />
+                                                    </Editable>
                                                 </FormControl>
-                                                <FormControl>
+                                                <FormControl mb={2}>
                                                     <FormLabel>Leírás</FormLabel>
-                                                    <Controller defaultValue={currentIssue.description} name='description' control={controlView} render={({ field: { value, onChange } }) => (
-                                                        <Editor
-                                                            toolbarClassName='rdw-editor-toolbar'
-                                                            editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
-                                                            editorState={value}
-                                                            onEditorStateChange={onChange}
-                                                        />
-                                                    )}>
-
-                                                    </Controller>
-
+                                                    <Controller defaultValue={JSON.parse(currentIssue.description)}
+                                                        name='description' control={controlView} render={({ field: { value, onChange } }) => (
+                                                            <>
+                                                                <EditorComp data={value} setData={onChange} />
+                                                            </>
+                                                        )}
+                                                    />
                                                 </FormControl>
                                                 <FormControl>
-                                                    <FormLabel>Hozzászólások</FormLabel>
-                                                    <HStack align="baseline">
+                                                    <FormLabel>Hozzászólások ({currentIssue.comments.length})</FormLabel>
+                                                    <HStack mb={3} align="baseline">
                                                         <Avatar size="sm" name={currentIssue.reporterName} />
-                                                        <Textarea placeholder='Hozzászólás írása...' />
+                                                        <Textarea onChange={(e) => setComment(e.target.value)} placeholder='Hozzászólás írása...' />
                                                     </HStack>
+                                                    <Button ml={10} onClick={handleComment} colorScheme='blue'>Elküldés</Button>
                                                 </FormControl>
+                                                {currentIssue.comments.map((c, k) => {
+                                                    return <>
+                                                        <Stack gap={1} >
+                                                            <HStack >
+                                                                <Avatar size="sm" name={c.authorName} />
+                                                                <Text fontWeight={"medium"}>{c.authorName} </Text>
+                                                                <Text>{moment(c.created).fromNow()}</Text>
+                                                            </HStack>
+                                                            <HStack pl={"40px"} key={k}>
+                                                                <Editable
+                                                                    defaultValue={c.content}
+                                                                    isPreviewFocusable={false}
+                                                                >
+                                                                    <EditablePreview />
+                                                                    <Input mb={2} as={EditableInput} />
+                                                                    <EditableControls />
+                                                                </Editable>
+                                                            </HStack>
+                                                        </Stack>
+                                                        <Divider mt={2} mb={2} />
+                                                    </>
+                                                })}
                                             </Flex>
                                             <Stack gap={2}>
                                                 <FormControl>
@@ -552,15 +706,14 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Hozzárendelt személyek</FormLabel>
-                                                    <MultiSelect defaultValue={"f5f8658a-4c83-466f-8034-08dbba766402"} value={assignedPeople} onChange={setAssignedPeople} options={people} label='Személyek hozzárendelése' />
-                                                    { }
-                                                    {/* {currentIssue.assignedPeople.length > 0 ? currentIssue.assignedPeople.map((i, k) => {
-                                                        return <Tag size="lg" borderRadius={"full"}>
-                                                            <Avatar key={k} ml={-1} mr={2} size="xs" name={`${i.personName}`} />
-                                                            <TagLabel>{i.personName}</TagLabel>
-                                                            <TagCloseButton />
-                                                        </Tag>
-                                                    }) : "Nincs hozzárendelve."} */}
+                                                    <Controller defaultValue={assignedPeople} name="assignedPeople" rules={{ required: false }} control={controlView}
+                                                        render={({ field: { value, onChange } }) => (
+                                                            <>
+
+                                                                <ChakraSelect isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} components={customComponents} onChange={onChange} value={value}>
+                                                                </ChakraSelect>
+                                                            </>
+                                                        )} />
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Bejelentő</FormLabel>
@@ -571,14 +724,13 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl isInvalid={errorsView.priorityId} >
                                                     <FormLabel>Prioritás</FormLabel>
-                                                    <Select {...registerView("priorityId", { required: true })} defaultValue={`${currentIssue.priority.id}`}>
-                                                        <option value={""} disabled>-</option>
-                                                        <option value='5'>Legmagasabb</option>
-                                                        <option value='4'>Magas</option>
-                                                        <option value='3'>Közepes</option>
-                                                        <option value='2'>Alacsony</option>
-                                                        <option value='1'>Legalacsonyabb</option>
-                                                    </Select>
+                                                    <Controller defaultValue={{ value: `${currentIssue.priority.id}`, label: `${currentIssue.priority.name}` }} name="priorityId" rules={{ required: true }} control={controlView}
+                                                        render={({ field: { value, onChange } }) => (
+                                                            <>
+                                                                <ChakraSelect placeholder={"Prioritás kiválasztása"} isClearable={true} variant='filled' options={priorities} components={customComponents} onChange={onChange} value={value}>
+                                                                </ChakraSelect>
+                                                            </>
+                                                        )} />
                                                     <FormErrorMessage>{errorsView.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <FormControl>
@@ -594,7 +746,7 @@ export default function ProjectBoards() {
                                                 <FormControl>
                                                     <FormLabel>Befektetett idő (órában)</FormLabel>
                                                     <Stack>
-                                                        <Progress value={0} />
+                                                        <Progress value={currentIssue.timeSpent} />
                                                         <HStack>
                                                             <Text>{currentIssue.timeSpent} óra</Text>
                                                             <Spacer />
@@ -604,7 +756,7 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl >
                                                     <FormLabel>Határidő (dátum)</FormLabel>
-                                                    <Input defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: false, valueAsDate: true })} type="date" />
+                                                    <Input color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "red" : "lightgreen"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: false, valueAsDate: true })} type="date" />
                                                     <FormErrorMessage>{errorsView.dueDate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <Divider />
@@ -618,8 +770,9 @@ export default function ProjectBoards() {
                             : ""
                     }
                 </Modal >
+
                 {/* Board név módosítása */}
-                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
+                < Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -643,7 +796,25 @@ export default function ProjectBoards() {
                         </form>
                     </ModalContent>
                 </Modal >
-
+                {/* Board törlése */}
+                < Modal isOpen={isOpenBoardDelete} onClose={onCloseBoardDelete} >
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>
+                            <Text>Board törlés megerősítése</Text>
+                        </ModalHeader>
+                        <ModalCloseButton />
+                        <ModalBody>
+                            Biztosan törli?
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button colorScheme='blue' mr={3} onClick={onCloseBoardDelete}>
+                                Visszavonás
+                            </Button>
+                            <Button onClick={handleBoardDelete} variant='solid'>Törlés</Button>
+                        </ModalFooter>
+                    </ModalContent>
+                </Modal >
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
@@ -658,21 +829,23 @@ export default function ProjectBoards() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input onChange={debouncedChangeHandler} type='text' placeholder='Feladat keresése...' />
+                            <Input variant={"filled"} onChange={debouncedChangeHandler} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
                         <AvatarGroup size={"md"}>
-                            {project.participants.map((i, k) => {
-                                return <Avatar name={`${i.lastName} ${i.firstName}`} key={k} />
+                            {selectedPeople && selectedPeople.map((i, k) => {
+                                return <Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} />
                             })}
                         </AvatarGroup>
+                        <ChakraSelect placeholder="Szűrés prioritás szerint..." onChange={(e) => handlePriorityFilter(e)} isClearable={true} variant='filled' options={priorities} name='priorities' components={customComponents}>
+                        </ChakraSelect>
                     </HStack>
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <HStack userSelect={"none"} gap={5} >
                             {boards && boards.map((i, k) => {
                                 return <Stack
                                     key={k}
-                                    height="90vh"
-                                    width="200px"
+                                    minH="90vh"
+                                    width="250px"
                                     bg={colorMode === 'light' ? "gray.200" : "#444"}
                                     p={2}
                                     boxShadow={"lg"}
@@ -693,7 +866,7 @@ export default function ProjectBoards() {
                                                 variant='outline'
                                             />
                                             <MenuList>
-                                                <MenuItem icon={<FaTrash />}>
+                                                <MenuItem onClick={() => handleBoardDeleteOpen(i.id)} icon={<FaTrash />}>
                                                     Board törlése
                                                 </MenuItem>
                                                 <MenuItem onClick={() => handleBoardEditOpen(i.title, i.id)} icon={<FaPen />}>
@@ -702,18 +875,19 @@ export default function ProjectBoards() {
                                             </MenuList>
                                         </Menu>
                                     </HStack>
-                                    <Flex as={Button} gap={2} onClick={() => handleAddIssueOpen(i.id)} _hover={{ cursor: "pointer", bg: "gray.100" }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
+                                    <Flex as={Button} gap={2} onClick={() => handleAddIssueOpen(i.id)} _hover={{ bg: (colorMode === 'light' ? "gray.100" : "gray.500"), cursor: 'pointer' }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                         <FaPlus />
                                         <Text>Ügy hozzáadása</Text>
                                     </Flex>
                                     <Droppable droppableId={`${i.id}`} direction='vertical'>
                                         {(provided, snapshot) => (
-                                            <Flex overflow={"scroll"} overflowX={"hidden"} h="100%" {...provided.droppableProps}
+                                            <Flex h="100%" {...provided.droppableProps}
                                                 ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? (snapshot.isDraggingOver ? "gray.100" : "gray.200") : (snapshot.isDraggingOver ? "#333" : "#444")}>
                                                 {
-                                                    i.issues.filter(i => i.title.toLowerCase().includes(search)).map((issue, key) => {
-                                                        return <Issue index={key} issue={issue} handleOpenIssue={handleOpenIssue} handlePriorityIcon={handlePriorityIcon} boardId={i.id} />
-                                                    })
+                                                    i.issues.filter(i => (priority === null || i.priority.id == priority)).filter(i => i.title.toLowerCase().includes(search))
+                                                        .map((issue, key) => {
+                                                            return <Issue key={key} index={key} issue={issue} handleOpenIssue={handleOpenIssue} handlePriorityIcon={handlePriorityIcon} boardId={i.id} />
+                                                        })
                                                 }
                                                 {provided.placeholder}
                                             </Flex>

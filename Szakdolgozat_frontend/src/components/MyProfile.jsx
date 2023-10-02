@@ -41,19 +41,19 @@ export default function MyProfile() {
                         <Stack gap={3}>
                             <FormControl isInvalid={errors.oldPassword}>
                                 <FormLabel>Régi jelszó</FormLabel>
-                                <Input {...register("oldPassword", { required: true })} type="password" />
+                                <Input variant="filled" {...register("oldPassword", { required: true })} type="password" />
                                 {errors.oldPassword ? <FormErrorMessage>Kérem adja meg a régi jelszavát.</FormErrorMessage> : ""}
                             </FormControl>
                             <FormControl isInvalid={errors.password1}>
                                 <FormLabel>Új jelszó</FormLabel>
-                                <Input {...register("password1", { required: true, minLength: 6 })} type="password" />
+                                <Input variant="filled" {...register("password1", { required: true, minLength: 6 })} type="password" />
                                 {errors.password1 && errors.password1.type === 'required' ? <FormErrorMessage>Kérem adja meg a jelszavát</FormErrorMessage> : ""}
                                 {errors.password1 && errors.password1.type === 'minLength' ? <FormErrorMessage>Jelszó hossza minimum 6 karakter</FormErrorMessage> : ""}
                                 {errors.password1 && errors.password1.type === 'validate' ? <FormErrorMessage>Mindkét jelszónak meg kell egyeznie</FormErrorMessage> : ""}
                             </FormControl>
                             <FormControl isInvalid={errors.password2}>
                                 <FormLabel>Új jelszó újra</FormLabel>
-                                <Input {...register("password2", {
+                                <Input variant="filled" {...register("password2", {
                                     required: true, validate: (val) => {
                                         if (watch('password1') != val) {
                                             return "Mindkét megadott jelszónak egyeznie kell.";

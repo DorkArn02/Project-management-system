@@ -1,4 +1,5 @@
 ﻿using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
+using Szakdolgozat_backend.Dtos.CommentDtos;
 using Szakdolgozat_backend.Models;
 
 namespace Szakdolgozat_backend.Dtos.IssueDtos
@@ -29,9 +30,9 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
 
         public Priority Priority { get; set; } = null!;
 
-        public List<AssignedPersonDTO> AssignedPeople { get; set; } = new List<AssignedPersonDTO>();
+        public List<AssignedPersonDTO> AssignedPeople { get; set; } = new ();
 
-        public List<Comment> Comments { get; set; } = new List<Comment>();
+        public List<CommentResponseDTO> Comments { get; set; } = new ();
 
     }
 }

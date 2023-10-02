@@ -1,4 +1,6 @@
-﻿namespace Szakdolgozat_backend.Models;
+﻿using Newtonsoft.Json;
+
+namespace Szakdolgozat_backend.Models;
 
 public partial class Comment
 {
@@ -13,8 +15,8 @@ public partial class Comment
     public Guid UserId { get; set; }
 
     public Guid IssueId { get; set; }
-
+    [JsonIgnore]
     public virtual Issue Issue { get; set; } = null!;
-
+    [JsonIgnore]
     public virtual User User { get; set; } = null!;
 }

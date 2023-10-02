@@ -8,6 +8,7 @@ using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Middlewares;
 using Szakdolgozat_backend.Models;
 using Szakdolgozat_backend.Services.AuthServiceFolder;
+using Szakdolgozat_backend.Services.CommentServiceFolder;
 using Szakdolgozat_backend.Services.IssueServiceFolder;
 using Szakdolgozat_backend.Services.ProjectListServiceFolder;
 using Szakdolgozat_backend.Services.ProjectServiceFolder;
@@ -27,6 +28,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProjectListService, ProjectListService>();
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

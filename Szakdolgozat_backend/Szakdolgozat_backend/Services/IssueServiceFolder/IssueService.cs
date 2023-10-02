@@ -368,6 +368,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             s.ApplyTo(i);
 
+            i.Updated = DateTime.Now;
+
             await _db.SaveChangesAsync();
             return i;
         }

@@ -19,3 +19,10 @@ export const editProjectBoard = async (projectId, projectListId, title) => {
 
     return project
 }
+
+export const deleteProjectBoard = async (projectId, projectListId) => {
+    const result =
+        await api.delete(`/ProjectList/Delete/${projectId}/${projectListId}`)
+
+    return result
+}

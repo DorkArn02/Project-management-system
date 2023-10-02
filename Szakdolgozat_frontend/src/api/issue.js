@@ -8,7 +8,7 @@ export const addIssueToBoard = async (projectId, boardId, issueObject, assignedP
     api.post(`/Issue/AddIssue/${projectId}/${boardId}`, issueObject)
         .then((result) => {
             for (let i of assignedPeople) {
-                addAssignee(projectId, boardId, result.data.id, parseInt(i.value))
+                addAssignee(projectId, boardId, result.data.id, parseInt(i))
             }
             return result
         }).catch((error) => {
@@ -46,3 +46,8 @@ export const changeIssuePosition2 = async (projectId, sourceColumnId, destColumn
     return result
 }
 
+export const changeIssue = async (projectId, projectListId, issueId, patchData) => {
+    const result = await api.patch(`/Issue/UpdateIssueDetails/${projectId}/${projectListId}/${issueId}`, patchData)
+
+    return result
+}

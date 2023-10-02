@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
+using Szakdolgozat_backend.Dtos.CommentDtos;
 using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Dtos.ProjectListDtos;
 using Szakdolgozat_backend.Exceptions;
@@ -88,7 +89,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
 
             List<ProjectList> projectLists = await _db.ProjectLists.Where(p => p.ProjectId == projectId)
                 .Include(p => p.Issues)
-                    .ThenInclude(p => p.AssignedPeople).AsQueryable()
+                    .ThenInclude(p => p.AssignedPeople)
+                    .AsQueryable()
                 .ToListAsync();
 
             List<ProjectListResponseDTO> projectListResponseDTO = new();
@@ -101,6 +103,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 {
                     var issueReporter = await _db.Users.FindAsync(issue.UserId);
                     var issuePriority = await _db.Priorities.FindAsync(issue.PriorityId);
+                    var comment = await _db.Comments
+                        .Where(c => c.IssueId == issue.Id)
+                        .ToListAsync();
 
                     List<AssignedPersonDTO> assignedPersonDTOs = new();
 
@@ -119,6 +124,29 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         assignedPersonDTOs.Add(assignedPersonDTO);
                     }
 
+                    List<CommentResponseDTO> commentResponseDTOs = new();
+
+                    foreach(var c in comment)
+                    {
+                        var user = await _db.Users.FindAsync(c.UserId);
+
+                        if (user == null)
+                            throw new NotFoundException("User not found.");
+
+                        CommentResponseDTO commentResponseDTO = new()
+                        {
+                            Content = c.Content,
+                            Created = c.Created,
+                            Updated = c.Updated,
+                            IssueId = c.IssueId,
+                            Id = c.Id,
+                            UserId = c.UserId,
+                            AuthorName = $"{user.LastName} {user.FirstName}"
+                        };
+
+                        commentResponseDTOs.Add(commentResponseDTO);
+                    }
+
                     IssueResponseDTO issueDTO = new()
                     {
                         Id = issue.Id,
@@ -134,7 +162,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
                         Priority = issuePriority,
                         AssignedPeople = assignedPersonDTOs,
-                        Comments = issue.Comments.ToList(),
+                        Comments = commentResponseDTOs,
 
                     };
 
@@ -199,7 +227,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                     issues.Add(i);
             }
 
-            List<TaskResponseDTO> issueResponseDTOs = new();
+            List<TaskResponseDTO> taskResponseDTOs = new();
 
             foreach(var issue in issues)
             {
@@ -232,10 +260,10 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         BoardName = board.Title,
                         ProjectName = project.Title
                     };
-                    issueResponseDTOs.Add(issueDTO);
+                    taskResponseDTOs.Add(issueDTO);
                 }
             }
-            return issueResponseDTOs;
+            return taskResponseDTOs;
         }
 
         public async Task<ProjectList> UpdateProjectList(Guid projectId, Guid projectListID, string title)
