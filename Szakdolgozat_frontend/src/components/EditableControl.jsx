@@ -14,7 +14,8 @@ export default function EditableControls() {
         </ButtonGroup>
     ) : (
         <Flex justifyContent='left'>
-            <Text _hover={{ textDecor: "underline", cursor: "pointer" }} fontSize={"sm"} {...getEditButtonProps()} >Módosít</Text>
+            <Text mr={5} _hover={{ textDecor: "underline", cursor: "pointer" }} fontSize={"sm"} {...getEditButtonProps()} >Módosít</Text>
+            <Text _hover={{ textDecor: "underline", cursor: "pointer" }} fontSize={"sm"} >Törlés</Text>
         </Flex>
     )
 }

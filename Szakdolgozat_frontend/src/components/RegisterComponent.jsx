@@ -16,19 +16,35 @@ import { useForm } from "react-hook-form";
 import { registerUser } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 
 export default function RegisterComponent() {
 
-    const { register, handleSubmit, watch, formState: { errors } } = useForm();
+    // CHAKRA TOAST
     const toast = useToast()
+
+    // REACT ROUTER
     const navigate = useNavigate()
+
+    // REACT HOOK FORM
+    const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
+
+    // AUTH
+    const { login, user, isAccessTokenExpired } = useAuth()
+
+    useEffect(() => {
+        if (!user)
+            return
+        if (isAccessTokenExpired() === false);
+        navigate('/dashboard')
+    }, [user])
 
     const onSubmit = async (data) => {
         try {
             await registerUser(data)
             toast({
                 title: 'Sikeres regisztráció.',
-                description: "Mindjárt átirányítunk a főoldalra...",
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -39,7 +55,6 @@ export default function RegisterComponent() {
         } catch (error) {
             toast({
                 title: 'Sikertelen regisztráció.',
-                description: "Már regisztrált e-mail címet adott meg vagy túl rövid a jelszava.",
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -93,7 +108,7 @@ export default function RegisterComponent() {
                         <Link to="/">
                             <Text _hover={{ textDecoration: "underline" }} textAlign={"right"}>Vissza a bejelentkezéshez</Text>
                         </Link>
-                        <Button type="submit" colorScheme="teal">
+                        <Button isLoading={isSubmitting} type="submit" colorScheme="teal">
                             Fiók létrehozása
                         </Button>
                     </Stack>

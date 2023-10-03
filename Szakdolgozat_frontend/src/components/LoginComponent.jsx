@@ -23,16 +23,17 @@ import { Link } from 'react-router-dom';
 
 export default function LoginComponent() {
 
-    const [loading, setLoading] = useState(false);
-    const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    // REACT HOOK FORM
+    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
+
+    // CHAKRA 
     const toast = useToast()
-    const { login, user, isAccessTokenExpired } = useAuth()
+
+    // REACT ROUTER
     const navigate = useNavigate()
 
-    useEffect(() => {
-        if (!loading) return
-        reset('')
-    }, [loading])
+    // AUTH
+    const { login, user, isAccessTokenExpired } = useAuth()
 
     useEffect(() => {
         if (!user)
@@ -42,7 +43,6 @@ export default function LoginComponent() {
     }, [user])
 
     const onSubmit = async (data) => {
-        setLoading(true)
         try {
             const result = await loginUser(data)
             toast({
@@ -62,7 +62,6 @@ export default function LoginComponent() {
             })
             reset()
         }
-        setLoading(false)
     }
 
     return (
@@ -94,7 +93,7 @@ export default function LoginComponent() {
                             <Spacer />
                             <Link >Elfelejtett jelszó?</Link>
                         </Stack>
-                        <Button isLoading={loading} type="submit" colorScheme="teal">
+                        <Button isLoading={isSubmitting} type="submit" colorScheme="teal">
                             Bejelentkezés
                         </Button>
                     </Stack>

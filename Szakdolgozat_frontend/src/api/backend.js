@@ -53,7 +53,7 @@ api.interceptors.response.use((response) => {
     // })
 
     const { accessToken } = JSON.parse(localStorage.getItem("user"));
-    console.log(error)
+
     if (isAccessTokenExpired(accessToken)) {
         window.location.href = "/"
     }
@@ -76,6 +76,4 @@ const isAccessTokenExpired = (accessToken) => {
     } else {
         return false;
     }
-
-    return null;
 }

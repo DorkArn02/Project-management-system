@@ -1,9 +1,8 @@
 import React from 'react'
 import { Flex, Spinner, Stack, Input, InputGroup, InputRightElement, Table, Avatar, Thead, Tr, Th, Td, useDisclosure, AvatarGroup, Tooltip, IconButton, Button, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, FormControl, Textarea, FormLabel, useToast, Text, FormErrorMessage } from "@chakra-ui/react"
 import { FaArrowRight, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
-import { useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { assignPeopleToProject, createUserProject, deleteProject, getUserProjects, removePeopleFromProject, updateProject } from '../api/project'
+import { assignPeopleToProject, createUserProject, deleteProject, removePeopleFromProject, updateProject } from '../api/project'
 import { useState } from 'react'
 import moment from "moment"
 import { FiSettings } from 'react-icons/fi'
@@ -15,39 +14,107 @@ import {
 } from '@chakra-ui/react'
 import { BiUserPlus } from "react-icons/bi"
 import { useForm } from 'react-hook-form'
+import { useLoaderData } from 'react-router-dom'
+import { useRevalidator } from 'react-router-dom'
+import { useNavigation } from 'react-router-dom'
 
 export default function Projects() {
-
+    // AUTH
     const { user } = useAuth()
 
-    const [project, setProject] = useState()
+    // REACT ROUTER
+    const project = useLoaderData()
+    const revalidator = useRevalidator()
+    const navigate = useNavigate()
+    const { state } = useNavigation()
+
+    // STATES
     const [search, setSearch] = useState("")
-    const { isOpen, onOpen, onClose } = useDisclosure()
+    const [currentProject, setCurrentProject] = useState({})
+    const [personId, setPersonId] = useState()
+
+    // MODAL
+    const { isOpen: isOpenCreate, onOpen: onOpenCreate, onClose: onCloseCreate } = useDisclosure()
     const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
     const { isOpen: isOpenModify, onOpen: onOpenModify, onClose: onCloseModify } = useDisclosure()
     const { isOpen: isOpenPeople, onOpen: onOpenPeople, onClose: onClosePeople } = useDisclosure()
     const { isOpen: isOpenDeletePeople, onOpen: onOpenDeletePeople, onClose: onCloseDeletePeople } = useDisclosure()
 
-    const [currentProject, setCurrentProject] = useState({})
-    const [personId, setPersonId] = useState()
-
-    const { register: registerAddPerson, handleSubmit: handleSubmitAddPerson, reset: resetAddPerson, formState: { errors: errorsAddPerson } } = useForm();
-    const { register: registerCreate, handleSubmit: handleSubmitCreate, reset: resetCreate, formState: { errors: errorsCreate } } = useForm();
-    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
-
+    // REACT HOOK FORM
+    const { register: registerAddPerson, handleSubmit: handleSubmitAddPerson, reset: resetAddPerson, formState: { errors: errorsAddPerson, isSubmitting: isSubmittingAddPerson } } = useForm();
+    const { register: registerCreate, handleSubmit: handleSubmitCreate, reset: resetCreate, formState: { errors: errorsCreate, isSubmitting: isSubmittingCreate } } = useForm();
+    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit, isSubmitting: isSubmittingEdit } } = useForm();
+    const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm();
+    // CHAKRA TOAST
     const toast = useToast()
-    const navigate = useNavigate()
 
-    useEffect(() => {
-        const fetchProjects = async () => {
-            const result = await getUserProjects()
-            setTimeout(() => {
-                setProject(result.data)
-            }, 500)
+    // PROJECT CREATE
+    const createProject = async (object) => {
+        try {
+            await createUserProject({ title: object.title, description: object.description })
+            toast({
+                title: 'Projekt létrehozva.',
+                description: "",
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            refreshProjectList()
+            handleProjectCreateClose()
+        } catch (error) {
+            toast({
+                title: 'Hiba.',
+                description: "Projekt létrehozása sikertelen",
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
         }
-        fetchProjects()
-    }, [])
+    }
 
+    const handleProjectCreateClose = () => {
+        resetCreate()
+        onCloseCreate()
+    }
+
+    // PROJECT EDIT
+    const handleModifyClose = () => {
+        resetEdit()
+        onCloseModify()
+    }
+
+    const handleModifyOpen = (projectObject) => {
+        setCurrentProject(projectObject)
+        onOpenModify()
+    }
+
+    const handleModifyProject = async (object) => {
+        try {
+            await updateProject(currentProject.id, { title: object.title, description: object.description })
+            toast({
+                title: 'Projekt adatainak módosítása sikeres.',
+                description: "",
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            refreshProjectList()
+            onCloseModify()
+            setCurrentProject({})
+        } catch (error) {
+            toast({
+                title: 'Hiba.',
+                description: "Projekt adatainak módosítása sikertelen",
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+            onCloseModify()
+            setCurrentProject({})
+        }
+    }
+
+    // PROJECT DELETE
     const handleDeleteProject = async () => {
         try {
             await deleteProject(currentProject.id)
@@ -59,7 +126,7 @@ export default function Projects() {
                 isClosable: true,
             })
             onCloseDelete()
-            await refreshProjectList()
+            refreshProjectList()
             setCurrentProject({})
         } catch (error) {
             toast({
@@ -83,6 +150,8 @@ export default function Projects() {
         onOpenPeople()
     }
 
+    // PROJECT PEOPLE
+
     const handleAddPeople = async (data) => {
         try {
             await assignPeopleToProject(currentProject.id, data.email)
@@ -93,101 +162,34 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
-            await refreshProjectList()
+            refreshProjectList()
             onClosePeople()
             resetAddPerson()
         } catch (e) {
-            toast({
-                title: 'Hiba.',
-                description: `${e.response.data}`,
-                status: 'error',
-                duration: 4000,
-                isClosable: true,
-            })
+            if (e.response.status === 404)
+                toast({
+                    title: 'Hiba.',
+                    description: `Felhasználó ilyen e-mail címmel nem létezik.`,
+                    status: 'error',
+                    duration: 4000,
+                    isClosable: true,
+                })
+            else if (e.response.status === 409)
+                toast({
+                    title: 'Hiba.',
+                    description: `A felhasználó már tagja a projektnek.`,
+                    status: 'error',
+                    duration: 4000,
+                    isClosable: true,
+                })
             resetAddPerson()
             onClosePeople()
-        }
-    }
-
-    const handleModifyClose = () => {
-        resetEdit()
-        onCloseModify()
-    }
-
-    const handleModifyOpen = (projectObject) => {
-        setCurrentProject(projectObject)
-        onOpenModify()
-    }
-
-    const handleModifyProject = async (object) => {
-        try {
-            await updateProject(currentProject.id, { title: object.title, description: object.description })
-            toast({
-                title: 'Projekt adatainak módosítása sikeres.',
-                description: "",
-                status: 'success',
-                duration: 4000,
-                isClosable: true,
-            })
-            await refreshProjectList()
-            onCloseModify()
-            setCurrentProject({})
-        } catch (error) {
-            toast({
-                title: 'Hiba.',
-                description: "Projekt adatainak módosítása sikertelen",
-                status: 'error',
-                duration: 4000,
-                isClosable: true,
-            })
-            onCloseModify()
-            setCurrentProject({})
         }
     }
 
     const handleCloseAddPerson = () => {
         resetAddPerson()
         onClosePeople()
-    }
-
-    const refreshProjectList = async () => {
-        const result = await getUserProjects()
-        setProject(result.data)
-    }
-
-    const IsUserProjectOwner = (participants) => {
-        if (participants.filter(i => i.userId === user.id && i.roleName === "Owner").length !== 0) {
-            return true
-        }
-        return false
-    }
-
-    const createProject = async (object) => {
-        try {
-            await createUserProject({ title: object.title, description: object.description })
-            toast({
-                title: 'Projekt létrehozva.',
-                description: "",
-                status: 'success',
-                duration: 4000,
-                isClosable: true,
-            })
-            await refreshProjectList()
-            handleProjectCreateClose()
-        } catch (error) {
-            toast({
-                title: 'Hiba.',
-                description: "Projekt létrehozása sikertelen",
-                status: 'error',
-                duration: 4000,
-                isClosable: true,
-            })
-        }
-    }
-
-    const handleProjectCreateClose = () => {
-        resetCreate()
-        onClose()
     }
 
     const handleOpenDeletePeople = (id) => {
@@ -205,14 +207,29 @@ export default function Projects() {
                 duration: 4000,
                 isClosable: true,
             })
-            await refreshProjectList()
+            refreshProjectList()
             onCloseDeletePeople()
+            handleCloseAddPerson()
         } catch (e) {
-            console.log(e)
+            onCloseDeletePeople()
+            handleCloseAddPerson()
         }
     }
 
-    if (project == null) {
+    // REACT ROUTER REVALIDATOR
+    const refreshProjectList = () => {
+        revalidator.revalidate()
+    }
+
+    // DISABLE BUTTONS
+    const IsUserProjectOwner = (participants) => {
+        if (participants.filter(i => i.userId === user.id && i.roleName === "Owner").length !== 0) {
+            return true
+        }
+        return false
+    }
+
+    if (state === 'loading') {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -221,7 +238,7 @@ export default function Projects() {
         return (
             <>
                 {/* Project létrehozás */}
-                <Modal isOpen={isOpen} onClose={handleProjectCreateClose}>
+                <Modal isOpen={isOpenCreate} onClose={handleProjectCreateClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>Projekt létrehozása</ModalHeader>
@@ -229,7 +246,7 @@ export default function Projects() {
                         <form autoComplete='off' onSubmit={handleSubmitCreate(createProject)}>
                             <ModalBody>
                                 <Stack>
-                                    <FormControl isRequired isInvalid={errorsCreate.title}>
+                                    <FormControl isInvalid={errorsCreate.title}>
                                         <FormLabel>Projekt cím</FormLabel>
                                         <Input {...registerCreate("title", { required: true })} placeholder="Projekt cím" />
                                         {errorsCreate.title ? <FormErrorMessage>
@@ -243,10 +260,10 @@ export default function Projects() {
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button mr={3} onClick={onClose}>
+                                <Button mr={3} onClick={handleProjectCreateClose}>
                                     Visszavonás
                                 </Button>
-                                <Button type="submit" colorScheme='blue'>Létrehozás</Button>
+                                <Button isLoading={isSubmittingCreate} type="submit" colorScheme='blue'>Létrehozás</Button>
                             </ModalFooter>
                         </form>
                     </ModalContent>
@@ -261,10 +278,12 @@ export default function Projects() {
                             <Text>Biztosan szeretné törölni a projektet? A hozzá tartozó táblák és ticket-ek is törlésre kerülnek.</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button mr={3} onClick={onCloseDelete}>
-                                Visszavonás
-                            </Button>
-                            <Button colorScheme='blue' onClick={() => handleDeleteProject()} variant='solid'>Törlés</Button>
+                            <form onSubmit={handleSubmitDelete(handleDeleteProject)}>
+                                <Button mr={3} onClick={onCloseDelete}>
+                                    Visszavonás
+                                </Button>
+                                <Button isLoading={isSubmittingDelete} colorScheme='blue' type="submit" variant='solid'>Törlés</Button>
+                            </form>
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
@@ -278,9 +297,9 @@ export default function Projects() {
                             <ModalBody>
                                 <ModalBody>
                                     <Stack>
-                                        <FormControl isRequired isInvalid={errorsEdit.title}>
+                                        <FormControl isInvalid={errorsEdit.title}>
                                             <FormLabel>Projekt cím</FormLabel>
-                                            <Input defaultValue={currentProject.title} {...registerEdit("title", { required: true, })} placeholder="Projekt cím" />
+                                            <Input defaultValue={currentProject.title} {...registerEdit("title", { required: true })} placeholder="Projekt cím" />
                                             {errorsEdit && errorsEdit.title ?
                                                 <FormErrorMessage>
                                                     Kérem adja meg a projekt címét.
@@ -295,8 +314,8 @@ export default function Projects() {
                                 </ModalBody>
                             </ModalBody>
                             <ModalFooter>
-                                <Button colorScheme='blue' mr={3} type="submit" variant='solid'>Módosít</Button>
-                                <Button onClick={onCloseModify}>
+                                <Button isLoading={isSubmittingEdit} colorScheme='blue' mr={3} type="submit" variant='solid'>Módosít</Button>
+                                <Button onClick={handleModifyClose}>
                                     Visszavonás
                                 </Button>
                             </ModalFooter>
@@ -333,7 +352,7 @@ export default function Projects() {
                                             })}
                                         </Tbody>
                                     </Table>
-                                    <FormControl isRequired isInvalid={errorsAddPerson.email}>
+                                    <FormControl isInvalid={errorsAddPerson.email}>
                                         <FormLabel>Személy meghívása a projektbe</FormLabel>
                                         <Input autoComplete='new-password' {...registerAddPerson("email", { required: true })} type="email" placeholder="E-mail cím" />
                                         {errorsAddPerson.email ? <FormErrorMessage>Kérem adja meg a meghívandó személy e-mail címét</FormErrorMessage> : ""}
@@ -341,7 +360,7 @@ export default function Projects() {
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button isLoading={isSubmittingAddPerson} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
                                 <Button onClick={onClosePeople}>
                                     Visszavonás
                                 </Button>
@@ -359,10 +378,12 @@ export default function Projects() {
                             <Text>Biztosan törölnéd ezt a személyt a projekről?</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button mr={3} onClick={onCloseDeletePeople}>
-                                Visszavonás
-                            </Button>
-                            <Button colorScheme='blue' onClick={() => handleDeletePeople()} variant='solid'>Törlés</Button>
+                            <form onSubmit={handleSubmitDelete(handleDeletePeople)}>
+                                <Button mr={3} onClick={onCloseDeletePeople}>
+                                    Visszavonás
+                                </Button>
+                                <Button isLoading={isSubmittingDelete} colorScheme='blue' type="submit" variant='solid'>Törlés</Button>
+                            </form>
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
@@ -377,9 +398,9 @@ export default function Projects() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input onChange={(e) => setSearch(e.target.value)} type='text' placeholder='Projekt keresése' />
+                            <Input variant={"filled"} onChange={(e) => setSearch(e.target.value)} type='text' placeholder='Projekt keresése' />
                         </InputGroup>
-                        <Button onClick={onOpen} colorScheme='green' leftIcon={<FaPlus />}>Létrehozás</Button>
+                        <Button onClick={onOpenCreate} colorScheme='green' leftIcon={<FaPlus />}>Létrehozás</Button>
                     </Stack>
                     <Table variant={"striped"}>
                         <Thead>
@@ -397,7 +418,7 @@ export default function Projects() {
                                     <Td>{i.title}</Td>
                                     <Td>{i.description}</Td>
                                     <Td>{moment.utc(i.created).format("yyyy/MM/DD")}</Td>
-                                    <Td>
+                                    <Td userSelect={'none'}>
                                         <AvatarGroup size="sm" max={2}>
                                             {i.participants &&
                                                 i.participants.map((p, k) => {

@@ -32,8 +32,6 @@ import { addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import moment from "moment"
 import 'moment/dist/locale/hu'
-import { ContentState, EditorState, convertFromHTML } from 'draft-js'
-import 'react-draft-wysiwyg/dist/react-draft-wysiwyg.css'
 import { useMemo } from 'react'
 import debounce from "lodash/debounce"
 import "../styles.css"
@@ -42,7 +40,12 @@ import { Select as ChakraSelect, chakraComponents } from "chakra-react-select"
 import EditorComp from './EditorComp'
 import { addCommentToIssue } from '../api/comment'
 import EditableControls from './EditableControl'
+import { useLoaderData } from 'react-router-dom'
+import { useNavigation } from 'react-router-dom'
+import { useRevalidator } from 'react-router-dom'
+import { useRouteError } from 'react-router-dom'
 
+// PRIORITY SELECT ICONS
 const customComponents = {
     Option: ({ children, ...props }) => (
         <chakraComponents.Option {...props}>
@@ -53,28 +56,40 @@ const customComponents = {
 
 export default function ProjectBoards() {
 
+    // AUTH
     const { user } = useAuth()
+
+    // REACT ROUTER
     const { projectId } = useParams()
-    const [project, setProject] = useState()
-    const [boards, setBoards] = useState()
+    const [project, boards] = useLoaderData()
+    const navigation = useNavigation()
+    const revalidator = useRevalidator()
+
+    // STATES
     const [currentIssue, setCurrentIssue] = useState()
     const [currentBoardId, setCurrentBoardId] = useState()
-    const { colorMode } = useColorMode()
-
     const [assignedPeople, setAssignedPeople] = useState([])
     const [people, setPeople] = useState([])
-    const [editorState, setEditorState] = useState(
-        () => EditorState.createEmpty(),
-    );
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState("");
     const [title, setTitle] = useState("")
-    const [priority, setPriority] = useState(null)
+    const [priority, setPriority] = useState(null) // filter off when state null
     const [selectedPeople, setSelectedPeople] = useState([])
-
     const [comment, setComment] = useState("")
 
-    const toast = useToast()
+    useEffect(() => {
+        const arr = []
+        const arr2 = []
+        project.participants.forEach(item => {
+            arr.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
+            arr2.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, selected: false })
+        })
+        setPeople(arr)
+        setSelectedPeople(arr2)
+    }, [project, boards])
 
+    // CHAKRA
+    const { colorMode } = useColorMode()
+    const toast = useToast()
     const { isOpen, onOpen, onClose } = useDisclosure()
     const { isOpen: isOpenAddIssue, onOpen: onOpenAddIssue, onClose: onCloseAddIssue } = useDisclosure()
     const { isOpen: isOpenIssue, onOpen: onOpenIssue, onClose: onCloseIssue } = useDisclosure()
@@ -82,12 +97,14 @@ export default function ProjectBoards() {
     const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
     const { isOpen: isOpenBoardDelete, onOpen: onOpenBoardDelete, onClose: onCloseBoardDelete } = useDisclosure()
 
-    const { register, handleSubmit, reset, formState: { errors } } = useForm();
-    const { register: registerCreate, handleSubmit: handleSubmitCreate, reset: resetCreate, formState: { errors: errorsCreate }, control: controlCreate } = useForm();
-    const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, formState: { errors: errorsEdit } } = useForm();
+    // REACT HOOK FORM
+    const { register: registerBoardCreate, handleSubmit: handleSubmitBoardCreate, reset: resetBoardCreate, formState: { errors: errorsBoardCreate, isSubmitting: isSubmittingBoardCreate } } = useForm();
+    const { register: registerIssueCreate, handleSubmit: handleSubmitIssueCreate, reset: resetIssueCreate, formState: { errors: errorsIssueCreate, isSubmitting: isSubmittingIssueCreate }, control: controlIssueCreate } = useForm();
+    const { register: registerBoardEdit, handleSubmit: handleSubmitBoardEdit, reset: resetBoardEdit, formState: { errors: errorsBoardEdit, isSubmitting: isSubmittingBoardEdit } } = useForm();
     const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields }, control: controlView } = useForm({
         shouldUnregister: true
     });
+    const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm()
 
     const priorities = [
         { value: "1", label: "Legalacsonyabb", icon: <Icon mr={2} as={FcLowPriority} /> },
@@ -97,29 +114,7 @@ export default function ProjectBoards() {
         { value: "5", label: "Legmagasabb", icon: <Icon mr={2} as={FcHighPriority} /> },
     ]
 
-    useEffect(() => {
-        const fetchProject = async () => {
-            const result = await getProjectById(projectId)
-            setTimeout(() => {
-                setProject(result.data)
-                const arr = []
-                const arr2 = []
-                result.data.participants.forEach(item => {
-                    arr.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
-                    arr2.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, selected: false })
-                })
-                setPeople(arr)
-                setSelectedPeople(arr2)
-            }, 500)
-        }
-        fetchProject()
-        const fetchProjectBoards = async () => {
-            const result = await getProjectBoards(projectId)
-            setBoards(result.data)
-        }
-        fetchProjectBoards()
-    }, [])
-
+    // FUNCTIONS
     const handleOpenIssue = (issueObject, boardId) => {
         setCurrentIssue(issueObject)
         setCurrentBoardId(boardId)
@@ -130,17 +125,11 @@ export default function ProjectBoards() {
             }
         })
         setAssignedPeople(arr)
-        const contentAsHTML = issueObject.description;
-        const contentBl = convertFromHTML(contentAsHTML);
-        const contentState = ContentState.createFromBlockArray(contentBl.contentBlocks, contentBl.entityMap);
-        const newEditorState = EditorState.createWithContent(contentState);
-        setEditorState(newEditorState)
         onOpenIssue()
     }
 
-    const refreshBoards = async () => {
-        const result = await getProjectBoards(projectId)
-        setBoards(result.data)
+    const refreshBoards = () => {
+        revalidator.revalidate();
     }
 
     const handleAddBoard = async (data) => {
@@ -153,7 +142,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
-            await refreshBoards()
+            refreshBoards()
             handleCloseAddBoard()
         } catch (e) {
             toast({
@@ -168,7 +157,7 @@ export default function ProjectBoards() {
     }
 
     const handleCloseAddBoard = () => {
-        reset()
+        resetBoardCreate()
         onClose()
     }
 
@@ -246,11 +235,9 @@ export default function ProjectBoards() {
                 }
             });
 
-            setBoards(newBoards)
-
             await changeIssuePosition2(projectId, result.source.droppableId, result.destination.droppableId,
                 movedIssue.id, sourcePositions, destPositions)
-
+            revalidator.revalidate()
         }
         // csere soron belül
         else {
@@ -286,8 +273,9 @@ export default function ProjectBoards() {
                     return item
                 }
             })
-            setBoards(newBoards)
             await changeIssuePosition1(projectId, result.source.droppableId, JSON.stringify(positions))
+            revalidator.revalidate()
+
         }
     }
 
@@ -311,11 +299,6 @@ export default function ProjectBoards() {
     }
 
     const handleAddIssueForm = async (object) => {
-        const contentState = editorState.getCurrentContent();
-
-        const aPeople = object.assignedPeople.map(a => {
-            return a.value
-        })
 
         const b = boards.filter(i => i.id === currentBoardId)[0].issues
         let maxPos = 0
@@ -324,8 +307,18 @@ export default function ProjectBoards() {
                 maxPos = i.position
         })
 
-        await addIssueToBoard(projectId, currentBoardId,
-            { ...object, description: JSON.stringify(object.description), priorityId: object.priorityId.value, position: maxPos + 1 }, aPeople, updateProjectBoards)
+        if (object.assignedPeople) {
+            const aPeople = object.assignedPeople.map(a => {
+                return a.value
+            })
+            await addIssueToBoard(projectId, currentBoardId,
+                { ...object, description: JSON.stringify(object.description), priorityId: object.priorityId.value, position: maxPos + 1 }, aPeople, updateProjectBoards)
+        }
+        else {
+            await addIssueToBoard(projectId, currentBoardId,
+                { ...object, description: JSON.stringify(object.description), priorityId: object.priorityId.value, position: maxPos + 1 }, null, updateProjectBoards)
+        }
+
         toast({
             title: 'Issue sikeresen létrehozva!.',
             description: "",
@@ -337,15 +330,13 @@ export default function ProjectBoards() {
     }
 
     const handleAddIssueClose = () => {
-        resetCreate()
-        setEditorState(EditorState.createEmpty())
+        resetIssueCreate()
         setAssignedPeople([])
         onCloseAddIssue()
     }
 
-    const updateProjectBoards = async () => {
-        const result = await getProjectBoards(projectId)
-        setBoards(result.data)
+    const updateProjectBoards = () => {
+        revalidator.revalidate()
     }
 
     const handlePriorityIcon = (priority) => {
@@ -386,7 +377,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
-            await updateProjectBoards()
+            updateProjectBoards()
             onCloseBoardDelete()
         } catch (e) {
             toast({
@@ -401,7 +392,7 @@ export default function ProjectBoards() {
 
     const handleBoardEditClose = () => {
         setCurrentBoardId()
-        resetEdit()
+        resetBoardEdit()
         setTitle("")
         onCloseBoardEdit()
     }
@@ -449,7 +440,14 @@ export default function ProjectBoards() {
                             path: `/${key}`,
                             value: JSON.stringify(e[key])
                         })
-                    } else
+                    } else if (key === "priorityId") {
+                        patchData.push({
+                            op: 'replace',
+                            path: `/${key}`,
+                            value: e[key].value
+                        })
+                    }
+                    else
                         patchData.push({
                             op: 'replace',
                             path: `/${key}`,
@@ -457,11 +455,11 @@ export default function ProjectBoards() {
                         })
                 }
             }
-            const result = await changeIssue(projectId, currentBoardId, currentIssue.id, patchData)
-            await updateProjectBoards()
-            console.log(result)
+            console.log(patchData)
+
+            await changeIssue(projectId, currentBoardId, currentIssue.id, patchData)
+            updateProjectBoards()
         }
-        setEditorState()
         setAssignedPeople([])
     }
 
@@ -498,7 +496,7 @@ export default function ProjectBoards() {
                 isClosable: true,
             })
 
-            await updateProjectBoards()
+            updateProjectBoards()
             handleOnCloseIssue()
         } catch (e) {
             toast({
@@ -514,7 +512,7 @@ export default function ProjectBoards() {
 
     moment.locale('hu')
 
-    if (project == null) {
+    if (navigation.state === 'loading') {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -528,16 +526,16 @@ export default function ProjectBoards() {
                     <ModalContent>
                         <ModalHeader>Board hozzáadása a projekthez</ModalHeader>
                         <ModalCloseButton />
-                        <form autoComplete='off' onSubmit={handleSubmit(handleAddBoard)}>
+                        <form autoComplete='off' onSubmit={handleSubmitBoardCreate(handleAddBoard)}>
                             <ModalBody>
-                                <FormControl isInvalid={errors.title}>
+                                <FormControl isInvalid={errorsBoardCreate.title}>
                                     <FormLabel>Tábla neve</FormLabel>
-                                    <Input {...register("title", { required: true })} type="text" />
-                                    {errors.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
+                                    <Input {...registerBoardCreate("title", { required: true })} type="text" />
+                                    {errorsBoardCreate.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
                                 </FormControl>
                             </ModalBody>
                             <ModalFooter>
-                                <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button isLoading={isSubmittingBoardCreate} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
                                 <Button onClick={handleCloseAddBoard}>
                                     Visszavonás
                                 </Button>
@@ -551,22 +549,17 @@ export default function ProjectBoards() {
                     <ModalContent>
                         <ModalCloseButton />
                         <ModalHeader>Ügy létrehozása</ModalHeader>
-                        <form autoComplete='off' onSubmit={handleSubmitCreate(handleAddIssueForm)}>
+                        <form autoComplete='off' onSubmit={handleSubmitIssueCreate(handleAddIssueForm)}>
                             <ModalBody>
                                 <Stack spacing={5}>
-                                    <FormControl isInvalid={errorsCreate.title}>
+                                    <FormControl isInvalid={errorsIssueCreate.title}>
                                         <FormLabel>Cím</FormLabel>
-                                        <Input variant={"filled"} type="text" {...registerCreate("title", { required: true })} />
-                                        <FormErrorMessage>{errorsCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
+                                        <Input variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
+                                        <FormErrorMessage>{errorsIssueCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl>
                                         <FormLabel>Leírás</FormLabel>
-                                        {/* <Editor
-                                            editorStyle={{ minHeight: "250px", maxHeight: "500px", padding: 2 }}
-                                            editorState={editorState}
-                                            onEditorStateChange={setEditorState}
-                                        /> */}
-                                        <Controller name="description" rules={{ required: false }} control={controlCreate}
+                                        <Controller name="description" rules={{ required: false }} control={controlIssueCreate}
                                             render={({ field: { value, onChange } }) => (
                                                 <EditorComp data={value} setData={onChange} />
                                             )} />
@@ -574,7 +567,7 @@ export default function ProjectBoards() {
                                     <FormControl>
                                         <FormLabel>Személyek hozzárendelése</FormLabel>
                                         {project &&
-                                            <Controller name="assignedPeople" rules={{ required: false }} control={controlCreate}
+                                            <Controller name="assignedPeople" rules={{ required: false }} control={controlIssueCreate}
                                                 render={({ field: { value, onChange } }) => (
                                                     <ChakraSelect isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} components={customComponents} onChange={onChange} value={value}>
                                                     </ChakraSelect>
@@ -582,28 +575,28 @@ export default function ProjectBoards() {
 
                                         }
                                     </FormControl>
-                                    <FormControl isInvalid={errorsCreate.priorityId}>
+                                    <FormControl isInvalid={errorsIssueCreate.priorityId}>
                                         <FormLabel>Prioritás</FormLabel>
-                                        <Controller name="priorityId" rules={{ required: true }} control={controlCreate} render={({ field: { value, onChange } }) => (
+                                        <Controller name="priorityId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
                                             <ChakraSelect placeholder="Szűrés prioritás szerint..." isClearable={true} variant='filled' options={priorities} components={customComponents} onChange={onChange} value={value}>
                                             </ChakraSelect>
                                         )} />
-                                        <FormErrorMessage>{errorsCreate.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl isInvalid={errorsCreate.timeEstimate}>
+                                    <FormControl isInvalid={errorsIssueCreate.timeEstimate}>
                                         <FormLabel>Becsült idő (óra)</FormLabel>
-                                        <Input variant={"filled"}  {...registerCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} type="number" />
-                                        <FormErrorMessage>{errorsCreate.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                        <Input variant={"filled"}  {...registerIssueCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} type="number" />
+                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl isInvalid={errorsCreate.dueDate}>
+                                    <FormControl isInvalid={errorsIssueCreate.dueDate}>
                                         <FormLabel>Határidő</FormLabel>
-                                        <Input variant={"filled"} {...registerCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" />
-                                        <FormErrorMessage>{errorsCreate.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
+                                        <Input variant={"filled"} {...registerIssueCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > Date.now() })} type="date" />
+                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button mr={3} type="submit" colorScheme='blue'>Létrehozás</Button>
+                                <Button isLoading={isSubmittingIssueCreate} mr={3} type="submit" colorScheme='blue'>Létrehozás</Button>
                                 <Button onClick={handleAddIssueClose}>Visszavonás</Button>
                             </ModalFooter>
                         </form>
@@ -621,13 +614,14 @@ export default function ProjectBoards() {
                             <Text>Biztos kitörli?</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button onClick={handleDeleteIssue} colorScheme='blue' mr={2}>Törlés</Button>
-                            <Button onClick={onCloseDelete}>Visszavonás</Button>
+                            <form onSubmit={handleSubmitDelete(handleDeleteIssue)}>
+                                <Button type="submit" isLoading={isSubmittingDelete} colorScheme='blue' mr={2}>Törlés</Button>
+                                <Button onClick={onCloseDelete}>Visszavonás</Button>
+                            </form>
                         </ModalFooter>
                     </ModalContent>
                 </Modal >
                 {/* Issue megtekintése */}
-
                 <Modal closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
                     handleOnCloseIssue();
                 }
@@ -647,7 +641,7 @@ export default function ProjectBoards() {
                                     <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     <ModalBody>
                                         <HStack gap="30px" align={"flex-start"}>
-                                            <Flex maxH="100vh" overflowX={"hidden"} overflowY={"scroll"} w="60%" direction={"column"}>
+                                            <Flex maxH="100vh" overflowX={"hidden"} overflowY={"auto"} w="60%" direction={"column"}>
                                                 <FormControl mt={1}>
                                                     <Editable mb={5} defaultValue={currentIssue.title} fontSize={"3xl"}>
                                                         <EditablePreview />
@@ -670,17 +664,17 @@ export default function ProjectBoards() {
                                                         <Avatar size="sm" name={currentIssue.reporterName} />
                                                         <Textarea onChange={(e) => setComment(e.target.value)} placeholder='Hozzászólás írása...' />
                                                     </HStack>
-                                                    <Button ml={10} onClick={handleComment} colorScheme='blue'>Elküldés</Button>
+                                                    <Button mb={5} ml={10} onClick={handleComment} colorScheme='blue'>Elküldés</Button>
                                                 </FormControl>
                                                 {currentIssue.comments.map((c, k) => {
                                                     return <>
-                                                        <Stack gap={1} >
+                                                        <Stack key={k} gap={1} >
                                                             <HStack >
                                                                 <Avatar size="sm" name={c.authorName} />
                                                                 <Text fontWeight={"medium"}>{c.authorName} </Text>
                                                                 <Text>{moment(c.created).fromNow()}</Text>
                                                             </HStack>
-                                                            <HStack pl={"40px"} key={k}>
+                                                            <HStack pl={"40px"}>
                                                                 <Editable
                                                                     defaultValue={c.content}
                                                                     isPreviewFocusable={false}
@@ -698,7 +692,7 @@ export default function ProjectBoards() {
                                             <Stack gap={2}>
                                                 <FormControl>
                                                     <FormLabel>Státusz</FormLabel>
-                                                    <Select {...registerView("projectList", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
+                                                    <Select {...registerView("projectListId", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
                                                         {boards.map((j, k) => {
                                                             return <option key={k} value={j.id}>{j.title}</option>
                                                         })}
@@ -735,12 +729,8 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Feladatra becsült idő (órában)</FormLabel>
-                                                    <NumberInput {...registerView("timeEstimate", { required: false })} variant={"filled"} defaultValue={currentIssue.timeEstimate} min={1} max={24}>
-                                                        <NumberInputField />
-                                                        <NumberInputStepper>
-                                                            <NumberIncrementStepper />
-                                                            <NumberDecrementStepper />
-                                                        </NumberInputStepper>
+                                                    <NumberInput defaultValue={currentIssue.timeEstimate} variant={"filled"} min={1} max={24}>
+                                                        <NumberInputField {...registerView("timeEstimate", { required: false })} />
                                                     </NumberInput>
                                                 </FormControl>
                                                 <FormControl>
@@ -770,7 +760,6 @@ export default function ProjectBoards() {
                             : ""
                     }
                 </Modal >
-
                 {/* Board név módosítása */}
                 < Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
                     <ModalOverlay />
@@ -779,16 +768,16 @@ export default function ProjectBoards() {
                             <Text>Board nevének módosítása</Text>
                         </ModalHeader>
                         <ModalCloseButton />
-                        <form autoComplete='off' onSubmit={handleSubmitEdit(handleBoardEdit)}>
+                        <form autoComplete='off' onSubmit={handleSubmitBoardEdit(handleBoardEdit)}>
                             <ModalBody>
-                                <FormControl isInvalid={errorsEdit.title}>
+                                <FormControl isInvalid={errorsBoardEdit.title}>
                                     <FormLabel>Tábla neve</FormLabel>
-                                    <Input defaultValue={title} {...registerEdit("title", { required: true })} type="text" />
-                                    {errorsEdit.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
+                                    <Input defaultValue={title} {...registerBoardEdit("title", { required: true })} type="text" />
+                                    {errorsBoardEdit.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
                                 </FormControl>
                             </ModalBody>
                             <ModalFooter>
-                                <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button isLoading={isSubmittingBoardEdit} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
                                 <Button onClick={handleBoardEditClose}>
                                     Visszavonás
                                 </Button>
@@ -797,7 +786,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Board törlése */}
-                < Modal isOpen={isOpenBoardDelete} onClose={onCloseBoardDelete} >
+                <Modal isOpen={isOpenBoardDelete} onClose={onCloseBoardDelete} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -808,10 +797,12 @@ export default function ProjectBoards() {
                             Biztosan törli?
                         </ModalBody>
                         <ModalFooter>
-                            <Button colorScheme='blue' mr={3} onClick={onCloseBoardDelete}>
-                                Visszavonás
-                            </Button>
-                            <Button onClick={handleBoardDelete} variant='solid'>Törlés</Button>
+                            <form onSubmit={handleSubmitDelete(handleBoardDelete)}>
+                                <Button mr={3} onClick={onCloseBoardDelete}>
+                                    Visszavonás
+                                </Button>
+                                <Button colorScheme='blue' type="submit" isLoading={isSubmittingDelete} variant='solid'>Törlés</Button>
+                            </form>
                         </ModalFooter>
                     </ModalContent>
                 </Modal >
@@ -831,7 +822,7 @@ export default function ProjectBoards() {
                             </InputRightElement>
                             <Input variant={"filled"} onChange={debouncedChangeHandler} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
-                        <AvatarGroup size={"md"}>
+                        <AvatarGroup userSelect={'none'} size={"md"}>
                             {selectedPeople && selectedPeople.map((i, k) => {
                                 return <Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} />
                             })}
@@ -885,6 +876,16 @@ export default function ProjectBoards() {
                                                 ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? (snapshot.isDraggingOver ? "gray.100" : "gray.200") : (snapshot.isDraggingOver ? "#333" : "#444")}>
                                                 {
                                                     i.issues.filter(i => (priority === null || i.priority.id == priority)).filter(i => i.title.toLowerCase().includes(search))
+                                                        .filter(elem => {
+                                                            if (selectedPeople.filter(item => item.selected === true).length === 0) {
+                                                                return true
+                                                            }
+                                                            return elem.assignedPeople.some(person => {
+                                                                const rr = selectedPeople.find(item => item.id === person.userId);
+                                                                console.log(person)
+                                                                return rr && rr.selected === true;
+                                                            })
+                                                        })
                                                         .map((issue, key) => {
                                                             return <Issue key={key} index={key} issue={issue} handleOpenIssue={handleOpenIssue} handlePriorityIcon={handlePriorityIcon} boardId={i.id} />
                                                         })

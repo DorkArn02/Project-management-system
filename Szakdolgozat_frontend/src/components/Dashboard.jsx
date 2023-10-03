@@ -35,7 +35,6 @@ export default function Dashboard() {
         if (!user) {
             navigate('/')
         }
-
     }, [user])
 
     const handleOpened = () => {

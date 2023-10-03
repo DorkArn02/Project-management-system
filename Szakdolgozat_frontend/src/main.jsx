@@ -1,23 +1,34 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import { ChakraProvider, extendTheme } from '@chakra-ui/react'
+import { createBrowserRouter, RouterProvider, redirect } from 'react-router-dom'
+import { ChakraProvider } from '@chakra-ui/react'
 import LoginComponent from './components/LoginComponent.jsx'
 import RegisterComponent from './components/RegisterComponent.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Projects from './components/Projects.jsx'
 import ProjectBoards from './components/ProjectBoards.jsx'
-import { MultiSelectTheme } from 'chakra-multiselect'
 import MyTasks from './components/MyTasks.jsx'
 import MyProfile from './components/MyProfile.jsx'
 import NotFound from './components/NotFound.jsx'
+import { getProjectById, getUserProjects } from './api/project.js'
+import { getProjectBoards } from './api/projectBoard.js'
 
-const theme = extendTheme({
-  components: {
-    MultiSelect: MultiSelectTheme
-  }
-})
+const allProjectLoader = async () => {
+  const res = await getUserProjects()
+  return res.data
+}
+
+const projectLoader = async ({ projectId }) => {
+  const res = await getProjectById(projectId)
+  return res.data
+}
+
+const projectListLoader = async ({ projectId }) => {
+  const res = await getProjectBoards(projectId)
+  return res.data
+}
+
 
 const router = createBrowserRouter([
   {
@@ -35,11 +46,14 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/dashboard/',
-        element: <Projects />
+        element: <Projects />,
+        loader: allProjectLoader
       },
       {
         path: '/dashboard/:projectId',
-        element: <ProjectBoards />
+        element: <ProjectBoards />,
+        errorElement: <NotFound />,
+        loader: async ({ params }) => Promise.all([projectLoader(params), projectListLoader(params)])
       },
       {
         path: '/dashboard/tasks',
@@ -55,8 +69,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <AuthProvider>
-    <ChakraProvider theme={theme}>
+    <ChakraProvider>
       <RouterProvider router={router}></RouterProvider>
     </ChakraProvider>
-  </AuthProvider>
+  </AuthProvider >
 )
