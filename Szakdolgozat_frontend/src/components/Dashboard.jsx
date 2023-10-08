@@ -100,7 +100,7 @@ export default function Dashboard() {
                         </Stack>
                         <Button onClick={() => navigate('/dashboard')} leftIcon={<AiOutlineProject />} variant={"ghost"}>{opened ? "Projektek" : ""} </Button>
                         <Button onClick={() => navigate('/dashboard/tasks')} leftIcon={<FaTasks />} variant={"ghost"}>{opened ? "Saját feladataim" : ""}</Button>
-                        <Button variant={"ghost"} leftIcon={<BiStats />}>
+                        <Button onClick={() => navigate('/dashboard/stats')} variant={"ghost"} leftIcon={<BiStats />}>
                             {opened ? "Statisztikák" : ""}
                         </Button>
                         <Spacer />

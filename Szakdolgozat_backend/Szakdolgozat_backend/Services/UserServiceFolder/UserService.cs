@@ -57,7 +57,7 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
                     FirstName = user.FirstName,
                     Id = user.Id,
                     LastName = user.LastName,
-                    ProfilePic = user.ProfilePic,
+                    //ProfilePic = user.ProfilePic,
                     Registered = user.Registered
                 };
 
@@ -79,7 +79,7 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
                 FirstName = user.FirstName,
                 Id = user.Id,
                 LastName = user.LastName,
-                ProfilePic = user.ProfilePic,
+               // ProfilePic = user.ProfilePic,
                 Registered = user.Registered
             };
 

@@ -30,7 +30,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException("User not member of project.");
-
+            
             ProjectList? pl = await _db.ProjectLists
                 .Where(x => x.ProjectId == projectId && x.Id == projectListId)
                 .FirstOrDefaultAsync();
@@ -370,6 +370,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             i.Updated = DateTime.Now;
 
+            _db.Entry(i).State = EntityState.Modified;
+            
             await _db.SaveChangesAsync();
             return i;
         }

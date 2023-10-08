@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Dtos.ProjectDtos;
@@ -196,6 +197,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+            Console.WriteLine($"DeleteProjectAndLists ProjectId = {projectId}");
+            await _db.Database.ExecuteSqlInterpolatedAsync($"DeleteProjectAndLists {projectId}");
 
             _db.Projects.Remove(existingProject);
             await _db.SaveChangesAsync();

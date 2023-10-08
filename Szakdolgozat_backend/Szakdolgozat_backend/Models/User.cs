@@ -17,7 +17,7 @@ public partial class User
 
     public DateTime Registered { get; set; }
 
-    public string? ProfilePic { get; set; }
+    //public string? ProfilePic { get; set; }
 
     public virtual ICollection<AssignedPerson> AssignedPeople { get; set; } = new List<AssignedPerson>();
 

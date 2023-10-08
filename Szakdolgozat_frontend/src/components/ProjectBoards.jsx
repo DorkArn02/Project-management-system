@@ -2,7 +2,6 @@ import React from 'react'
 import { useParams } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { getProjectById } from '../api/project'
 import {
     Breadcrumb, Icon,
     BreadcrumbItem,
@@ -15,15 +14,12 @@ import {
     Flex, InputGroup, InputRightElement, AvatarGroup, Divider, Spinner, useColorMode,
     Menu, MenuButton, MenuList, MenuItem, Progress, NumberInput,
     NumberInputField,
-    NumberInputStepper,
-    NumberIncrementStepper,
-    NumberDecrementStepper,
     Tag, TagLabel, EditableInput
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
-import { FaPen, FaPlus, FaSearch, FaTrash } from 'react-icons/fa'
+import { FaPen, FaPlus, FaSave, FaSearch, FaTrash } from 'react-icons/fa'
 import { ImCross } from "react-icons/im"
-import { addProjectBoard, deleteProjectBoard, editProjectBoard, getProjectBoards } from '../api/projectBoard'
+import { addProjectBoard, deleteProjectBoard, editProjectBoard } from '../api/projectBoard'
 import { Controller, useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 import { DragDropContext, Droppable } from "react-beautiful-dnd"
@@ -43,7 +39,6 @@ import EditableControls from './EditableControl'
 import { useLoaderData } from 'react-router-dom'
 import { useNavigation } from 'react-router-dom'
 import { useRevalidator } from 'react-router-dom'
-import { useRouteError } from 'react-router-dom'
 
 // PRIORITY SELECT ICONS
 const customComponents = {
@@ -80,7 +75,7 @@ export default function ProjectBoards() {
         const arr = []
         const arr2 = []
         project.participants.forEach(item => {
-            arr.push({ id: item.id, label: `${item.lastName} ${item.firstName}`, value: `${item.id}` })
+            arr.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, value: `${item.userId}` })
             arr2.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, selected: false })
         })
         setPeople(arr)
@@ -121,7 +116,7 @@ export default function ProjectBoards() {
         const arr = []
         project.participants.map(p => {
             if (issueObject.assignedPeople.some(a => a.userId === p.userId)) {
-                arr.push({ id: p.id, label: `${p.lastName} ${p.firstName}`, value: `${p.id}` })
+                arr.push({ id: p.userId, label: `${p.lastName} ${p.firstName}`, value: `${p.userId}` })
             }
         })
         setAssignedPeople(arr)
@@ -137,7 +132,6 @@ export default function ProjectBoards() {
             await addProjectBoard(project.id, { title: data.title, position: boards.length + 1 })
             toast({
                 title: 'Board sikeresen létrehozva a projekthez.',
-                description: "",
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -147,7 +141,6 @@ export default function ProjectBoards() {
         } catch (e) {
             toast({
                 title: 'Hiba történt a board hozzáadása közben...',
-                description: "",
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -166,7 +159,6 @@ export default function ProjectBoards() {
             await deleteIssueFromBoard(projectId, currentBoardId, currentIssue.id)
             toast({
                 title: 'Issue sikeresen törölve!.',
-                description: "",
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -413,7 +405,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
-            await updateProjectBoards()
+            updateProjectBoards()
             handleBoardEditClose()
         } catch (e) {
             toast({
@@ -429,9 +421,9 @@ export default function ProjectBoards() {
     const handleOnCloseIssue = async (e) => {
         resetView()
         onCloseIssue()
-
         if (isDirty) {
             const patchData = [];
+            console.log(e)
             for (const key in dirtyFields) {
                 if (dirtyFields.hasOwnProperty(key) && dirtyFields[key]) {
                     if (key === "description") {
@@ -446,16 +438,26 @@ export default function ProjectBoards() {
                             path: `/${key}`,
                             value: e[key].value
                         })
+                    } else if (key === "assignedPeople") {
+                        const tmp = []
+                        for (let data of e[key]) {
+                            tmp.push({ userId: data.id, issueId: currentIssue.id })
+                        }
+                        patchData.push({
+                            op: 'replace',
+                            path: `/${key}`,
+                            value: tmp
+                        })
                     }
-                    else
+                    else {
                         patchData.push({
                             op: 'replace',
                             path: `/${key}`,
                             value: e[key]
                         })
+                    }
                 }
             }
-            console.log(patchData)
 
             await changeIssue(projectId, currentBoardId, currentIssue.id, patchData)
             updateProjectBoards()
@@ -489,8 +491,7 @@ export default function ProjectBoards() {
             await addCommentToIssue(projectId, currentIssue.id, comment)
 
             toast({
-                title: 'Komment sikeresen hozzáadva.',
-                description: "",
+                title: 'Hozzászólás sikeresen hozzáadva a feladathoz.',
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -500,8 +501,7 @@ export default function ProjectBoards() {
             handleOnCloseIssue()
         } catch (e) {
             toast({
-                title: 'Komment rögzítése sikertelen.',
-                description: "",
+                title: 'Hozzászólás rögzítése sikertelen.',
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -638,7 +638,7 @@ export default function ProjectBoards() {
                                         </HStack>
                                     </ModalHeader>
                                     <IconButton onClick={onOpenDelete} size="sm" right={14} top={2} position={"absolute"} variant="ghost" icon={<FaTrash />} />
-                                    <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                    <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<FaSave />} />
                                     <ModalBody>
                                         <HStack gap="30px" align={"flex-start"}>
                                             <Flex maxH="100vh" overflowX={"hidden"} overflowY={"auto"} w="60%" direction={"column"}>

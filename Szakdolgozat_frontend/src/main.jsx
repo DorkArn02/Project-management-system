@@ -13,6 +13,7 @@ import MyProfile from './components/MyProfile.jsx'
 import NotFound from './components/NotFound.jsx'
 import { getProjectById, getUserProjects } from './api/project.js'
 import { getProjectBoards } from './api/projectBoard.js'
+import StatisticsBoard from './components/StatisticsBoard.jsx'
 
 const allProjectLoader = async () => {
   const res = await getUserProjects()
@@ -62,6 +63,11 @@ const router = createBrowserRouter([
       {
         path: '/dashboard/myprofile',
         element: <MyProfile />
+      },
+      {
+        path: '/dashboard/stats',
+        element: <StatisticsBoard />,
+        loader: allProjectLoader
       }
     ]
   }

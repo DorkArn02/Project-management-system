@@ -48,6 +48,6 @@ export const changeIssuePosition2 = async (projectId, sourceColumnId, destColumn
 
 export const changeIssue = async (projectId, projectListId, issueId, patchData) => {
     const result = await api.patch(`/Issue/UpdateIssueDetails/${projectId}/${projectListId}/${issueId}`, patchData)
-
+    console.log(result)
     return result
 }

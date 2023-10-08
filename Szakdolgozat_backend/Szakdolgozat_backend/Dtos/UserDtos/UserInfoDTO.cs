@@ -11,6 +11,6 @@
 
         public DateTime Registered { get; set; }
 
-        public string? ProfilePic { get; set; }
+        //public string? ProfilePic { get; set; }
     }
 }
