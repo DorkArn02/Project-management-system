@@ -90,7 +90,7 @@ export default function StatisticsBoard() {
                         <Pie
                             options={{ responsive: false }}
                             data={{
-                                labels: ["Lowest", "Low", "Medium", "High", "Highest"],
+                                labels: ["Legalacsonyabb", "Alacsony", "Közepes", "Magas", "Legmagasabb"],
                                 datasets: [
                                     {
                                         label: 'Feladatok száma',

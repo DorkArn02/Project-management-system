@@ -6,6 +6,7 @@ using Szakdolgozat_backend.Dtos.ProjectDtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
 namespace Szakdolgozat_backend.Services.ProjectServiceFolder
 {
@@ -16,14 +17,16 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
         private readonly IUserHelper _userHelper;
         private readonly IMapper _iMapper;
         private readonly IHttpContextAccessor _contextAccessor;
-
-        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor)
+        private readonly INotificationService _notificationService;
+        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService)
         {
             _db = db;
             _userHelper = userHelper;
             _iMapper = iMapper;
             _contextAccessor = contextAccessor;
+            _notificationService = notificationService;
         }
+
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);

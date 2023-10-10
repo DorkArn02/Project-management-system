@@ -4,7 +4,7 @@ namespace Szakdolgozat_backend.Models;
 
 public partial class DbCustomContext : DbContext
 {
-    // Scaffold-DbContext "Server=localhost;Database=DB_TESZT;Integrated Security=true;Encrypt=false;"  Microsoft.EntityFrameworkCore.SqlServer
+    // Scaffold-DbContext "Server=localhost;Database=DB_TESZT;Integrated Security=true;Encrypt=false;" -OutputDir "Models2"  Microsoft.EntityFrameworkCore.SqlServer
     public DbCustomContext()
     {
     }
@@ -25,6 +25,7 @@ public partial class DbCustomContext : DbContext
     public virtual DbSet<Priority> Priorities { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
+    public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<ProjectList> ProjectLists { get; set; }
 

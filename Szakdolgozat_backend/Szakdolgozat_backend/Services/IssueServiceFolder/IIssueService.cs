@@ -9,7 +9,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
     {
         Task<Issue> AddIssueToProjectList(Guid projectId, Guid projectListId, IssueRequestDTO issueRequestDTO);
         Task DeleteIssueFromProjectList(Guid projectId, Guid projectListId, Guid issueId);
-        Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int assigneeId);
+        Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int participantId);
         Task RemoveAssigneeFromIssue(Guid projectId, Guid projectListId, Guid issueId, Guid assigneeId);
         Task<Issue> ChangeIssueReporter(Guid projectId, Guid projectListId, Guid issueId, Guid reporterId);
         Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions);

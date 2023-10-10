@@ -11,16 +11,20 @@ import {
     useDisclosure,
     Modal,
     ModalOverlay, ModalBody, ModalFooter, ModalContent, ModalHeader,
-    ModalCloseButton
+    ModalCloseButton,
+    Popover, PopoverTrigger, PopoverHeader, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody, Divider, HStack
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
-import { FaArrowLeft, FaArrowRight, FaMoon, FaSun, FaTasks, FaUser } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaBell, FaMoon, FaSun, FaTasks, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
 import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { getNotifications } from '../api/notifications';
+import moment from 'moment';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
 
@@ -31,6 +35,7 @@ export default function Dashboard() {
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
 
+
     useEffect(() => {
         if (!user) {
             navigate('/')
@@ -40,6 +45,13 @@ export default function Dashboard() {
     const handleOpened = () => {
         setOpened(!opened)
         localStorage.setItem("opened", JSON.stringify(!opened))
+    }
+
+    const [notification, setNotification] = useState()
+
+    const loadNotifications = async () => {
+        const result = await getNotifications()
+        setNotification(result)
     }
 
     if (user == null) {
@@ -104,6 +116,35 @@ export default function Dashboard() {
                             {opened ? "Statisztikák" : ""}
                         </Button>
                         <Spacer />
+                        <Popover size={"xl"} placement='right' isLazy>
+
+                            <PopoverTrigger>
+                                <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : ""}</Button>
+                            </PopoverTrigger>
+                            <PopoverContent>
+                                <PopoverHeader fontWeight='semibold'>
+                                    <Text>Értesítések ({notification && notification.length})</Text>
+                                </PopoverHeader>
+                                <PopoverArrow />
+                                <PopoverCloseButton />
+                                <PopoverBody>
+                                    <Stack>
+                                        {notification && notification.map((i, k) => {
+                                            return <>
+                                                <Text key={k}>{i.content}</Text>
+                                                <HStack>
+                                                    <Link to={`${i.projectId}`}><Text _hover={{ textDecor: "underline", color: "lightblue" }}>{i.projectName}</Text></Link>
+                                                    <Spacer />
+                                                    <Text align="right">{moment(i.created).fromNow()}</Text>
+                                                </HStack>
+                                                <Divider />
+                                            </>
+                                        })}
+                                    </Stack>
+                                </PopoverBody>
+                            </PopoverContent>
+                        </Popover>
+
                         <Button onClick={() => navigate('/dashboard/myprofile')} leftIcon={<FaUser />} variant="ghost" >{opened ? "Saját fiók" : ""}</Button>
                         <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? "Téma váltása" : ""}</Button>
                         <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? "Kijelentkezés" : ""}</Button>

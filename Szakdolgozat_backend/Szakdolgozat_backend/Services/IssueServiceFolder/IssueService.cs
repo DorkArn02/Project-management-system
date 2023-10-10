@@ -4,6 +4,7 @@ using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
 namespace Szakdolgozat_backend.Services.IssueServiceFolder
 {
@@ -12,22 +13,24 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         private readonly DbCustomContext _db;
         private readonly IUserHelper _userHelper;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
-        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor)
+        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService)
         {
             _db = db;
             _userHelper = userHelper;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
 
-        public async Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int assigneeId)
+        public async Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int participantId)
         {
             Project? p = await _db.Projects.FindAsync(projectId);
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
             if (p == null)
                 throw new NotFoundException("Project not found.");
-
+            
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException("User not member of project.");
             
@@ -47,15 +50,20 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (i == null)
                 throw new NotFoundException("Issue not found.");
 
-            Participant? participant = await _db.Participants.FindAsync(assigneeId);
+            Participant? participant = await _db.Participants.FindAsync(participantId);
 
             if (participant == null)
                 throw new NotFoundException("User not found.");
 
             User? u = await _db.Users.FindAsync(participant.UserId);
+            User? u2 = await _db.Users.FindAsync(userId);
 
             if (u == null)
                 throw new NotFoundException("User not found.");
+
+            if (u2 == null)
+                throw new NotFoundException("User not found.");
+
 
             AssignedPerson? assignedPerson = await _db.AssignedPeople
                 .Where(x => x.IssueId == issueId && x.UserId == participant.UserId)
@@ -69,6 +77,18 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 Issue = i,
                 User = u
             };
+            Console.WriteLine(participant.UserId);
+            Console.WriteLine(userId);
+
+            // Send notification
+            if (participant.UserId != userId)
+            {
+                Console.WriteLine("Belement:D");
+                await _notificationService
+                .SendNotification(participant.UserId, issueId, 
+                $"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz." +
+                $" Módosító: {u2.LastName + " " + u2.FirstName}.");
+            }
 
             await _db.AssignedPeople.AddAsync(assigned);
             await _db.SaveChangesAsync();
@@ -310,9 +330,14 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 throw new NotFoundException("Issue not found.");
 
             User? assignee = await _db.Users.FindAsync(assigneeId);
+            User? u = await _db.Users.FindAsync(userId);
 
             if (assignee == null)
                 throw new NotFoundException("Assignee not found.");
+
+            if (u == null)
+                throw new NotFoundException("User not found.");
+
 
             AssignedPerson? assignedPerson = await _db.AssignedPeople
                 .Where(x => x.IssueId == issueId && x.UserId == assigneeId)
@@ -320,6 +345,18 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             if (assignedPerson == null)
                 throw new NotFoundException("User not found as assignee in this project");
+
+            Console.WriteLine(assignee.Id);
+            Console.WriteLine(userId);
+            // Send notification
+            if (assignee.Id != userId)
+            {
+                Console.WriteLine("Belement:D2");
+                await _notificationService
+                .SendNotification(assignee.Id, issueId,
+                $"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül." +
+                $" Módosító: {u.LastName + " " + u.FirstName}.");
+            }
 
             _db.AssignedPeople.Remove(assignedPerson);
             await _db.SaveChangesAsync();
@@ -365,6 +402,19 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             i.TimeSpent = issueUpdateRequestDTO.TimeSpent;
             i.ProjectList = issueUpdateRequestDTO.ProjectList;
             */
+
+            List<AssignedPerson> assignedPeople = await _db.AssignedPeople.Where(p => p.IssueId == issueId).ToListAsync();
+
+            foreach(var assignedPerson in assignedPeople)
+            {
+                if(userId != assignedPerson.UserId)
+                {
+                    await _notificationService
+               .SendNotification(assignedPerson.UserId, issueId,
+               $"Módosultak a(z) {i.Title} nevű feladat részletei." +
+               $" Módosító: {user.LastName + " " + user.FirstName}.");
+                }
+            }
 
             s.ApplyTo(i);
 

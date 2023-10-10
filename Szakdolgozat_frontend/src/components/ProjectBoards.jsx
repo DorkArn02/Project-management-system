@@ -14,7 +14,14 @@ import {
     Flex, InputGroup, InputRightElement, AvatarGroup, Divider, Spinner, useColorMode,
     Menu, MenuButton, MenuList, MenuItem, Progress, NumberInput,
     NumberInputField,
-    Tag, TagLabel, EditableInput
+    Tag, TagLabel, EditableInput,
+} from '@chakra-ui/react'
+import {
+    Slider,
+    SliderTrack,
+    SliderFilledTrack,
+    SliderThumb,
+    SliderMark,
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSave, FaSearch, FaTrash } from 'react-icons/fa'
@@ -71,11 +78,13 @@ export default function ProjectBoards() {
     const [selectedPeople, setSelectedPeople] = useState([])
     const [comment, setComment] = useState("")
 
+    const [slide, setSlide] = useState(0)
+
     useEffect(() => {
         const arr = []
         const arr2 = []
         project.participants.forEach(item => {
-            arr.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, value: `${item.userId}` })
+            arr.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, participantId: `${item.id}`, value: `${item.userId}` })
             arr2.push({ id: item.userId, label: `${item.lastName} ${item.firstName}`, selected: false })
         })
         setPeople(arr)
@@ -119,6 +128,7 @@ export default function ProjectBoards() {
                 arr.push({ id: p.userId, label: `${p.lastName} ${p.firstName}`, value: `${p.userId}` })
             }
         })
+        setSlide(issueObject.timeSpent)
         setAssignedPeople(arr)
         onOpenIssue()
     }
@@ -301,7 +311,7 @@ export default function ProjectBoards() {
 
         if (object.assignedPeople) {
             const aPeople = object.assignedPeople.map(a => {
-                return a.value
+                return a.participantId
             })
             await addIssueToBoard(projectId, currentBoardId,
                 { ...object, description: JSON.stringify(object.description), priorityId: object.priorityId.value, position: maxPos + 1 }, aPeople, updateProjectBoards)
@@ -318,6 +328,7 @@ export default function ProjectBoards() {
             duration: 4000,
             isClosable: true,
         })
+        updateProjectBoards()
         onCloseAddIssue()
     }
 
@@ -420,10 +431,10 @@ export default function ProjectBoards() {
 
     const handleOnCloseIssue = async (e) => {
         resetView()
+        setSlide(0)
         onCloseIssue()
         if (isDirty) {
             const patchData = [];
-            console.log(e)
             for (const key in dirtyFields) {
                 if (dirtyFields.hasOwnProperty(key) && dirtyFields[key]) {
                     if (key === "description") {
@@ -643,10 +654,7 @@ export default function ProjectBoards() {
                                         <HStack gap="30px" align={"flex-start"}>
                                             <Flex maxH="100vh" overflowX={"hidden"} overflowY={"auto"} w="60%" direction={"column"}>
                                                 <FormControl mt={1}>
-                                                    <Editable mb={5} defaultValue={currentIssue.title} fontSize={"3xl"}>
-                                                        <EditablePreview />
-                                                        <EditableInput {...registerView("title", { required: true })} />
-                                                    </Editable>
+                                                    <Input variant="filled" defaultValue={currentIssue.title} mb={5} fontSize={"3xl"} {...registerView("title", { required: true })} />
                                                 </FormControl>
                                                 <FormControl mb={2}>
                                                     <FormLabel>Leírás</FormLabel>
@@ -735,10 +743,22 @@ export default function ProjectBoards() {
                                                 </FormControl>
                                                 <FormControl>
                                                     <FormLabel>Befektetett idő (órában)</FormLabel>
-                                                    <Stack>
-                                                        <Progress value={currentIssue.timeSpent} />
+                                                    <Stack >
+                                                        <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
+                                                            render={({ field: { value, onChange } }) => (
+                                                                <>
+                                                                    {console.log(value)}
+                                                                    <Slider onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
+                                                                        <SliderTrack>
+                                                                            <SliderFilledTrack />
+                                                                        </SliderTrack>
+                                                                        <SliderThumb />
+                                                                    </Slider>
+                                                                </>
+                                                            )} />
+
                                                         <HStack>
-                                                            <Text>{currentIssue.timeSpent} óra</Text>
+                                                            <Text>{slide} óra</Text>
                                                             <Spacer />
                                                             <Text>{currentIssue.timeEstimate} órából</Text>
                                                         </HStack>
