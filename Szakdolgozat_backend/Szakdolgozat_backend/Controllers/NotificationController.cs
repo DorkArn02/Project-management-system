@@ -23,5 +23,13 @@ namespace Szakdolgozat_backend.Controllers
             var result = await _notificationService.GetUserNotifications();
             return Ok(result);
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteNotification(Guid id)
+        {
+            await _notificationService.DeleteNotificationById(id);
+
+            return NoContent();
+        }
     }
 }

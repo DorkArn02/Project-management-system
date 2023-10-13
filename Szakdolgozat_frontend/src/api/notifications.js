@@ -5,3 +5,8 @@ export const getNotifications = async () => {
 
     return result.data
 }
+
+export const deleteNotification = async (id) => {
+    const result = await api.delete(`/Notification/${id}`)
+    return result.data
+}

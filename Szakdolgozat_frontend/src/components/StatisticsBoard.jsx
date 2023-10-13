@@ -100,7 +100,7 @@ export default function StatisticsBoard() {
                                             "green",
                                             "yellow",
                                             "red",
-                                            "#5E0303"
+                                            "red"
                                         ]
                                     }
                                 ]

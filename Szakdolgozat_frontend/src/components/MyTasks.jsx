@@ -57,19 +57,19 @@ export default function MyTasks() {
 
 
     const handlePriorityIcon = (priority) => {
-        if (priority === "Low") {
+        if (priority === "Alacsony") {
             return <FcLowPriority color={priority.color} />
         }
-        else if (priority === "Medium") {
+        else if (priority === "Közepes") {
             return <FcMediumPriority color={priority.color} />
         }
-        else if (priority === "High") {
+        else if (priority === "Magas") {
             return <FcHighPriority color={priority.color} />
         }
-        else if (priority === "Lowest") {
+        else if (priority === "Legalacsonyabb") {
             return <FcLowPriority color={priority.color} />
         }
-        else if (priority === "Highest") {
+        else if (priority === "Legmagasabb") {
             return <FcHighPriority color={priority.color} />
         }
     }

@@ -26,7 +26,7 @@ import {
 import { Link } from 'react-router-dom'
 import { FaPen, FaPlus, FaSave, FaSearch, FaTrash } from 'react-icons/fa'
 import { ImCross } from "react-icons/im"
-import { addProjectBoard, deleteProjectBoard, editProjectBoard } from '../api/projectBoard'
+import { addProjectBoard, deleteProjectBoard, editProjectBoard, editProjectBoardPosition } from '../api/projectBoard'
 import { Controller, useForm } from 'react-hook-form'
 import { BsThreeDots } from "react-icons/bs"
 import { DragDropContext, Droppable } from "react-beautiful-dnd"
@@ -46,6 +46,7 @@ import EditableControls from './EditableControl'
 import { useLoaderData } from 'react-router-dom'
 import { useNavigation } from 'react-router-dom'
 import { useRevalidator } from 'react-router-dom'
+import { MdNumbers } from "react-icons/md"
 
 // PRIORITY SELECT ICONS
 const customComponents = {
@@ -77,6 +78,7 @@ export default function ProjectBoards() {
     const [priority, setPriority] = useState(null) // filter off when state null
     const [selectedPeople, setSelectedPeople] = useState([])
     const [comment, setComment] = useState("")
+    const [otherBoards, setOtherBoards] = useState([])
 
     const [slide, setSlide] = useState(0)
 
@@ -100,6 +102,7 @@ export default function ProjectBoards() {
     const { isOpen: isOpenDelete, onOpen: onOpenDelete, onClose: onCloseDelete } = useDisclosure()
     const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
     const { isOpen: isOpenBoardDelete, onOpen: onOpenBoardDelete, onClose: onCloseBoardDelete } = useDisclosure()
+    const { isOpen: isOpenBoardEditPos, onOpen: onOpenBoardEditPos, onClose: onCloseBoardEditPos } = useDisclosure()
 
     // REACT HOOK FORM
     const { register: registerBoardCreate, handleSubmit: handleSubmitBoardCreate, reset: resetBoardCreate, formState: { errors: errorsBoardCreate, isSubmitting: isSubmittingBoardCreate } } = useForm();
@@ -109,6 +112,9 @@ export default function ProjectBoards() {
         shouldUnregister: true
     });
     const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm()
+    const { register: registerComment, handleSubmit: handleSubmitComment, reset: resetComment } = useForm()
+    const { register: registerBoardEditPos, handleSubmit: handleSubmitBoardEditPos, reset: resetBoardEditPos, formState: { errors: errorsBoardEditPos, isSubmitting: isSubmittingBoardEditPos } } = useForm();
+
 
     const priorities = [
         { value: "1", label: "Legalacsonyabb", icon: <Icon mr={2} as={FcLowPriority} /> },
@@ -343,19 +349,19 @@ export default function ProjectBoards() {
     }
 
     const handlePriorityIcon = (priority) => {
-        if (priority.name === "Low") {
+        if (priority.name === "Alacsony") {
             return <FcLowPriority color={priority.color} />
         }
-        else if (priority.name === "Medium") {
+        else if (priority.name === "Közepes") {
             return <FcMediumPriority color={priority.color} />
         }
-        else if (priority.name === "High") {
+        else if (priority.name === "Magas") {
             return <FcHighPriority color={priority.color} />
         }
-        else if (priority.name === "Lowest") {
+        else if (priority.name === "Legalacsonyabb") {
             return <FcLowPriority color={priority.color} />
         }
-        else if (priority.name === "Highest") {
+        else if (priority.name === "Legmagasabb") {
             return <FcHighPriority color={priority.color} />
         }
     }
@@ -364,6 +370,15 @@ export default function ProjectBoards() {
         setTitle(obj)
         setCurrentBoardId(obj2)
         onOpenBoardEdit()
+    }
+
+    const handleBoardEditPosOpen = (obj) => {
+        setCurrentBoardId(obj)
+
+        const elements = boards.filter(i => i.id !== obj)
+        setOtherBoards(elements)
+
+        onOpenBoardEditPos()
     }
 
     const handleBoardDeleteOpen = (boardId) => {
@@ -518,6 +533,28 @@ export default function ProjectBoards() {
                 isClosable: true,
             })
             handleOnCloseIssue()
+        }
+    }
+
+    const handleBoardPosition = async (obj) => {
+        try {
+            await editProjectBoardPosition(projectId, currentBoardId, obj.boardId)
+            toast({
+                title: 'Board pozíciója sikeresen módosult.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+            updateProjectBoards()
+            onCloseBoardEditPos()
+        } catch (e) {
+            toast({
+                title: 'Hiba történt a módosítás során.',
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+            onCloseBoardEditPos()
         }
     }
 
@@ -683,14 +720,16 @@ export default function ProjectBoards() {
                                                                 <Text>{moment(c.created).fromNow()}</Text>
                                                             </HStack>
                                                             <HStack pl={"40px"}>
-                                                                <Editable
-                                                                    defaultValue={c.content}
-                                                                    isPreviewFocusable={false}
-                                                                >
-                                                                    <EditablePreview />
-                                                                    <Input mb={2} as={EditableInput} />
-                                                                    <EditableControls />
-                                                                </Editable>
+                                                                <form onSubmit={handleSubmitComment()}>
+                                                                    <Editable
+                                                                        defaultValue={c.content}
+                                                                        isPreviewFocusable={false}
+                                                                    >
+                                                                        <EditablePreview />
+                                                                        <Input {...registerComment("content", { required: true })} onChange={(e) => console.log(e.target.value)} mb={2} as={EditableInput} />
+                                                                        <EditableControls />
+                                                                    </Editable>
+                                                                </form>
                                                             </HStack>
                                                         </Stack>
                                                         <Divider mt={2} mb={2} />
@@ -747,7 +786,6 @@ export default function ProjectBoards() {
                                                         <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
                                                             render={({ field: { value, onChange } }) => (
                                                                 <>
-                                                                    {console.log(value)}
                                                                     <Slider onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
                                                                         <SliderTrack>
                                                                             <SliderFilledTrack />
@@ -758,7 +796,7 @@ export default function ProjectBoards() {
                                                             )} />
 
                                                         <HStack>
-                                                            <Text>{slide} óra</Text>
+                                                            <Text>{slide ? slide : "0"} óra</Text>
                                                             <Spacer />
                                                             <Text>{currentIssue.timeEstimate} órából</Text>
                                                         </HStack>
@@ -781,7 +819,7 @@ export default function ProjectBoards() {
                     }
                 </Modal >
                 {/* Board név módosítása */}
-                < Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
+                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -824,6 +862,32 @@ export default function ProjectBoards() {
                                 <Button colorScheme='blue' type="submit" isLoading={isSubmittingDelete} variant='solid'>Törlés</Button>
                             </form>
                         </ModalFooter>
+                    </ModalContent>
+                </Modal >
+                {/* Board pozíció módosítása */}
+                <Modal isOpen={isOpenBoardEditPos} onClose={onCloseBoardEditPos} >
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>
+                            <Text>Board pozíció módosítása</Text>
+                        </ModalHeader>
+                        <ModalCloseButton />
+                        <form onSubmit={handleSubmitBoardEditPos(handleBoardPosition)}>
+                            <ModalBody>
+                                <Text mb={5}>Válassza ki azt a board-ot, amelyet kicserélne az aktuálissal</Text>
+                                <Select {...registerBoardEditPos("boardId", { required: true })}>
+                                    {otherBoards.map((i, k) => {
+                                        return <option key={k} value={i.id}>{i.title}</option>
+                                    })}
+                                </Select>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button isLoading={isSubmittingBoardEditPos} type="submit" colorScheme='blue' mr={3} variant='solid'>Módosítás</Button>
+                                <Button onClick={onCloseBoardEditPos}>
+                                    Visszavonás
+                                </Button>
+                            </ModalFooter>
+                        </form>
                     </ModalContent>
                 </Modal >
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
@@ -882,6 +946,9 @@ export default function ProjectBoards() {
                                                 </MenuItem>
                                                 <MenuItem onClick={() => handleBoardEditOpen(i.title, i.id)} icon={<FaPen />}>
                                                     Board átnevezése
+                                                </MenuItem>
+                                                <MenuItem onClick={() => handleBoardEditPosOpen(i.id)} icon={<MdNumbers />}>
+                                                    Board áthelyezése
                                                 </MenuItem>
                                             </MenuList>
                                         </Menu>

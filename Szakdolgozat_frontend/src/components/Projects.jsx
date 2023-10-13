@@ -402,7 +402,7 @@ export default function Projects() {
                         </InputGroup>
                         <Button onClick={onOpenCreate} colorScheme='green' leftIcon={<FaPlus />}>Létrehozás</Button>
                     </Stack>
-                    <Table variant={"striped"}>
+                    <Table maxW={"250px"} variant={"striped"}>
                         <Thead>
                             <Tr>
                                 <Th>Név</Th>
@@ -412,7 +412,7 @@ export default function Projects() {
                                 <Th>Műveletek</Th>
                             </Tr>
                         </Thead>
-                        <Tbody>
+                        <Tbody >
                             {project && project.filter(p => p.title.includes(search)).map((i, k) => {
                                 return <Tr key={k}>
                                     <Td>{i.title}</Td>

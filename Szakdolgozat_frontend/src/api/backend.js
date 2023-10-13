@@ -14,9 +14,11 @@ export const api = axios.create({
 
 api.interceptors.request.use(
     async (config) => {
-        const { accessToken } = JSON.parse(localStorage.getItem("user"));
-        if (accessToken) {
-            config.headers["Authorization"] = `Bearer ${accessToken}`;
+        if (localStorage.getItem("user")) {
+            const { accessToken } = JSON.parse(localStorage.getItem("user"));
+            if (accessToken) {
+                config.headers["Authorization"] = `Bearer ${accessToken}`;
+            }
         }
         return config;
     },
@@ -42,7 +44,7 @@ api.interceptors.response.use((response) => {
                     return api(originalRequest);
                 }
             } catch (e) {
-                localStorage.setItem("user", null)
+                localStorage.removeItem("user")
                 return Promise.reject(e);
             }
         }
@@ -52,9 +54,13 @@ api.interceptors.response.use((response) => {
     //     description: error.response.data.title
     // })
 
-    const { accessToken } = JSON.parse(localStorage.getItem("user"));
+    if (localStorage.getItem("user")) {
+        const { accessToken } = JSON.parse(localStorage.getItem("user"));
 
-    if (isAccessTokenExpired(accessToken)) {
+        if (isAccessTokenExpired(accessToken)) {
+            window.location.href = "/"
+        }
+    } else {
         window.location.href = "/"
     }
 

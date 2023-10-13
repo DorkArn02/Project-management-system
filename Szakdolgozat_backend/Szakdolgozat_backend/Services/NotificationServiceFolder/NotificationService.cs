@@ -19,6 +19,22 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             _userHelper = userHelper;
         }
 
+        public async Task DeleteNotificationById(Guid id)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+
+            Notification? n = await _db.Notifications.FindAsync(id);
+
+            if (n == null)
+                throw new NotFoundException("Notification not found.");
+
+            if (n.UserId != userId)
+                throw new Exceptions.UnauthorizedAccessException("Unauthorized.");
+
+            _db.Notifications.Remove(n);
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<List<NotificationResponseDTO>> GetUserNotifications()
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);

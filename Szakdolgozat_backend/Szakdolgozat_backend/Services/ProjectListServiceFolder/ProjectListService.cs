@@ -181,8 +181,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 projectListResponseDTO.Add(itemDTO);
             }
 
-
-            return projectListResponseDTO;
+            return projectListResponseDTO.OrderBy(p=>p.Position).ToList();
         }
 
         public async Task<ProjectList> GetListByProject(Guid projectId, Guid projectListId)
@@ -287,6 +286,33 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             await _db.SaveChangesAsync();
 
             return projectList;
+        }
+
+        public async Task UpdateProjectListPosition(Guid projectId, Guid projectListId1, Guid projectListId2)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+            Project? p = await _db.Projects.FindAsync(projectId);
+            ProjectList? projectList1 = await _db.ProjectLists.FindAsync(projectListId1);
+            ProjectList? projectList2 = await _db.ProjectLists.FindAsync(projectListId2);
+
+            if (p == null)
+                throw new NotFoundException("Project not found.");
+
+            if (projectList1 == null)
+                throw new NotFoundException("Project list not found.");
+
+            if (projectList2 == null)
+                throw new NotFoundException("Project list not found.");
+
+            if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+
+            int temp = projectList1.Position;
+
+            projectList1.Position = projectList2.Position;
+            projectList2.Position = temp;
+
+            await _db.SaveChangesAsync();
         }
     }
 }

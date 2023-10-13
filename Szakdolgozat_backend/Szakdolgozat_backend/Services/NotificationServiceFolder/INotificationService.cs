@@ -8,6 +8,7 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
         Task<Notification> SendNotification(Guid userId, Guid issueId, string content);
 
         Task<List<NotificationResponseDTO>> GetUserNotifications();
+        Task DeleteNotificationById(Guid id);
 
     }
 }

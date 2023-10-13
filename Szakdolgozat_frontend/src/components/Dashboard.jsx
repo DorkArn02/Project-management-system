@@ -16,13 +16,13 @@ import {
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
-import { FaArrowLeft, FaArrowRight, FaBell, FaMoon, FaSun, FaTasks, FaUser } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaBell, FaMoon, FaSun, FaTasks, FaTrash, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
 import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getNotifications } from '../api/notifications';
+import { deleteNotification, getNotifications } from '../api/notifications';
 import moment from 'moment';
 import { Link } from 'react-router-dom';
 
@@ -34,7 +34,6 @@ export default function Dashboard() {
     const [opened, setOpened] = useState(JSON.parse(localStorage.getItem("opened")))
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
-
 
     useEffect(() => {
         if (!user) {
@@ -52,6 +51,12 @@ export default function Dashboard() {
     const loadNotifications = async () => {
         const result = await getNotifications()
         setNotification(result)
+    }
+
+
+    const handleDeleteNotification = async (id) => {
+        await deleteNotification(id)
+        await loadNotifications()
     }
 
     if (user == null) {
@@ -76,7 +81,6 @@ export default function Dashboard() {
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
-
                 <Flex as={motion.div}
                     transition={"0.3s linear"} gap={"10px"} pl={opened ? "270px" : "100px"}>
                     <Box
@@ -116,8 +120,7 @@ export default function Dashboard() {
                             {opened ? "Statisztikák" : ""}
                         </Button>
                         <Spacer />
-                        <Popover size={"xl"} placement='right' isLazy>
-
+                        <Popover placement='right' isLazy>
                             <PopoverTrigger>
                                 <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : ""}</Button>
                             </PopoverTrigger>
@@ -128,10 +131,13 @@ export default function Dashboard() {
                                 <PopoverArrow />
                                 <PopoverCloseButton />
                                 <PopoverBody>
-                                    <Stack>
+                                    <Stack maxHeight={"350px"} overflowY={"scroll"}>
                                         {notification && notification.map((i, k) => {
                                             return <>
-                                                <Text key={k}>{i.content}</Text>
+                                                <HStack align="baseline">
+                                                    <Text key={k}>{i.content}</Text>
+                                                    <IconButton onClick={() => handleDeleteNotification(i.id)} size="sm" variant="ghost" icon={<FaTrash />} />
+                                                </HStack>
                                                 <HStack>
                                                     <Link to={`${i.projectId}`}><Text _hover={{ textDecor: "underline", color: "lightblue" }}>{i.projectName}</Text></Link>
                                                     <Spacer />
