@@ -18,6 +18,7 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
         private readonly IMapper _iMapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly INotificationService _notificationService;
+
         public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService)
         {
             _db = db;

@@ -13,6 +13,8 @@ namespace Szakdolgozat_backend.AutoMapperProfiles
             CreateMap<Project, ProjectCreatedDTO>();
             CreateMap<Project, ProjectResponseDTO>();
             CreateMap<User, UserRegisterResponseDTO>();
+            CreateMap<User, UserLoginResponseDTO>()
+                .ForMember(dest => dest.AccessToken, opt => opt.Ignore());
         }
     }
 }

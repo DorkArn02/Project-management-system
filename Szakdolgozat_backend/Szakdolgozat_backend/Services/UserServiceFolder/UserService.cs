@@ -31,8 +31,6 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
             if (u == null)
                 throw new NotFoundException("User not found.");
 
-
-
             if(!BCrypt.Net.BCrypt.Verify(changePasswordRequestDTO.oldPassword, u.PasswordHash))
                 throw new Exceptions.UnauthorizedAccessException("Wrong credentials.");
 
@@ -57,7 +55,6 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
                     FirstName = user.FirstName,
                     Id = user.Id,
                     LastName = user.LastName,
-                    //ProfilePic = user.ProfilePic,
                     Registered = user.Registered
                 };
 
@@ -79,7 +76,6 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
                 FirstName = user.FirstName,
                 Id = user.Id,
                 LastName = user.LastName,
-               // ProfilePic = user.ProfilePic,
                 Registered = user.Registered
             };
 

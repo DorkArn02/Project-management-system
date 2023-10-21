@@ -1,7 +1,4 @@
 ﻿using AutoMapper;
-using Azure;
-using Azure.Core;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Claims;
@@ -61,17 +58,8 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
 
             _httpContextAccessor.HttpContext.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 
-            UserLoginResponseDTO userLoginResponseDTO = new()
-            {
-                AccessToken = token,
-                Email = u.Email,
-                FirstName = u.FirstName,
-                LastName = u.LastName,
-                Registered = u.Registered,
-                Id = u.Id,
-            };
-
-            return userLoginResponseDTO;
+            return _iMapper.Map<User, UserLoginResponseDTO>(u,
+                opt => opt.AfterMap((src, dest) => dest.AccessToken = token));
         }
 
         public async Task<UserRegisterResponseDTO> Register(UserRegisterRequestDTO userRegisterDTO)

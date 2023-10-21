@@ -94,14 +94,7 @@ export default function StatisticsBoard() {
                                 datasets: [
                                     {
                                         label: 'Feladatok száma',
-                                        data: board.map(i => i.issues.filter(j => j.priority).length),
-                                        backgroundColor: [
-                                            "lightgreen",
-                                            "green",
-                                            "yellow",
-                                            "red",
-                                            "red"
-                                        ]
+                                        data: board.map(i => i.issues.filter(j => j.priority).length)
                                     }
                                 ]
                             }}
@@ -113,7 +106,7 @@ export default function StatisticsBoard() {
                                 datasets: [
                                     {
                                         label: 'Bejelentett feladatok',
-                                        data: [1, 2, 3, 4],
+                                        data: [1, 2],
                                         backgroundColor: 'green',
                                     }
                                 ]

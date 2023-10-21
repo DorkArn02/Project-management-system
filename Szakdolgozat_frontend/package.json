@@ -19,6 +19,7 @@
     "@editorjs/table": "^2.2.2",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@mdxeditor/editor": "^1.4.1",
     "axios": "^1.5.0",
     "chakra-multiselect": "^0.4.6",
     "chakra-react-select": "^4.7.2",

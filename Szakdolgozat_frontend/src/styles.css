@@ -43,10 +43,15 @@ div.public-DraftEditor-content {
 .codex-editor {
     background-color: #FFFFFF0A;
     border-radius: 10px;
+    padding-right: 40px;
 }
 
 .codex-editor__redactor {
     padding: 10px !important;
+}
+
+.tc-popover {
+    color: black;
 }
 
 .codex-editor:focus-visible {
@@ -55,6 +60,10 @@ div.public-DraftEditor-content {
 
 .ce-block--focused {
     background: #FFFFFF0A;
+}
+
+.ce-toolbar__actions {
+    right: 5% !important;
 }
 
 h1 {

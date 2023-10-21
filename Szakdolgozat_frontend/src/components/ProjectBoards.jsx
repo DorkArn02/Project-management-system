@@ -14,7 +14,7 @@ import {
     Flex, InputGroup, InputRightElement, AvatarGroup, Divider, Spinner, useColorMode,
     Menu, MenuButton, MenuList, MenuItem, Progress, NumberInput,
     NumberInputField,
-    Tag, TagLabel, EditableInput,
+    Tag, TagLabel, EditableInput, Heading, Box
 } from '@chakra-ui/react'
 import {
     Slider,
@@ -24,11 +24,11 @@ import {
     SliderMark,
 } from '@chakra-ui/react'
 import { Link } from 'react-router-dom'
-import { FaPen, FaPlus, FaSave, FaSearch, FaTrash } from 'react-icons/fa'
+import { FaClock, FaPen, FaPlus, FaSave, FaSearch, FaTrash, FaUser, FaUsers } from 'react-icons/fa'
 import { ImCross } from "react-icons/im"
 import { addProjectBoard, deleteProjectBoard, editProjectBoard, editProjectBoardPosition } from '../api/projectBoard'
 import { Controller, useForm } from 'react-hook-form'
-import { BsThreeDots } from "react-icons/bs"
+import { BsBarChartFill, BsChatLeftTextFill, BsFillCalendarDateFill, BsTextParagraph, BsThreeDots } from "react-icons/bs"
 import { DragDropContext, Droppable } from "react-beautiful-dnd"
 import { AiFillCheckSquare } from "react-icons/ai"
 import { addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
@@ -46,7 +46,18 @@ import EditableControls from './EditableControl'
 import { useLoaderData } from 'react-router-dom'
 import { useNavigation } from 'react-router-dom'
 import { useRevalidator } from 'react-router-dom'
-import { MdNumbers } from "react-icons/md"
+import { MdInfo, MdNumbers } from "react-icons/md"
+import { useRef } from 'react'
+// import '@mdxeditor/editor/style.css'
+// import { MDXEditor } from '@mdxeditor/editor/MDXEditor'
+// import { UndoRedo } from '@mdxeditor/editor/plugins/toolbar/components/UndoRedo'
+// import { BoldItalicUnderlineToggles } from '@mdxeditor/editor/plugins/toolbar/components/BoldItalicUnderlineToggles'
+// import { toolbarPlugin } from '@mdxeditor/editor/plugins/toolbar'
+// import { CodeToggle } from '@mdxeditor/editor/plugins/toolbar/components/CodeToggle'
+// import { ListsToggle } from '@mdxeditor/editor/plugins/toolbar/components/ListsToggle'
+// import { headingsPlugin } from '@mdxeditor/editor/plugins/headings'
+// import { listsPlugin } from '@mdxeditor/editor/plugins/lists'
+// import { BlockTypeSelect } from '@mdxeditor/editor/plugins/toolbar/components/BlockTypeSelect'
 
 // PRIORITY SELECT ICONS
 const customComponents = {
@@ -81,6 +92,8 @@ export default function ProjectBoards() {
     const [otherBoards, setOtherBoards] = useState([])
 
     const [slide, setSlide] = useState(0)
+    const [commenting, setCommenting] = useState(0)
+    const formRef = useRef()
 
     useEffect(() => {
         const arr = []
@@ -295,6 +308,15 @@ export default function ProjectBoards() {
         () => debounce(changeHandler, 300)
         , []);
 
+    const commentHandler = event => {
+        setComment(event.target.value)
+    }
+
+    const debouncedCommentHandler = useMemo(
+        () => debounce(commentHandler, 300)
+        , []);
+
+
     useEffect(() => {
         return () => {
             debouncedChangeHandler.cancel();
@@ -445,9 +467,10 @@ export default function ProjectBoards() {
     }
 
     const handleOnCloseIssue = async (e) => {
+        setCommenting(0)
+        setComment(0)
         resetView()
         setSlide(0)
-        onCloseIssue()
         if (isDirty) {
             const patchData = [];
             for (const key in dirtyFields) {
@@ -487,8 +510,15 @@ export default function ProjectBoards() {
 
             await changeIssue(projectId, currentBoardId, currentIssue.id, patchData)
             updateProjectBoards()
+            toast({
+                title: 'Feladat leírása sikeresen módosítva.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
         }
         setAssignedPeople([])
+        onCloseIssue()
     }
 
     const handleFilterPeople = (id) => {
@@ -536,6 +566,15 @@ export default function ProjectBoards() {
         }
     }
 
+    const handleEditComment = () => {
+        alert("LOL")
+    }
+
+    const handleCloseBoardEditPos = () => {
+        resetBoardEditPos()
+        onCloseBoardEditPos()
+    }
+
     const handleBoardPosition = async (obj) => {
         try {
             await editProjectBoardPosition(projectId, currentBoardId, obj.boardId)
@@ -546,7 +585,7 @@ export default function ProjectBoards() {
                 isClosable: true,
             })
             updateProjectBoards()
-            onCloseBoardEditPos()
+            handleCloseBoardEditPos()
         } catch (e) {
             toast({
                 title: 'Hiba történt a módosítás során.',
@@ -554,7 +593,7 @@ export default function ProjectBoards() {
                 duration: 4000,
                 isClosable: true,
             })
-            onCloseBoardEditPos()
+            handleCloseBoardEditPos()
         }
     }
 
@@ -671,49 +710,70 @@ export default function ProjectBoards() {
                 </Modal >
                 {/* Issue megtekintése */}
                 <Modal closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
-                    handleOnCloseIssue();
+                    formRef.current.requestSubmit()
                 }
                 }>
                     <ModalOverlay />
                     {
                         currentIssue ?
                             <ModalContent>
-                                <form onSubmit={handleSubmitView(handleOnCloseIssue)}>
+                                <form ref={formRef} autoComplete='off' onSubmit={handleSubmitView(handleOnCloseIssue)}>
                                     <ModalHeader>
-                                        <HStack>
-                                            <AiFillCheckSquare color='#42a4ff' />
-                                            <Text>{project.title} - {currentIssue.title}</Text>
+                                        <HStack align={"baseline"}>
+                                            <AiFillCheckSquare size={25} color='#42a4ff' />
+                                            <FormControl mt={1}>
+                                                <Editable selectAllOnFocus={false} maxW={"90%"} defaultValue={currentIssue.title}>
+                                                    <EditablePreview />
+                                                    <EditableInput {...registerView("title", { required: true })} />
+                                                </Editable>
+                                            </FormControl>
                                         </HStack>
                                     </ModalHeader>
-                                    <IconButton onClick={onOpenDelete} size="sm" right={14} top={2} position={"absolute"} variant="ghost" icon={<FaTrash />} />
-                                    <IconButton type="submit" size="sm" right={2} top={2} position={"absolute"} variant="ghost" icon={<FaSave />} />
+                                    <IconButton onClick={onOpenDelete} size="md" right={14} top={5} position={"absolute"} variant="solid" icon={<FaTrash />} />
+                                    <IconButton type="submit" size="md" right={2} top={5} position={"absolute"} variant="solid" icon={<ImCross />} />
                                     <ModalBody>
                                         <HStack gap="30px" align={"flex-start"}>
-                                            <Flex maxH="100vh" overflowX={"hidden"} overflowY={"auto"} w="60%" direction={"column"}>
-                                                <FormControl mt={1}>
-                                                    <Input variant="filled" defaultValue={currentIssue.title} mb={5} fontSize={"3xl"} {...registerView("title", { required: true })} />
-                                                </FormControl>
-                                                <FormControl mb={2}>
-                                                    <FormLabel>Leírás</FormLabel>
-                                                    <Controller defaultValue={JSON.parse(currentIssue.description)}
+                                            <Flex maxH="100vh" overflowX={"hidden"} overflowY={"auto"} w="full" direction={"column"}>
+                                                <FormControl p={2}>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <BsTextParagraph size={20} />
+                                                            <Heading size="md">Leírás</Heading>
+                                                        </HStack>
+                                                    </FormLabel>
+                                                    {/* <MDXEditor markdown='Hello world' plugins={
+                                                        [toolbarPlugin({
+                                                            toolbarContents: () => (<> <UndoRedo /><BoldItalicUnderlineToggles /> <CodeToggle /><ListsToggle /><BlockTypeSelect /></>)
+                                                        }), headingsPlugin(), listsPlugin()]
+
+                                                    } /> */}
+
+                                                    <Controller defaultValue={currentIssue.description ? JSON.parse(currentIssue.description) : ""}
                                                         name='description' control={controlView} render={({ field: { value, onChange } }) => (
-                                                            <>
+                                                            <Box >
                                                                 <EditorComp data={value} setData={onChange} />
-                                                            </>
+                                                            </Box>
                                                         )}
                                                     />
                                                 </FormControl>
-                                                <FormControl>
-                                                    <FormLabel>Hozzászólások ({currentIssue.comments.length})</FormLabel>
+                                                <FormControl p={3}>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <BsChatLeftTextFill size={20} />
+                                                            <Heading size="md">Hozzászólások ({currentIssue.comments.length})</Heading>
+                                                        </HStack>
+                                                    </FormLabel>
                                                     <HStack mb={3} align="baseline">
                                                         <Avatar size="sm" name={currentIssue.reporterName} />
-                                                        <Textarea onChange={(e) => setComment(e.target.value)} placeholder='Hozzászólás írása...' />
+                                                        <Textarea onFocus={() => setCommenting(1)} onChange={debouncedCommentHandler} placeholder='Hozzászólás írása...' />
                                                     </HStack>
-                                                    <Button mb={5} ml={10} onClick={handleComment} colorScheme='blue'>Elküldés</Button>
+                                                    {commenting ? <>
+                                                        <Button mb={5} ml={10} onClick={handleComment} colorScheme='blue'>Elküldés</Button>
+                                                        <Button mb={5} ml={5} onClick={() => { setCommenting(0) }} colorScheme='gray'>Visszavonás</Button></> : ""}
                                                 </FormControl>
                                                 {currentIssue.comments.map((c, k) => {
                                                     return <>
-                                                        <Stack key={k} gap={1} >
+                                                        <Stack p={3} key={k} gap={1} >
                                                             <HStack >
                                                                 <Avatar size="sm" name={c.authorName} />
                                                                 <Text fontWeight={"medium"}>{c.authorName} </Text>
@@ -722,12 +782,13 @@ export default function ProjectBoards() {
                                                             <HStack pl={"40px"}>
                                                                 <form onSubmit={handleSubmitComment()}>
                                                                     <Editable
+
                                                                         defaultValue={c.content}
                                                                         isPreviewFocusable={false}
                                                                     >
                                                                         <EditablePreview />
-                                                                        <Input {...registerComment("content", { required: true })} onChange={(e) => console.log(e.target.value)} mb={2} as={EditableInput} />
-                                                                        <EditableControls />
+                                                                        <Input {...registerComment("content", { required: true })} mb={2} as={EditableInput} />
+                                                                        {c.userId === user.id ? <EditableControls handleEditComment={handleEditComment} /> : ""}
                                                                     </Editable>
                                                                 </form>
                                                             </HStack>
@@ -736,9 +797,14 @@ export default function ProjectBoards() {
                                                     </>
                                                 })}
                                             </Flex>
-                                            <Stack gap={2}>
+                                            <Stack p={3} w="400px" gap={2}>
                                                 <FormControl>
-                                                    <FormLabel>Státusz</FormLabel>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <MdInfo />
+                                                            <Text>Státusz</Text>
+                                                        </HStack>
+                                                    </FormLabel>
                                                     <Select {...registerView("projectListId", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
                                                         {boards.map((j, k) => {
                                                             return <option key={k} value={j.id}>{j.title}</option>
@@ -746,8 +812,12 @@ export default function ProjectBoards() {
                                                     </Select>
                                                 </FormControl>
                                                 <FormControl>
-                                                    <FormLabel>Hozzárendelt személyek</FormLabel>
-                                                    <Controller defaultValue={assignedPeople} name="assignedPeople" rules={{ required: false }} control={controlView}
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <FaUsers />
+                                                            <Text>Hozzárendelt személyek</Text>
+                                                        </HStack>
+                                                    </FormLabel>                                                    <Controller defaultValue={assignedPeople} name="assignedPeople" rules={{ required: false }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <>
 
@@ -757,14 +827,24 @@ export default function ProjectBoards() {
                                                         )} />
                                                 </FormControl>
                                                 <FormControl>
-                                                    <FormLabel>Bejelentő</FormLabel>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <FaUser />
+                                                            <Text>Bejelentő</Text>
+                                                        </HStack>
+                                                    </FormLabel>
                                                     <Tag borderRadius={"full"} size="lg">
                                                         <Avatar ml={-1} mr={2} name={currentIssue.reporterName} size="xs" />
                                                         <TagLabel>{currentIssue.reporterName}</TagLabel>
                                                     </Tag>
                                                 </FormControl>
                                                 <FormControl isInvalid={errorsView.priorityId} >
-                                                    <FormLabel>Prioritás</FormLabel>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <BsBarChartFill />
+                                                            <Text>Prioritás</Text>
+                                                        </HStack>
+                                                    </FormLabel>
                                                     <Controller defaultValue={{ value: `${currentIssue.priority.id}`, label: `${currentIssue.priority.name}` }} name="priorityId" rules={{ required: true }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <>
@@ -774,14 +854,24 @@ export default function ProjectBoards() {
                                                         )} />
                                                     <FormErrorMessage>{errorsView.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                                 </FormControl>
-                                                <FormControl>
-                                                    <FormLabel>Feladatra becsült idő (órában)</FormLabel>
-                                                    <NumberInput defaultValue={currentIssue.timeEstimate} variant={"filled"} min={1} max={24}>
-                                                        <NumberInputField {...registerView("timeEstimate", { required: false })} />
+                                                <FormControl isInvalid={errorsView.timeEstimate}>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <FaClock />
+                                                            <Text>Feladatra becsült idő (órában)</Text>
+                                                        </HStack>
+                                                    </FormLabel>                                                    <NumberInput step={1} defaultValue={currentIssue.timeEstimate} variant={"filled"}>
+                                                        <NumberInputField {...registerView("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value >= 1 })} />
                                                     </NumberInput>
+                                                    <FormErrorMessage>{errorsView.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <FormControl>
-                                                    <FormLabel>Befektetett idő (órában)</FormLabel>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <FaClock />
+                                                            <Text>Befektetett idő (órában)</Text>
+                                                        </HStack>
+                                                    </FormLabel>
                                                     <Stack >
                                                         <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
                                                             render={({ field: { value, onChange } }) => (
@@ -802,9 +892,14 @@ export default function ProjectBoards() {
                                                         </HStack>
                                                     </Stack>
                                                 </FormControl>
-                                                <FormControl >
-                                                    <FormLabel>Határidő (dátum)</FormLabel>
-                                                    <Input color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "red" : "lightgreen"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: false, valueAsDate: true })} type="date" />
+                                                <FormControl isInvalid={errorsView.dueDate}>
+                                                    <FormLabel>
+                                                        <HStack>
+                                                            <BsFillCalendarDateFill />
+                                                            <Text>Határidő (dátum)</Text>
+                                                        </HStack>
+                                                    </FormLabel>
+                                                    <Input color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "#e88374" : "lightgreen"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: false, valueAsDate: true })} type="date" />
                                                     <FormErrorMessage>{errorsView.dueDate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <Divider />
@@ -819,7 +914,7 @@ export default function ProjectBoards() {
                     }
                 </Modal >
                 {/* Board név módosítása */}
-                <Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
+                < Modal isOpen={isOpenBoardEdit} onClose={handleBoardEditClose} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -844,7 +939,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Board törlése */}
-                <Modal isOpen={isOpenBoardDelete} onClose={onCloseBoardDelete} >
+                < Modal isOpen={isOpenBoardDelete} onClose={onCloseBoardDelete} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
@@ -865,7 +960,7 @@ export default function ProjectBoards() {
                     </ModalContent>
                 </Modal >
                 {/* Board pozíció módosítása */}
-                <Modal isOpen={isOpenBoardEditPos} onClose={onCloseBoardEditPos} >
+                < Modal isOpen={isOpenBoardEditPos} onClose={handleCloseBoardEditPos} >
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>

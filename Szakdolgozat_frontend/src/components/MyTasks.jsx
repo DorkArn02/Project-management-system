@@ -104,7 +104,6 @@ export default function MyTasks() {
 
                             <AccordionIcon />
                         </AccordionButton>
-
                         <AccordionPanel>
                             <TableContainer>
                                 <Table variant='striped'>

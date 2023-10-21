@@ -25,7 +25,7 @@ namespace Szakdolgozat_backend.Services.TokenServiceFolder
 
             var token = new JwtSecurityToken(_config["Jwt:Issuer"],
                 _config["Jwt:Audience"], claims,
-                expires: DateTime.Now.AddMinutes(500),
+                expires: DateTime.Now.AddMinutes(5),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
@@ -40,7 +40,7 @@ namespace Szakdolgozat_backend.Services.TokenServiceFolder
 
             _distributedCache.SetString(refreshToken, userId.ToString(), new DistributedCacheEntryOptions
             {
-                AbsoluteExpiration = DateTimeOffset.Now.AddHours(1)
+                AbsoluteExpiration = DateTimeOffset.Now.AddDays(7)
             });
 
             return refreshToken;

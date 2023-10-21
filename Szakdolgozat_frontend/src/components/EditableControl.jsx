@@ -1,5 +1,5 @@
 import { useEditableControls, ButtonGroup, Button, Flex, Text } from "@chakra-ui/react"
-export default function EditableControls() {
+export default function EditableControls({ handleEditComment }) {
     const {
         isEditing,
         getSubmitButtonProps,
@@ -9,7 +9,7 @@ export default function EditableControls() {
 
     return isEditing ? (
         <ButtonGroup textAlign={"left"} size='sm'>
-            <Button colorScheme="blue" {...getSubmitButtonProps()}>Elment</Button>
+            <Button colorScheme="blue"  {...getSubmitButtonProps()} onClick={() => handleEditComment()}>Elment</Button>
             <Button {...getCancelButtonProps()}>Mégsem</Button>
         </ButtonGroup>
     ) : (

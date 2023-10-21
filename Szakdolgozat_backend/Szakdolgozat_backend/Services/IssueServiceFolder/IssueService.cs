@@ -77,13 +77,10 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 Issue = i,
                 User = u
             };
-            Console.WriteLine(participant.UserId);
-            Console.WriteLine(userId);
-
+ 
             // Send notification
             if (participant.UserId != userId)
             {
-                Console.WriteLine("Belement:D");
                 await _notificationService
                 .SendNotification(participant.UserId, issueId, 
                 $"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz." +
