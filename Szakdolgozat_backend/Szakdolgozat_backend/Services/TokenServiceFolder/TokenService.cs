@@ -11,11 +11,13 @@ namespace Szakdolgozat_backend.Services.TokenServiceFolder
     {
         private readonly IConfiguration _config;
         private readonly IDistributedCache _distributedCache;
+        private readonly ILogger<TokenService> _logger;
 
-        public TokenService(IConfiguration config, IDistributedCache distributedCache)
+        public TokenService(IConfiguration config, IDistributedCache distributedCache, ILogger<TokenService> logger)
         {
             _config = config;
             _distributedCache = distributedCache;
+            _logger = logger;
         }
 
         public string GenerateAccessToken(List<Claim> claims)
@@ -27,6 +29,8 @@ namespace Szakdolgozat_backend.Services.TokenServiceFolder
                 _config["Jwt:Audience"], claims,
                 expires: DateTime.Now.AddMinutes(5),
                 signingCredentials: credentials);
+
+            _logger.LogInformation($"Access token generated");
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
@@ -42,6 +46,8 @@ namespace Szakdolgozat_backend.Services.TokenServiceFolder
             {
                 AbsoluteExpiration = DateTimeOffset.Now.AddDays(7)
             });
+
+            _logger.LogInformation($"Refresh token generated for user with id {userId}.");
 
             return refreshToken;
         }

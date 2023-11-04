@@ -32,4 +32,6 @@ public partial class DbCustomContext : DbContext
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<IssueType> IssueTypes { get; set; }
 }

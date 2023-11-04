@@ -10,7 +10,6 @@ namespace Szakdolgozat_backend.Dtos.ProjectDtos
         public string? IconName { get; set; } = string.Empty;
         public DateTime Created { get; set; }
         public DateTime Updated { get; set; }
-        //public virtual ICollection<ProjectList> ProjectLists { get; set; } = new List<ProjectList>();
         public virtual ICollection<ParticipantResponseDTO> Participants { get; set; } = new List<ParticipantResponseDTO>();
     }
 }

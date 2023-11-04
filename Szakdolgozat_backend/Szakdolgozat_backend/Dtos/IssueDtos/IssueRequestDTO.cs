@@ -13,5 +13,6 @@
 
         public int? PriorityId { get; set; }
 
+        public int IssueTypeId { get; set; }
     }
 }

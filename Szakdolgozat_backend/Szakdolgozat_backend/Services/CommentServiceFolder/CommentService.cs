@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration.UserSecrets;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
@@ -10,12 +11,14 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
         private readonly DbCustomContext _db;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IUserHelper _userHelper;
+        private readonly ILogger<CommentService> _logger;
 
-        public CommentService(DbCustomContext db, IHttpContextAccessor contextAccessor, IUserHelper userHelper)
+        public CommentService(DbCustomContext db, IHttpContextAccessor contextAccessor, IUserHelper userHelper, ILogger<CommentService> logger)
         {
             _db = db;
             _contextAccessor = contextAccessor;
             _userHelper = userHelper;
+            _logger = logger;
         }
 
         public async Task<Comment> AddCommentToIssue(Guid projectId, Guid issueId, string content)
@@ -25,20 +28,20 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
             User? u = await _db.Users.FindAsync(userId);
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             Issue? i = await _db.Issues.FindAsync(issueId);
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
 
             Comment c = new()
             {
@@ -52,22 +55,31 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
             await _db.Comments.AddAsync(c);
             await _db.SaveChangesAsync();
 
+            _logger.LogInformation($"User with id {userId} added comment to issue {issueId} in project {projectId}.");
+
             return c;
         }
 
         public async Task<List<Comment>> GetCommentsFromIssue(Guid projectId, Guid issueId)
         {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
+
 
             Issue? i = await _db.Issues.FindAsync(issueId);
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             List<Comment> c = await _db.Comments.Where(c => c.IssueId == issueId).ToListAsync();
+
+            _logger.LogInformation($"GetCommentsFromIssue called by user {userId}.");
 
             return c;
         }
@@ -79,34 +91,35 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
             User? u = await _db.Users.FindAsync(userId);
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             Issue? i = await _db.Issues.FindAsync(issueId);
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             Comment? c = await _db.Comments.FindAsync(commentId);
 
             if (c == null)
-                throw new NotFoundException("Comment not found.");
+                throw new NotFoundException($"Comment with id {commentId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
 
             if(c.UserId == userId)
             {
                 _db.Comments.Remove(c);
                 await _db.SaveChangesAsync();
+                _logger.LogInformation($"User with id {userId} deleted a comment from issue {issueId} in project {projectId}.");
             }
             else
             {
-                throw new Exceptions.UnauthorizedAccessException("User is not comment owner.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not comment owner.");
             }
         }
     }

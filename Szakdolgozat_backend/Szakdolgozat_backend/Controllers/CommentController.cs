@@ -33,5 +33,13 @@ namespace Szakdolgozat_backend.Controllers
             return Ok(result);
         }
 
+        [HttpDelete("DeleteComment/{projectId}/{issueId}/{commentId}")]
+        public async Task<IActionResult> DeleteCommentFromIssue(Guid projectId, Guid issueId, Guid commentId)
+        {
+            await _commentService.RemoveCommentFromIssue(projectId, issueId, commentId);
+
+            return NoContent();
+        }
+
     }
 }

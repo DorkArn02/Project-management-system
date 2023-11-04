@@ -33,6 +33,7 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
         public List<AssignedPersonDTO> AssignedPeople { get; set; } = new ();
 
         public List<CommentResponseDTO> Comments { get; set; } = new ();
+        public IssueType IssueType { get; set; }
 
     }
 }

@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Dtos.ProjectDtos;
@@ -18,14 +17,16 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
         private readonly IMapper _iMapper;
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<ProjectService> _logger;
 
-        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService)
+        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService, ILogger<ProjectService> logger)
         {
             _db = db;
             _userHelper = userHelper;
             _iMapper = iMapper;
             _contextAccessor = contextAccessor;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
@@ -33,7 +34,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
 
             var userProjects = await _db.Projects
-            .Where(project => _db.Participants.Any(participant => participant.ProjectId == project.Id && participant.UserId == userId))
+            .Where(project => 
+            _db.Participants
+            .Any(participant => participant.ProjectId == project.Id && participant.UserId == userId))
             .Include(project => project.Participants)
             .Include(project => project.ProjectLists)
             .ToListAsync();
@@ -76,6 +79,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 });
             }
 
+            _logger.LogInformation($"GetAllProjects called by user {userId}.");
+
             return projectResponseDTOs;
         }
         public async Task<ProjectResponseDTO> GetProjectById(Guid projectId)
@@ -89,10 +94,10 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 .FirstOrDefaultAsync();
 
             if (existingProject == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, existingProject.Id))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project {existingProject.Id}.");
 
             List<ParticipantResponseDTO> participantResponseDTO = new();
 
@@ -127,6 +132,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 Participants = participantResponseDTO
             };
 
+            _logger.LogInformation($"GetProjectById called by user {userId}.");
+
             return projectResponseDTO;
         }
         public async Task<ProjectCreatedDTO> AddProject(ProjectRequestDTO p)
@@ -156,6 +163,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             await _db.Participants.AddAsync(participant);
             await _db.SaveChangesAsync();
 
+            _logger.LogInformation($"User with id {user.Id} has created a new project with name {newProject.Title} and id {newProject.Id}.");
+
             return _iMapper.Map<ProjectCreatedDTO>(newProject);
         }
         public async Task AddUserToProject(string email, Guid projectId)
@@ -167,19 +176,19 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Role? r = await _db.Roles.FindAsync(2);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (r == null)
-                throw new NotFoundException("Role not found.");
+                throw new NotFoundException($"Role not found.");
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with email {email} not found.");
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not project owner.");
 
             if (_userHelper.IsUserMemberOfProject(u.Id, projectId))
-                throw new UserConflictException("User already added to project.");
+                throw new UserConflictException($"User with id {u.Id} already added to project.");
 
             Participant participant = new()
             {
@@ -187,6 +196,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 User = u,
                 Role = r
             };
+
+            _logger.LogInformation($"User with id {userId} has added a user ({u.Id}) to project {p.Title}.");
 
             await _db.Participants.AddAsync(participant);
             await _db.SaveChangesAsync();
@@ -197,15 +208,18 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
 
             if (existingProject == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
-            Console.WriteLine($"DeleteProjectAndLists ProjectId = {projectId}");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not project owner.");
+
             await _db.Database.ExecuteSqlInterpolatedAsync($"DeleteProjectAndLists {projectId}");
 
             _db.Projects.Remove(existingProject);
+
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} has deleted project {existingProject.Id}.");
         }
         public async Task RemoveUserFromProject(Guid existingUserId, Guid projectId)
         {
@@ -216,19 +230,19 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Role? r = await _db.Roles.FindAsync(2);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (r == null)
                 throw new NotFoundException("Role not found.");
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {existingUserId} not found.");
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not project owner.");
 
             if (!_userHelper.IsUserMemberOfProject(existingUserId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of this project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {existingUserId} not member of this project.");
 
             Participant participant = await _db.Participants
                 .Where(p => p.ProjectId == projectId && p.UserId == existingUserId)
@@ -236,6 +250,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
 
             _db.Participants.Remove(participant);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} has removed a user ({u.Id}) from project {p.Title}.");
+
         }
         public async Task<ProjectCreatedDTO> UpdateProjectById(Guid projectId, ProjectRequestDTO projectRequestDTO)
         {
@@ -243,10 +260,10 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
 
             if (existingProject == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User is not project owner.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not project owner.");
 
             existingProject.Title = projectRequestDTO.Title;
             existingProject.Updated = DateTime.Now;
@@ -254,6 +271,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
 
             _db.Projects.Update(existingProject);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} has updated a project with id {existingProject.Id}.");
 
             return _iMapper.Map<ProjectCreatedDTO>(existingProject);
         }

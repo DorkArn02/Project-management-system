@@ -596,7 +596,6 @@ export default function ProjectBoards() {
             handleCloseBoardEditPos()
         }
     }
-
     moment.locale('hu')
 
     if (navigation.state === 'loading') {
@@ -719,7 +718,7 @@ export default function ProjectBoards() {
                             <ModalContent>
                                 <form ref={formRef} autoComplete='off' onSubmit={handleSubmitView(handleOnCloseIssue)}>
                                     <ModalHeader>
-                                        <HStack align={"baseline"}>
+                                        <HStack align={"center"}>
                                             <AiFillCheckSquare size={25} color='#42a4ff' />
                                             <FormControl mt={1}>
                                                 <Editable selectAllOnFocus={false} maxW={"90%"} defaultValue={currentIssue.title}>
@@ -838,7 +837,7 @@ export default function ProjectBoards() {
                                                         <TagLabel>{currentIssue.reporterName}</TagLabel>
                                                     </Tag>
                                                 </FormControl>
-                                                <FormControl isInvalid={errorsView.priorityId} >
+                                                <FormControl zIndex={100} isInvalid={errorsView.priorityId} >
                                                     <FormLabel>
                                                         <HStack>
                                                             <BsBarChartFill />
@@ -876,7 +875,7 @@ export default function ProjectBoards() {
                                                         <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
                                                             render={({ field: { value, onChange } }) => (
                                                                 <>
-                                                                    <Slider onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
+                                                                    <Slider onChangeEnd={(e) => setSlide(e)} onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
                                                                         <SliderTrack>
                                                                             <SliderFilledTrack />
                                                                         </SliderTrack>

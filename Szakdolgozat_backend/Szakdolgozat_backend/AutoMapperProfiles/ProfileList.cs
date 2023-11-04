@@ -15,6 +15,7 @@ namespace Szakdolgozat_backend.AutoMapperProfiles
             CreateMap<User, UserRegisterResponseDTO>();
             CreateMap<User, UserLoginResponseDTO>()
                 .ForMember(dest => dest.AccessToken, opt => opt.Ignore());
+
         }
     }
 }

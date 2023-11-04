@@ -30,6 +30,8 @@ public partial class Issue
 
     public int? PriorityId { get; set; }
 
+    public int IssueTypeId { get; set; }
+
     public virtual ICollection<AssignedPerson> AssignedPeople { get; set; } = new List<AssignedPerson>();
 
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
@@ -43,4 +45,6 @@ public partial class Issue
     public virtual ProjectList ProjectList { get; set; } = null!;
     [JsonIgnore]
     public virtual User User { get; set; } = null!;
+    [JsonIgnore]
+    public virtual IssueType IssueType { get; set; } = null!;
 }

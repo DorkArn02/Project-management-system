@@ -11,7 +11,8 @@ import {
     FormControl,
     FormErrorMessage,
     Spacer
-} from '@chakra-ui/react'; import { FiUser } from 'react-icons/fi';
+} from '@chakra-ui/react';
+import { FiUser } from 'react-icons/fi';
 import { useForm } from "react-hook-form";
 import { loginUser } from '../api/auth';
 import { useState } from 'react';

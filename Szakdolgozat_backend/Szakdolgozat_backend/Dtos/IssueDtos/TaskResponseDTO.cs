@@ -32,5 +32,6 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
         public string BoardName { get; set; } = string.Empty;
 
         public string ProjectName { get; set; } = string.Empty;
+        public IssueType IssueType { get; set;} = null!;
     }
 }

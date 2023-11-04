@@ -11,12 +11,14 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
         private readonly DbCustomContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserHelper _userHelper;
+        private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper)
+        public NotificationService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper, ILogger<NotificationService> logger)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _userHelper = userHelper;
+            _logger = logger;
         }
 
         public async Task DeleteNotificationById(Guid id)
@@ -26,13 +28,15 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             Notification? n = await _db.Notifications.FindAsync(id);
 
             if (n == null)
-                throw new NotFoundException("Notification not found.");
+                throw new NotFoundException($"Notification with id {id} not found.");
 
             if (n.UserId != userId)
-                throw new Exceptions.UnauthorizedAccessException("Unauthorized.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not notification owner.");
 
             _db.Notifications.Remove(n);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} deleted notification with id {id}.");
         }
 
         public async Task<List<NotificationResponseDTO>> GetUserNotifications()
@@ -42,7 +46,7 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             User? u = await _db.Users.FindAsync(userId);
             
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             List<Notification> notifications = await _db.Notifications.ToListAsync();
 
@@ -77,12 +81,12 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             User? u = await _db.Users.FindAsync(userId);
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             Issue? i = await _db.Issues.FindAsync(issueId);
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
 
             Notification n = new()

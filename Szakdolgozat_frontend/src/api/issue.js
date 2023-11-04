@@ -5,6 +5,8 @@ export const addIssueToBoard = async (projectId, boardId, issueObject, assignedP
     Object.keys(issueObject)
         .forEach(k => (!issueObject[k] && issueObject[k] !== undefined) && delete issueObject[k]);
 
+    console.log(issueObject)
+
     api.post(`/Issue/AddIssue/${projectId}/${boardId}`, issueObject)
         .then((result) => {
             for (let i of assignedPeople) {
@@ -47,6 +49,7 @@ export const changeIssuePosition2 = async (projectId, sourceColumnId, destColumn
 }
 
 export const changeIssue = async (projectId, projectListId, issueId, patchData) => {
+    console.log(patchData)
     const result = await api.patch(`/Issue/UpdateIssueDetails/${projectId}/${projectListId}/${issueId}`, patchData)
     console.log(result)
     return result

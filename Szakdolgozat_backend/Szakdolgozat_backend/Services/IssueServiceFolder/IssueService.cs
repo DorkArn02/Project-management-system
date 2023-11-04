@@ -14,13 +14,15 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         private readonly IUserHelper _userHelper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
+        private readonly ILogger<IssueService> _logger;
 
-        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService)
+        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService, ILogger<IssueService> logger)
         {
             _db = db;
             _userHelper = userHelper;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
+            _logger = logger;
         }
 
         public async Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int participantId)
@@ -29,17 +31,17 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
             
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
             
             ProjectList? pl = await _db.ProjectLists
                 .Where(x => x.ProjectId == projectId && x.Id == projectListId)
                 .FirstOrDefaultAsync();
 
             if (pl == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with id {projectListId} not found.");
 
             Issue? i = await _db.Issues.
                 Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
@@ -48,21 +50,21 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             Participant? participant = await _db.Participants.FindAsync(participantId);
 
             if (participant == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"Participant with id {participantId} not found.");
 
             User? u = await _db.Users.FindAsync(participant.UserId);
             User? u2 = await _db.Users.FindAsync(userId);
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {participant.UserId} not found.");
 
             if (u2 == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
 
             AssignedPerson? assignedPerson = await _db.AssignedPeople
@@ -70,7 +72,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (assignedPerson != null)
-                throw new UserConflictException("User already added as assignee");
+                throw new UserConflictException($"User with id {participant.UserId} already added as assignee.");
 
             AssignedPerson assigned = new()
             {
@@ -90,6 +92,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             await _db.AssignedPeople.AddAsync(assigned);
             await _db.SaveChangesAsync();
 
+            _logger.LogInformation($"User with id {userId} has assigned a user {u.Id} to issue {issueId} in project {projectId}.");
+
             return i;
         }
 
@@ -101,13 +105,13 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             var user = await _db.Users.FindAsync(userId);
 
             if (user == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             if (issueRequestDTO.Position < 0)
                 throw new BadRequestException("Position can not be negative.");
@@ -124,18 +128,24 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             && p.Id == projectListId).FirstOrDefaultAsync();
 
             if (projectList == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with id {projectListId} not found.");
 
             Priority? priority = await _db.Priorities.FindAsync(issueRequestDTO.PriorityId); ;
 
+            IssueType? issueType = await _db.IssueTypes.FindAsync(issueRequestDTO.IssueTypeId);
+
+            if(issueType == null)
+                throw new NotFoundException($"Issue type with id {issueRequestDTO.IssueTypeId} not found.");
+
             if (priority == null)
-                    throw new NotFoundException("Priority not found.");
+                    throw new NotFoundException($"Priority with id {issueRequestDTO.PriorityId} not found.");
 
             if (issueRequestDTO.TimeEstimate != null && issueRequestDTO.TimeEstimate < 0)
                 throw new BadRequestException("Time estimate can not be negative.");
 
             if (issueRequestDTO.DueDate != null && issueRequestDTO.DueDate < DateTime.Now)
                 throw new BadRequestException("Due date can not be smaller than now");
+
 
             Issue i = new()
             {
@@ -149,11 +159,14 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 ProjectList = projectList,
                 TimeEstimate = issueRequestDTO.TimeEstimate,
                 User = user,
-                Priority = priority ?? null
+                Priority = priority ?? null,
+                IssueType = issueType
             };
 
             await _db.Issues.AddAsync(i);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Issue with id {i.Id} has added to project list {projectListId} in project {projectId} by user {userId}.");
 
             return i;
         }
@@ -164,17 +177,17 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? pl = await _db.ProjectLists
                 .Where(x => x.ProjectId == projectId && x.Id == projectListId)
                 .FirstOrDefaultAsync();
 
             if (pl == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with id {projectListId} not found.");
 
             Issue? i = await _db.Issues.
                 Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
@@ -183,12 +196,12 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             User? r = await _db.Users.FindAsync(reporterId);
 
             if (r == null)
-                throw new NotFoundException("Reporter not found.");
+                throw new NotFoundException($"Reporter with id {reporterId} not found.");
 
             if (i.UserId == reporterId)
                 throw new UserConflictException("User id can not be same.");
@@ -198,15 +211,21 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             _db.Issues.Update(i);
             await _db.SaveChangesAsync();
 
+            _logger.LogInformation($"Issue {issueId} reporter has changed by {userId} in project {projectId}.");
+
             return i;
         }
 
         public async Task ChangePositionBetweenColumns(Guid projectId, Guid sourceColumnId, Guid destColumnId, Guid issueId, Dictionary<Guid, int> sourcePositions, Dictionary<Guid, int> destPositions)
         {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? sourceColumn = await _db.ProjectLists.FindAsync(sourceColumnId);
 
@@ -221,7 +240,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Issue? issue = await _db.Issues.FindAsync(issueId);
 
             if (issue == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             issue.ProjectList = destColumn;
 
@@ -244,14 +263,20 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             }
 
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Issue status has changed by {userId} in project {projectId}.");
         }
 
         public async Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions)
         {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
             Project? p = await _db.Projects.FindAsync(projectId);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? column = await _db.ProjectLists.FindAsync(columnId);
             
@@ -268,6 +293,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             }
 
             await _db.SaveChangesAsync();
+            _logger.LogInformation($"Issue position has changed by {userId} in project {projectId}.");
         }
 
         public async Task DeleteIssueFromProjectList(Guid projectId, Guid projectListId, Guid issueId)
@@ -276,27 +302,29 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? pl = await _db.ProjectLists
                 .Where(x => x.ProjectId == projectId && x.Id == projectListId)
                 .FirstOrDefaultAsync();
 
             if (pl == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with id {projectListId} not found.");
 
             Issue? i = await _db.Issues.
                 Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
                 && x.Id == issueId).FirstOrDefaultAsync();
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             _db.Issues.Remove(i);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} deleted issue {issueId} from project list {projectListId} in project {projectId}");
         }
 
         public async Task RemoveAssigneeFromIssue(Guid projectId, Guid projectListId, Guid issueId, Guid assigneeId)
@@ -305,17 +333,17 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? pl = await _db.ProjectLists
                 .Where(x => x.ProjectId == projectId && x.Id == projectListId)
                 .FirstOrDefaultAsync();
 
             if (pl == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with id {projectListId} not found.");
 
             Issue? i = await _db.Issues.
                 Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
@@ -324,16 +352,16 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             User? assignee = await _db.Users.FindAsync(assigneeId);
             User? u = await _db.Users.FindAsync(userId);
 
             if (assignee == null)
-                throw new NotFoundException("Assignee not found.");
+                throw new NotFoundException($"Assignee with id {assigneeId} not found.");
 
             if (u == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
 
             AssignedPerson? assignedPerson = await _db.AssignedPeople
@@ -341,14 +369,11 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (assignedPerson == null)
-                throw new NotFoundException("User not found as assignee in this project");
+                throw new NotFoundException($"Assignee with id {assigneeId} not found as assignee in this project");
 
-            Console.WriteLine(assignee.Id);
-            Console.WriteLine(userId);
             // Send notification
             if (assignee.Id != userId)
             {
-                Console.WriteLine("Belement:D2");
                 await _notificationService
                 .SendNotification(assignee.Id, issueId,
                 $"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül." +
@@ -357,6 +382,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             _db.AssignedPeople.Remove(assignedPerson);
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"User with id {userId} has removed a user {assignee.Id} from issue {issueId} in project {projectId}.");
         }
 
         public async Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s)
@@ -367,20 +394,20 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             var user = await _db.Users.FindAsync(userId);
 
             if (user == null)
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException($"User with id {userId} not found.");
 
             if (p == null)
-                throw new NotFoundException("Project not found.");
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException("User not member of project.");
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
             ProjectList? projectList = await _db.ProjectLists
                 .Where(p => p.ProjectId == projectId
             && p.Id == projectListId).FirstOrDefaultAsync();
 
             if (projectList == null)
-                throw new NotFoundException("Project list not found.");
+                throw new NotFoundException($"Project list with {projectListId} not found.");
 
             Issue? i = await _db.Issues.
                 Where(x => x.ProjectId == projectId && x.ProjectListId == projectListId
@@ -389,16 +416,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 .FirstOrDefaultAsync();
 
             if (i == null)
-                throw new NotFoundException("Issue not found.");
-            /*
-            i.Description = issueUpdateRequestDTO.Description;
-            i.Title = issueUpdateRequestDTO.Title;
-            i.Updated = DateTime.Now;
-            i.DueDate = issueUpdateRequestDTO.DueDate;
-            i.TimeEstimate = issueUpdateRequestDTO.TimeEstimate;
-            i.TimeSpent = issueUpdateRequestDTO.TimeSpent;
-            i.ProjectList = issueUpdateRequestDTO.ProjectList;
-            */
+                throw new NotFoundException($"Issue with id {issueId} not found.");
 
             List<AssignedPerson> assignedPeople = await _db.AssignedPeople.Where(p => p.IssueId == issueId).ToListAsync();
 
@@ -420,6 +438,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             _db.Entry(i).State = EntityState.Modified;
             
             await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Issue {issueId} details changed by user {userId}.");
             return i;
         }
     }

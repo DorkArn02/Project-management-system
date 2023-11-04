@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
+using Serilog;
 using System.Text;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Middlewares;
@@ -47,7 +48,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("MyPolicy",
         builder =>
         {
-            builder.WithOrigins("http://127.0.0.1:5173", "http://localhost:5173")
+            builder.WithOrigins("http://127.0.0.1:5173", "http://localhost:5173", "https://localhost:7093")
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
@@ -70,6 +71,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 */
 // Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
+builder.Logging.ClearProviders();
+
+if(builder.Environment.IsDevelopment())
+{
+    builder.Host.UseSerilog((hostContext, services, configuration) => {
+        configuration
+            //.MinimumLevel.Debug()
+            .WriteTo.File("logs.txt")
+            .WriteTo.Console();
+    });
+}
+else
+{
+
+    builder.Host.UseSerilog((hostContext, services, configuration) => {
+        configuration
+            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Error)
+            .WriteTo.Console(Serilog.Events.LogEventLevel.Error);
+    });
+}
 
 builder.Services.AddSwaggerGen(c =>
 {
