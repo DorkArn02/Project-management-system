@@ -79,7 +79,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 Issue = i,
                 User = u
             };
- 
+
             // Send notification
             if (participant.UserId != userId)
             {
@@ -430,7 +430,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                $" Módosító: {user.LastName + " " + user.FirstName}.");
                 }
             }
-
+            
             s.ApplyTo(i);
 
             i.Updated = DateTime.Now;

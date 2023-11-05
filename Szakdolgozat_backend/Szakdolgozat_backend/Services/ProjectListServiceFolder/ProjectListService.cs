@@ -281,6 +281,72 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             return taskResponseDTOs;
         }
 
+        public async Task<List<TaskResponseDTO>> GetPersonTasksByProjectId(Guid projectId)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+
+            User? u = await _db.Users.FindAsync(userId);
+
+            if (u == null)
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not found.");
+
+            List<AssignedPerson> assignedPeople = await _db.AssignedPeople
+                .Where(x => x.UserId == userId).ToListAsync();
+
+            List<Issue> issues = new();
+
+            foreach (var p in assignedPeople)
+            {
+                Issue? i = await _db.Issues.Where(x => x.Id == p.IssueId && x.ProjectId == projectId).FirstOrDefaultAsync();
+
+                if (i != null)
+                    issues.Add(i);
+            }
+
+            List<TaskResponseDTO> taskResponseDTOs = new();
+
+            foreach (var issue in issues)
+            {
+                var issueReporter = await _db.Users.FindAsync(issue.UserId);
+                var issuePriority = await _db.Priorities.FindAsync(issue.PriorityId);
+                var project = await _db.Projects.Where(x => x.Id == issue.ProjectId).FirstAsync();
+                var board = await _db.ProjectLists
+                .Where(x => x.ProjectId == issue.ProjectId && x.Id == issue.ProjectListId)
+                .FirstAsync();
+
+                var participant = await _db.Participants.Where(p => p.ProjectId == project.Id
+                && p.UserId == userId).FirstOrDefaultAsync();
+
+                var issueType = await _db.IssueTypes.FindAsync(issue.IssueTypeId);
+
+                if (participant != null)
+                {
+                    TaskResponseDTO issueDTO = new()
+                    {
+                        Id = issue.Id,
+                        Description = issue.Description,
+                        Created = issue.Created,
+                        DueDate = issue.DueDate,
+                        Position = issue.Position,
+                        Title = issue.Title,
+                        TimeEstimate = issue.TimeEstimate,
+                        Updated = issue.Updated,
+                        TimeSpent = issue.TimeSpent,
+                        ReporterId = issue.UserId,
+                        ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
+                        Priority = issuePriority,
+                        BoardName = board.Title,
+                        ProjectName = project.Title,
+                        IssueType = issueType
+                    };
+                    taskResponseDTOs.Add(issueDTO);
+                }
+            }
+            _logger.LogInformation($"GetPersonTasks called by user id {userId}.");
+
+            return taskResponseDTOs;
+        }
+
         public async Task<ProjectList> UpdateProjectList(Guid projectId, Guid projectListID, string title)
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);

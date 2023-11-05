@@ -20,7 +20,6 @@ import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
-//import { deleteNotification, getNotifications } from '../api/notifications';
 import moment from 'moment';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';

@@ -12,6 +12,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
         Task<ProjectList> GetListByProject(Guid projectId, Guid projectListId);
         Task DeleteListFromProject(Guid projectId, Guid projectListId);
         Task<List<TaskResponseDTO>> GetPersonTasks();
+        Task<List<TaskResponseDTO>> GetPersonTasksByProjectId(Guid projectId);
         Task<ProjectList> UpdateProjectList(Guid projectId, Guid projectLitID, string title);
         Task UpdateProjectListPosition(Guid projectId, Guid projectListId1, Guid projectListId2);
     }

@@ -1,4 +1,4 @@
-import { Flex, Breadcrumb, Spinner, Heading, BreadcrumbItem, BreadcrumbLink, HStack, IconButton, Select } from "@chakra-ui/react"
+import { Flex, Breadcrumb, Spinner, Heading, BreadcrumbItem, BreadcrumbLink, Text } from "@chakra-ui/react"
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -11,7 +11,7 @@ import {
     TableContainer,
 } from '@chakra-ui/react'
 import moment from 'moment'
-import { AiFillBug, AiFillCheckSquare, AiOutlineFilter } from 'react-icons/ai'
+import { AiFillBug, AiFillCheckSquare } from 'react-icons/ai'
 import {
     Accordion,
     AccordionItem,
@@ -97,7 +97,6 @@ export default function TasksPage() {
                     <BreadcrumbLink href='/dashboard/tasks'>Saját feladatok</BreadcrumbLink>
                 </BreadcrumbItem>
             </Breadcrumb>
-
             <Heading size={"md"}>Összesen {number} db feladathoz van hozzárendelve.</Heading>
 
             {Object.keys(tasks!).map(projectName => (
@@ -111,6 +110,7 @@ export default function TasksPage() {
                             <AccordionIcon />
                         </AccordionButton>
                         <AccordionPanel>
+                            <Text>asd</Text>
                             <TableContainer>
                                 <Table variant='striped'>
                                     <Thead>

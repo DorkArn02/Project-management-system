@@ -99,13 +99,13 @@ export default function ProjectListPage() {
     const { data: project, isLoading: isLoadingProject, isError: projectIsError } = useQuery({
         queryKey: ['getProject'],
         queryFn: () => getProjectById(params.projectId!).then(res => res.data),
-        retry: 3
+        retry: 1
     })
 
     const { data: boards, isLoading: isLoadingBoards, isError: projectListIsError, refetch: refetchProjectLists } = useQuery({
         queryKey: ['getProjectLists'],
         queryFn: () => getProjectBoards(params.projectId!).then(res => res.data),
-        retry: 3
+        retry: 1
     })
 
     const params = useParams<{ projectId?: string }>()
@@ -211,7 +211,6 @@ export default function ProjectListPage() {
             onOpenIssue()
         }
     }
-
 
     const handleAddBoard = async (data: ProjectListRequest) => {
         if (project && boards)

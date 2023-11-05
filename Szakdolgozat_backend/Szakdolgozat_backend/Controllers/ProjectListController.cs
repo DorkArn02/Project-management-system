@@ -57,6 +57,14 @@ namespace Szakdolgozat_backend.Controllers
             return Ok(result);
         }
 
+        [HttpGet("GetTasksByProjectId/{projectId}")]
+        public async Task<IActionResult> GetTasksByProjectId(Guid projectId)
+        {
+            var result = await _projectListService.GetPersonTasksByProjectId(projectId);
+
+            return Ok(result);
+        }
+
         [HttpPut("Edit/{projectId}/{projectListId}")]
         public async Task<IActionResult> EditProjectList(Guid projectId, Guid projectListId, [FromBody] string title)
         {

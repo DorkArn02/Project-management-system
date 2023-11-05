@@ -35,7 +35,6 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 builder.Services.AddControllers()
 .AddNewtonsoftJson(options =>
 {
@@ -77,9 +76,10 @@ if(builder.Environment.IsDevelopment())
 {
     builder.Host.UseSerilog((hostContext, services, configuration) => {
         configuration
-            //.MinimumLevel.Debug()
-            .WriteTo.File("logs.txt")
-            .WriteTo.Console();
+             //.MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
+            .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
     });
 }
 else
@@ -87,8 +87,8 @@ else
 
     builder.Host.UseSerilog((hostContext, services, configuration) => {
         configuration
-            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Error)
-            .WriteTo.Console(Serilog.Events.LogEventLevel.Error);
+            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
+            .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
     });
 }
 

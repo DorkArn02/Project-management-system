@@ -48,7 +48,7 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             if (u == null)
                 throw new NotFoundException($"User with id {userId} not found.");
 
-            List<Notification> notifications = await _db.Notifications.ToListAsync();
+            List<Notification> notifications = await _db.Notifications.Where(i=>i.UserId==userId).ToListAsync();
 
             List<NotificationResponseDTO> notificationResponseDTOs = new();
 

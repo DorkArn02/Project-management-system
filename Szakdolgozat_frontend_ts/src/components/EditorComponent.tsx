@@ -52,7 +52,7 @@ export default function EditorComponent({ data, setData, theme, toolbar }: Edito
         "|",
     ];
 
-    const editorConfig = useMemo(() => ({
+    const editorConfig: any = useMemo(() => ({
         readonly: false,
         toolbar: toolbar,
         spellcheck: true,

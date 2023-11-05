@@ -44,3 +44,8 @@ export const getTasks = async () => {
     return response
 }
 
+export const getTasksByProjectId = async (id: string) => {
+    const response = await api.get<Array<Task>>(`/ProjectList/GetTasksByProjectId/${id}`)
+    return response
+}
+

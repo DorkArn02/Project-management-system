@@ -1,4 +1,4 @@
-import { Flex, Checkbox, Text, GridItem, Heading, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Select, HStack, Spinner, Grid } from "@chakra-ui/react"
+import { Flex, Checkbox, Text, Heading, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Select, HStack, Spinner, Grid, Card, CardHeader, CardBody } from "@chakra-ui/react"
 import { useState } from "react"
 import { useEffect } from "react"
 import { Link } from "react-router-dom"
@@ -14,11 +14,12 @@ import {
     ArcElement,
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
-import { Gantt } from "gantt-task-react"
+import { Gantt, ViewMode } from "gantt-task-react"
 import moment from "moment"
 import "gantt-task-react/dist/index.css"
 import { useQuery } from "@tanstack/react-query"
 import { getUserProjects } from "../api/project"
+import { Select as ChakraSelect } from "chakra-react-select"
 
 ChartJS.register(
     CategoryScale,
@@ -32,30 +33,38 @@ ChartJS.register(
 
 export default function StatisticsPage() {
 
-    const [id, setId] = useState("")
-    const [tasks, setTasks] = useState()
-    const [view, setView] = useState("Month")
-    const [column, setColumn] = useState("")
+    const [id, setId] = useState<{ id: string, label: string, value: string }>()
+    const [tasks, setTasks] = useState<Array<any>>()
+    const [view, setView] = useState<ViewMode>(ViewMode.Month)
+    const [column, setColumn] = useState<string>("")
 
     const [priorityChart, setPriorityChart] = useState<number[]>()
     const [reporterChart, setReporterChart] = useState()
     const [assignedChart, setAssignedChart] = useState()
     const [typeChart, setTypeChart] = useState()
-    const [participants, setParticipants] = useState()
 
     const { isLoading, data: projects } = useQuery({
         queryKey: ['projects'],
         queryFn: () => getUserProjects().then(res => {
             const results = res.data
-            setId(results.length > 0 ? results[0].id : "")
+            const obj = { id: results[0].id, label: results[0].title, value: results[0].id }
+            if (obj) {
+                setId(obj)
+            }
             return results
         }),
+        select: (data) => {
+            const tmp: Array<{ id: string, label: string, value: string }> = []
+            data.map(i => {
+                tmp.push({ id: i.id, label: i.title, value: i.id })
+            })
+            return tmp
+        }
     })
 
-    const { isLoading: isLoadingBoards, data: board, refetch } = useQuery({
+    const { isLoading: isLoadingBoards, data: board } = useQuery({
         queryKey: ['projectBoards'],
-        queryFn: () => getProjectBoards(id).then(res => res.data),
-        enabled: id.length !== 0
+        queryFn: () => getProjectBoards(id!.value).then(res => res.data)
     })
 
     useEffect(() => {
@@ -66,7 +75,7 @@ export default function StatisticsPage() {
 
             let people = board.map(b => b.issues.map(i => i.reporterName))
 
-            let counts = {};
+            let counts: any = {};
 
             for (let i = 0; i < people.length; i++) {
                 for (let j = 0; j < people[i].length; j++) {
@@ -76,15 +85,15 @@ export default function StatisticsPage() {
             }
             setReporterChart(counts)
 
-            let tmp = []
+            let tmp: any = []
 
             board.forEach(b => {
                 tmp.push(...b.issues);
             })
 
-            let tmp2 = []
+            let tmp2: Array<any> = []
 
-            tmp.forEach(i => {
+            tmp.forEach((i: any) => {
                 const cDate = moment(i.created)
                 const dDate = moment(i.dueDate)
 
@@ -134,12 +143,9 @@ export default function StatisticsPage() {
                     })
                 });
             });
-
             setAssignedChart(peopleByName)
-
         }
-    }, [board])
-
+    }, [board, id])
 
     if (isLoading || isLoadingBoards || !board || !projects) {
         return <Flex h="100vh" w="full" align="center" justify="center">
@@ -158,106 +164,122 @@ export default function StatisticsPage() {
                     </BreadcrumbItem>
                 </Breadcrumb>
                 <HStack>
-                    <Select variant={'filled'} onChange={(e) => setId(e.target.value)} w="300px">
-                        {projects.map((i, k) => {
-                            return <option value={i.id} key={k}>{i.title}</option>
-                        })}
-                    </Select>
-                    <Link to={`/dashboard/${id}`}><Text _hover={{ textDecor: 'underline' }}>Ugrás a kiválasztott projektre</Text></Link>
+                    <ChakraSelect variant="filled" defaultValue={id} options={projects} />
+                    <Link to={`/dashboard/${id?.value}`}><Text _hover={{ textDecor: 'underline' }}>Ugrás a kiválasztott projektre</Text></Link>
                 </HStack>
                 {Object.entries(board).length !== 0 ?
-                    <Grid gap={5} templateColumns={"repeat(3, 1fr)"}>
-                        <GridItem>
-                            <Heading size="md">Feladatok eloszlása állapotok szerint</Heading>
-                            <Bar
-                                options={{ responsive: false }}
-                                data={{
-                                    labels: board.map(i => i.title),
-                                    datasets: [
-                                        {
-                                            label: 'Feladatok száma',
-                                            data: board.map(i => i.issues.length),
-                                            backgroundColor: '#42a4ff',
-                                        },
-                                    ]
-                                }}
-                            />
-                        </GridItem>
-                        <GridItem>
-                            <Heading size="md">Feladatok eloszlása prioritások szerint</Heading>
-                            <Pie
-                                options={{ responsive: false }}
-                                data={{
-                                    labels: ["Legalacsonyabb", "Alacsony", "Közepes", "Magas", "Legmagasabb"],
-                                    datasets: [
-                                        {
-                                            label: 'Feladatok száma',
-                                            data: priorityChart,
-                                            backgroundColor: [
-                                                'lightgreen',
-                                                'green',
-                                                'yellow',
-                                                'orange',
-                                                'red',
-                                            ],
-                                        }
-                                    ]
-                                }}
-                            />
-                        </GridItem>
-                        <GridItem>
-                            <Heading size="md">Feladatok eloszlása bejelentők szerint</Heading>
-                            <Bar
-                                options={{ responsive: false }}
-                                data={{
-                                    labels: participants,
-                                    datasets: [
-                                        {
-                                            label: 'Bejelentett feladatok',
-                                            data: reporterChart,
-                                            backgroundColor: 'green',
-                                        }
-                                    ]
-                                }}
-                            />
-                        </GridItem>
-                        <GridItem>
-                            <Heading size="md">Feladatok eloszlása hozzárendeltek szerint</Heading>
-                            <Bar
-                                options={{ responsive: false }}
-                                data={{
-                                    labels: participants,
-                                    datasets: [
-                                        {
-                                            label: 'Feladatok száma',
-                                            data: assignedChart,
-                                            backgroundColor: '#42a4ff',
-                                        }
-                                    ]
-                                }}
-                            />
-                        </GridItem>
-                        <GridItem>
-                            <Heading size="md">Feladatok eloszlása típus szerint</Heading>
-                            <Bar
-                                options={{ responsive: false }}
-                                data={{
-                                    labels: ['Task', 'Story', 'Bug'],
-                                    datasets: [
-                                        {
-                                            label: 'Feladatok száma',
-                                            data: typeChart,
-                                            backgroundColor: 'gray',
-                                        }
-                                    ]
-                                }}
-                            />
-                        </GridItem>
+                    <Grid gap={5} templateColumns={["repeat(1, 1fr)", "repeat(1, 1fr)", "repeat(2, 1fr)", "repeat(3, 1fr)"]}>
+                        <Card variant={"filled"} align="center">
+                            <CardHeader>
+                                <Heading size="md">Feladatok eloszlása állapotok szerint</Heading>
+                            </CardHeader>
+                            <CardBody>
+                                <Bar
+                                    options={{ responsive: false }}
+                                    data={{
+                                        labels: board.map(i => i.title),
+                                        datasets: [
+                                            {
+                                                label: 'Feladatok száma',
+                                                data: board.map(i => i.issues.length),
+                                                backgroundColor: '#42a4ff',
+                                            },
+                                        ]
+                                    }}
+                                />
+                            </CardBody>
+                        </Card>
+                        <Card variant={"filled"} align="center">
+                            <CardHeader>
+                                <Heading size="md">Feladatok eloszlása prioritások szerint</Heading>
+                            </CardHeader>
+                            <CardBody>
+                                <Pie
+                                    options={{ responsive: false }}
+                                    data={{
+                                        labels: ["Legalacsonyabb", "Alacsony", "Közepes", "Magas", "Legmagasabb"],
+                                        datasets: [
+                                            {
+                                                label: 'Feladatok száma',
+                                                data: priorityChart,
+                                                backgroundColor: [
+                                                    'lightgreen',
+                                                    'green',
+                                                    'yellow',
+                                                    'orange',
+                                                    'red',
+                                                ],
+                                            }
+                                        ]
+                                    }}
+                                />
+                            </CardBody>
+                        </Card>
+                        <Card variant={"filled"} align="center">
+                            <CardHeader>
+                                <Heading size="md">Feladatok eloszlása bejelentők szerint</Heading>
+                            </CardHeader>
+                            <CardBody>
+                                <Bar
+
+                                    options={{ responsive: false }}
+                                    data={{
+                                        datasets: [
+                                            {
+                                                label: 'Bejelentett feladatok',
+                                                data: reporterChart,
+                                                backgroundColor: '#42a4ff',
+                                            }
+                                        ]
+                                    }}
+                                />
+                            </CardBody>
+
+                        </Card>
+                        <Card variant={"filled"} align="center">
+                            <CardHeader>
+                                <Heading size="md">Feladatok eloszlása hozzárendeltek szerint</Heading>
+                            </CardHeader>
+                            <CardBody>
+                                <Bar
+                                    options={{ responsive: false }}
+                                    data={{
+                                        datasets: [
+                                            {
+                                                label: 'Feladatok száma',
+                                                data: assignedChart,
+                                                backgroundColor: '#42a4ff',
+                                            }
+                                        ]
+                                    }}
+                                />
+                            </CardBody>
+                        </Card>
+                        <Card variant={"filled"} align="center">
+                            <CardHeader>
+                                <Heading size="md">Feladatok eloszlása típus szerint</Heading>
+                            </CardHeader>
+                            <CardBody>
+                                <Bar
+                                    options={{ responsive: false }}
+                                    data={{
+                                        labels: ['Task', 'Story', 'Bug'],
+                                        datasets: [
+                                            {
+                                                label: 'Feladatok száma',
+                                                data: typeChart,
+                                                backgroundColor: '#42a4ff',
+                                            }
+                                        ]
+                                    }}
+                                />
+                            </CardBody>
+                        </Card>
                     </Grid>
                     : ""}
                 <Heading size="md">Gantt-diagram</Heading>
                 <HStack>
-                    <Select variant="filled" width="250px" onChange={(e) => setView(e.target.value)} defaultValue={"Month"}>
+                    <Select variant="filled" width="250px" onChange={(e) => setView((e.target.value as ViewMode))} defaultValue={"Month"}>
                         <option value="Day">Napi</option>
                         <option value="Month">Havi</option>
                         <option value="Year">Éves</option>
@@ -269,7 +291,7 @@ export default function StatisticsPage() {
                         <Gantt listCellWidth={column} locale="hu" viewMode={view} tasks={tasks}
                             columnWidth={400}
                             rowHeight={40}
-                            fontSize={12} />
+                            fontSize={"12"} />
                         : ""}
                 </HStack>
             </Flex >
