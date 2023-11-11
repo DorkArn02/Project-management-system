@@ -30,8 +30,9 @@ export default function Dashboard() {
 
     const { user, logout } = useAuth()
     const navigate = useNavigate()
-
-    const [opened, setOpened] = useState<boolean>(JSON.parse(localStorage.getItem("opened") || ""))
+    const storedValue = localStorage.getItem("opened");
+    const initialValue = storedValue ? JSON.parse(storedValue) : false;
+    const [opened, setOpened] = useState<boolean>(initialValue);
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
 

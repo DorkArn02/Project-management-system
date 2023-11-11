@@ -14,5 +14,7 @@
         public int? PriorityId { get; set; }
 
         public int IssueTypeId { get; set; }
+        
+        public Guid? ParentIssueId { get; set; }
     }
 }

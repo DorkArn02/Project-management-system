@@ -163,6 +163,20 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 IssueType = issueType
             };
 
+
+            if (issueRequestDTO.ParentIssueId != null)
+            {
+                Issue i2 = await _db.Issues.FindAsync(issueRequestDTO.ParentIssueId);
+
+                if(i2 == null)
+                    throw new NotFoundException($"Issue with id {issueRequestDTO.ParentIssueId} not found.");
+
+                if (i2.IssueType.Name == "Subtask")
+                    throw new BadRequestException("Subtask can not be parent of a task.");
+
+                i.ParentIssue = i2;
+            }
+
             await _db.Issues.AddAsync(i);
             await _db.SaveChangesAsync();
 
@@ -430,7 +444,23 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                $" Módosító: {user.LastName + " " + user.FirstName}.");
                 }
             }
-            
+
+            foreach(var op in s.Operations)
+            {
+                if(op.path == "ParentIssueId")
+                {
+                    var i2 = await _db.Issues.FindAsync(op.value);
+
+                    if (i2 == null)
+                        throw new NotFoundException("Issue with id not found.");
+
+                    if (i2.IssueType.Name == "Subtask")
+                        throw new BadRequestException("Subtask can not be parent of task.");
+
+                    i.ParentIssue = i2;
+                }
+            }
+
             s.ApplyTo(i);
 
             i.Updated = DateTime.Now;

@@ -1,6 +1,7 @@
 import {
     Avatar,
     AvatarGroup,
+    Box,
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
@@ -30,10 +31,6 @@ import {
     NumberInput,
     NumberInputField,
     Select,
-    Slider,
-    SliderFilledTrack,
-    SliderThumb,
-    SliderTrack,
     Spacer,
     Spinner,
     Stack,
@@ -68,6 +65,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { IssueRequestView, IssueResponse, ParticipantResponse, ProjectListRequest, ProjectListResponse } from '../interfaces/interfaces'
 import EditorComponent from '../components/EditorComponent'
 import { addCommentToIssue, deleteCommentFromIssue } from '../api/user'
+import { TbSubtask } from "react-icons/tb"
 
 interface PriorityL {
     value: string,
@@ -154,6 +152,7 @@ export default function ProjectListPage() {
     const { isOpen: isOpenBoardEdit, onOpen: onOpenBoardEdit, onClose: onCloseBoardEdit } = useDisclosure()
     const { isOpen: isOpenBoardDelete, onOpen: onOpenBoardDelete, onClose: onCloseBoardDelete } = useDisclosure()
     const { isOpen: isOpenBoardEditPos, onOpen: onOpenBoardEditPos, onClose: onCloseBoardEditPos } = useDisclosure()
+    const { isOpen: isOpenAddSubtask, onOpen: onOpenAddSubtask, onClose: onCloseAddSubtask } = useDisclosure()
 
     // REACT HOOK FORM
     const { register: registerBoardCreate, handleSubmit: handleSubmitBoardCreate, reset: resetBoardCreate, formState: { errors: errorsBoardCreate, isSubmitting: isSubmittingBoardCreate } } = useForm<ProjectListRequest>();
@@ -179,6 +178,9 @@ export default function ProjectListPage() {
         else if (title == "Story") {
             return <BsFillBookmarkFill color='#c5ff3d' />
         }
+        else if (title == "Subtask") {
+            return <TbSubtask color='#42a4ff' />
+        }
     }
 
     const priorities = [
@@ -193,7 +195,10 @@ export default function ProjectListPage() {
         { value: "1", label: "Feladat", icon: <Icon mr={2} as={AiFillCheckSquare} color='#42a4ff' /> },
         { value: "2", label: "Story", icon: <Icon mr={2} as={BsFillBookmarkFill} color='#c5ff3d' /> },
         { value: "3", label: "Bug", icon: <Icon mr={2} as={AiFillBug} color='#eb5757' /> },
+        { value: "4", label: "Alfeladat", icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> }
     ]
+
+    const [childrenIssuesList, setChildrenIssuesList] = useState<Array<IssueResponse>>()
 
     // FUNCTIONS
     const handleOpenIssue = (issueObject: IssueResponse, boardId: string) => {
@@ -206,6 +211,14 @@ export default function ProjectListPage() {
                     arr.push({ id: p.id, label: `${p.lastName} ${p.firstName}`, value: `${p.userId}` })
                 }
             })
+
+            const tmp: Array<IssueResponse> = []
+
+            issueObject.childrenIssues.forEach(i => {
+                tmp.push(boards?.filter(b => b.id == i.projectListId)[0].issues.filter(is => is.id == i.id)[0])
+            })
+
+            setChildrenIssuesList(tmp)
             setSlide(issueObject.timeSpent)
             setAssignedPeople(arr)
             onOpenIssue()
@@ -663,6 +676,22 @@ export default function ProjectListPage() {
             handleCloseBoardEditPos()
         }
     }
+
+    const [selectedChildrenIssues, setSelectedChildrenIssues] = useState<Array<{ label: string, value: string, id: string }>>()
+
+    const handleOpenSubtask = () => {
+
+        const tmp = boards?.flatMap(i => i.issues.filter(j => j.issueType.name === "Subtask" && j.parentIssueId === null))
+        const tmp2: Array<{ label: string, value: string, id: string }> = []
+
+        tmp?.forEach(t => {
+            tmp2.push({ label: t.title, value: t.id, id: t.id })
+        })
+
+        setSelectedChildrenIssues(tmp2)
+        onOpenAddSubtask()
+    }
+
     moment.locale('hu')
 
     if (projectIsError || projectListIsError) {
@@ -717,7 +746,7 @@ export default function ProjectListPage() {
                                         <Input placeholder='Feladat címe' variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
                                         <FormErrorMessage>{errorsIssueCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
                                     </FormControl>
-                                    <FormControl isInvalid={Boolean(errorsIssueCreate.issueTypeId)}>
+                                    <FormControl zIndex={1000} isInvalid={Boolean(errorsIssueCreate.issueTypeId)}>
                                         <FormLabel>Feladat típusa</FormLabel>
                                         <Controller name="issueTypeId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
                                             <ChakraSelect components={customComponents} placeholder="Feladat típusa" isClearable={true} variant='filled' options={issueTypes} onChange={onChange} value={value} />
@@ -802,7 +831,7 @@ export default function ProjectListPage() {
                                         <HStack align={"center"}>
                                             {handleIssueTypeIcon(currentIssue.issueType.name)}
                                             <FormControl isInvalid={Boolean(errorsView.title)} mt={1}>
-                                                <Input maxW="90%" border="0" {...registerView("title", { required: true })} defaultValue={currentIssue.title} />
+                                                <Input maxW="80%" border="0" {...registerView("title", { required: true })} defaultValue={currentIssue.title} />
                                                 {/* <Editable selectAllOnFocus={false} maxW={"90%"} defaultValue={currentIssue.title}>
                                                     <EditablePreview />
                                                     <EditableInput {...registerView("title", { required: true })} />
@@ -813,6 +842,9 @@ export default function ProjectListPage() {
                                     </ModalHeader>
                                     <IconButton aria-label='Delete issue' onClick={onOpenDelete} size="md" right={14} top={5} position={"absolute"} variant="ghost" icon={<FaTrash />} />
                                     <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                    {currentIssue.issueType.name === 'Subtask' ?
+                                        <IconButton aria-label='Navigate to parent issue' type="submit" size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                        : ""}
                                     <ModalBody overflowY={"auto"}>
                                         <HStack gap="30px" align={"flex-start"}>
                                             <Flex maxH="100vh" w="60%" direction={"column"}>
@@ -823,6 +855,29 @@ export default function ProjectListPage() {
                                                             <EditorComponent toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
                                                         )} />
                                                 </FormControl>
+                                                {currentIssue.issueType.name !== "Subtask" ?
+                                                    <>
+                                                        <HStack align={"center"} ml={3}>
+                                                            <TbSubtask size={20} />
+                                                            <Heading size="md">Hozzárendelt feladatok: </Heading>
+                                                            <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="ghost" size="sm" icon={<FaPlus />} />
+                                                        </HStack>
+                                                        <Stack ml={3}>
+                                                            {childrenIssuesList ? childrenIssuesList.map((i, k) => {
+                                                                return <Tag gap={3} key={k} p={2}>
+                                                                    {handleIssueTypeIcon(i.issueType.name)}
+                                                                    <Text _hover={{ textDecor: "underline", cursor: "Pointer" }}>
+                                                                        {i.title}
+                                                                    </Text>
+                                                                    <Spacer />
+                                                                    <Avatar name={i.reporterName} size="xs" />
+                                                                    {handlePriorityIcon(i.priority)}
+                                                                </Tag>
+                                                            }) : ""}
+                                                        </Stack>
+                                                    </>
+                                                    : ""
+                                                }
                                                 <FormControl p={3}>
                                                     <FormLabel>
                                                         <HStack>
@@ -925,7 +980,7 @@ export default function ProjectListPage() {
                                                     </NumberInput>
                                                     <FormErrorMessage>{errorsView.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                                 </FormControl>
-                                                <FormControl zIndex={0}>
+                                                <FormControl isInvalid={Boolean(errorsView.timeSpent)} zIndex={0}>
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaClock />
@@ -933,7 +988,21 @@ export default function ProjectListPage() {
                                                         </HStack>
                                                     </FormLabel>
                                                     <Stack >
-                                                        <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
+                                                        <NumberInput step={1} defaultValue={currentIssue.timeSpent} variant={"filled"}>
+                                                            <NumberInputField {...registerView("timeSpent", {
+                                                                required: false, valueAsNumber: true, validate: (value) => {
+                                                                    if (isNaN(value)) {
+                                                                        return true
+                                                                    } else if (value >= 1) {
+                                                                        return true
+                                                                    } else {
+                                                                        return false
+                                                                    }
+                                                                }
+                                                            })} />
+                                                        </NumberInput>
+                                                        <FormErrorMessage>{errorsView.timeSpent ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                                        {/* <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
                                                             render={({ field: { value, onChange } }) => (
                                                                 <>
                                                                     <Slider onChangeEnd={(e) => setSlide(e)} onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
@@ -943,7 +1012,7 @@ export default function ProjectListPage() {
                                                                         <SliderThumb />
                                                                     </Slider>
                                                                 </>
-                                                            )} />
+                                                            )} /> */}
 
                                                         <HStack>
                                                             <Text>{slide ? slide : "0"} óra</Text>
@@ -1045,13 +1114,32 @@ export default function ProjectListPage() {
                         </form>
                     </ModalContent>
                 </Modal >
+                {/* Subtask hozzáadása */}
+                <Modal isOpen={isOpenAddSubtask} onClose={onCloseAddSubtask}>
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>
+                            <Text>Feladat hozzárendelése</Text>
+                        </ModalHeader>
+                        <ModalCloseButton />
+                        <ModalBody>
+                            <ChakraSelect options={selectedChildrenIssues} placeholder={"Válasszon ki alfeladatot..."} />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendelés</Button>
+                            <Button onClick={onCloseAddSubtask}>
+                                Visszavonás
+                            </Button>
+                        </ModalFooter>
+                    </ModalContent>
+                </Modal>
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
                             <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbItem isCurrentPage>
-                            <BreadcrumbLink href='#'>{project!.title}</BreadcrumbLink>
+                            <BreadcrumbLink href='#'>{project!.title} (Kanban tábla)</BreadcrumbLink>
                         </BreadcrumbItem>
                     </Breadcrumb>
                     <HStack>

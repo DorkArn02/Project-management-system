@@ -37,6 +37,7 @@ export default function EditorComponent({ data, setData, theme, toolbar }: Edito
         "paragraph",
         "|",
         "image",
+        "video",
         "link",
         "table",
         "|",

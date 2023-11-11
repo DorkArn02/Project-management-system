@@ -4,10 +4,9 @@ import RegisterPage from "../pages/RegisterPage"
 import ProjectPage from "../pages/ProjectPage"
 import Dashboard from "../pages/DashboardPage"
 import ProjectListPage from "../pages/ProjectListPage"
-import TasksPage from "../pages/TasksPage"
-import StatisticsPage from "../pages/StatisticsPage"
 import UserPage from "../pages/UserPage"
 import TasksPage2 from "../pages/TasksPage2"
+import StatisticsPage2 from "../pages/StatisticsPage2"
 
 export const router = createBrowserRouter([
     {
@@ -36,7 +35,7 @@ export const router = createBrowserRouter([
             },
             {
                 path: '/dashboard/stats',
-                element: <StatisticsPage />
+                element: <StatisticsPage2 />
             },
             {
                 path: '/dashboard/myprofile',

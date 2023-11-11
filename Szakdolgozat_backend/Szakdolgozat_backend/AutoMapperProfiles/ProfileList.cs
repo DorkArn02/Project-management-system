@@ -1,5 +1,8 @@
 ﻿
 using AutoMapper;
+using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
+using Szakdolgozat_backend.Dtos.CommentDtos;
+using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Dtos.ProjectDtos;
 using Szakdolgozat_backend.Dtos.UserDtos;
 using Szakdolgozat_backend.Models;
@@ -15,6 +18,9 @@ namespace Szakdolgozat_backend.AutoMapperProfiles
             CreateMap<User, UserRegisterResponseDTO>();
             CreateMap<User, UserLoginResponseDTO>()
                 .ForMember(dest => dest.AccessToken, opt => opt.Ignore());
+            CreateMap<AssignedPerson, AssignedPersonDTO>();
+            CreateMap<Comment, CommentResponseDTO>();
+            CreateMap<Issue[], ChildrenIssueDTO[]>().ReverseMap();
 
         }
     }

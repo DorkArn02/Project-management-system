@@ -1,4 +1,4 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, Button, Flex, HStack, Icon, Input, InputGroup, InputRightElement, Spinner, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from "@chakra-ui/react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, Flex, HStack, Icon, Input, InputGroup, InputRightElement, Spinner, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { GroupBase, Select, SelectComponentsConfig, chakraComponents } from "chakra-react-select";
 import { Link } from "react-router-dom";
@@ -9,6 +9,7 @@ import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import { AiFillBug, AiFillCheckSquare } from "react-icons/ai";
 import { BsFillBookmarkFill } from "react-icons/bs";
 import { FaSearch } from "react-icons/fa";
+import { TbSubtask } from "react-icons/tb";
 
 interface PriorityL {
     value: string,
@@ -36,8 +37,8 @@ export default function TasksPage2() {
     const [title, setTitle] = useState("")
     const [priority, setPriority] = useState<string | null>(null)
     const [type, setType] = useState<string | null>(null)
-    const [startDate, setStartDate] = useState(null)
-    const [endDate, setEndDate] = useState(null)
+    const [startDate, setStartDate] = useState<string | null>(null)
+    const [endDate, setEndDate] = useState<string | null>(null)
 
     const { data: projects } = useQuery({
         queryKey: ['getUserProjects'],
@@ -80,6 +81,9 @@ export default function TasksPage2() {
         else if (title == "Story") {
             return <BsFillBookmarkFill color='green' />
         }
+        else if (title == "Subtask") {
+            return <TbSubtask color='#42a4ff' />
+        }
     }
 
     const priorities = [
@@ -94,16 +98,8 @@ export default function TasksPage2() {
         { value: "1", label: "Feladat", icon: <Icon mr={2} as={AiFillCheckSquare} color='#42a4ff' /> },
         { value: "2", label: "Story", icon: <Icon mr={2} as={BsFillBookmarkFill} color='#c5ff3d' /> },
         { value: "3", label: "Bug", icon: <Icon mr={2} as={AiFillBug} color='#eb5757' /> },
+        { value: "4", label: "Subtask", icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> },
     ]
-
-    // Refeket használj.
-    const handleReset = () => {
-        setStartDate(null)
-        setEndDate(null)
-        setTitle("")
-        setPriority(null)
-        setType(null)
-    }
 
     if (isLoading) {
         return <Flex h="100vh" w="full" align="center" justify="center">
@@ -118,7 +114,7 @@ export default function TasksPage2() {
                         <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem >
-                        <BreadcrumbLink href='/dashboard/tasks'>Feladatok</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/tasks'>Saját feladatok</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
                         <BreadcrumbLink>{projects?.filter(i => i.value === projectId)[0].label}</BreadcrumbLink>
@@ -130,7 +126,7 @@ export default function TasksPage2() {
                         <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
-                        <BreadcrumbLink href='/dashboard/tasks'>Feladatok</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/tasks'>Saját feladatok</BreadcrumbLink>
                     </BreadcrumbItem>
                 </Breadcrumb>}
 
@@ -147,14 +143,13 @@ export default function TasksPage2() {
                             </InputRightElement>
                             <Input onChange={(e) => setTitle(e.target.value)} variant={"filled"} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
-                        <Select components={customComponents} isClearable onChange={(e) => setPriority(e!.value)} variant="filled" placeholder={"Szűrés prioritás szerint..."} options={priorities} />
-                        <Select components={customComponents} isClearable onChange={(e) => setType(e!.value)} variant="filled" placeholder={"Szűrés feladattípus szerint..."} options={issueTypes} />
+                        <Select components={customComponents} isClearable={true} onChange={(e) => e ? setPriority(e.value) : setPriority(null)} variant="filled" placeholder={"Szűrés prioritás szerint..."} options={priorities} />
+                        <Select components={customComponents} isClearable={true} onChange={(e) => e ? setType(e.value) : setType(null)} variant="filled" placeholder={"Szűrés feladattípus szerint..."} options={issueTypes} />
                     </HStack>
                     <HStack>
                         <Input onChange={(e) => setStartDate(e.target.value)} variant="filled" w="200px" type="date" />
                         <Text>-</Text>
                         <Input onChange={(e) => setEndDate(e.target.value)} variant="filled" w="200px" type="date" />
-                        <Button onClick={handleReset}>Szűrők visszaállítása</Button>
                     </HStack>
 
                     <TableContainer>
@@ -170,7 +165,7 @@ export default function TasksPage2() {
                                 </Tr>
                             </Thead>
                             <Tbody>
-                                {tasks.filter(i => i.title.includes(title)).filter(i => (priority == null || i.priority.id == priority)).filter(i => (type == null || i.issueType.id == type))
+                                {tasks.filter(i => i.title.includes(title)).filter(i => (priority == null || i.priority.id == parseInt(priority))).filter(i => (type == null || i.issueType.id == parseInt(type)))
                                     .filter(i => (startDate == null || moment(i.dueDate).isAfter(startDate)))
                                     .filter(i => (endDate == null || moment(i.dueDate).isBefore(endDate)))
                                     .map((i, k) => (

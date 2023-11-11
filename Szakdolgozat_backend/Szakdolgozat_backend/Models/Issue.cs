@@ -32,6 +32,11 @@ public partial class Issue
 
     public int IssueTypeId { get; set; }
 
+    public Guid? ParentIssueId { get; set; }
+
+    [JsonIgnore]
+    public virtual Issue? ParentIssue { get; set; }
+
     public virtual ICollection<AssignedPerson> AssignedPeople { get; set; } = new List<AssignedPerson>();
 
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();

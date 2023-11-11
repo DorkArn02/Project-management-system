@@ -79,7 +79,3 @@ ol {
     background-color: var(--chakra-colors-gray-600);
     color: #d1cccc;
 }
-
-.jodit_theme_dark .jodit-toolbar__box:not(:empty) {
-    /* background-color: var(--chakra-colors-gray-700); */
-}

@@ -4,7 +4,7 @@ using Szakdolgozat_backend.Models;
 
 namespace Szakdolgozat_backend.Dtos.IssueDtos
 {
-    public class IssueResponseDTO
+    public class ChildrenIssueDTO
     {
         public Guid Id { get; set; }
 
@@ -26,18 +26,15 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
 
         public Guid? ParentIssueId { get; set; }
 
-        public List<Issue>? ChildrenIssues { get; set; }
-
         public Guid ReporterId { get; set; } // Bejelentő azonosítója
 
         public string ReporterName { get; set; } = string.Empty;
 
         public Priority Priority { get; set; } = null!;
 
-        public List<AssignedPersonDTO> AssignedPeople { get; set; } = new ();
+        public List<AssignedPersonDTO> AssignedPeople { get; set; } = new();
 
-        public List<CommentResponseDTO> Comments { get; set; } = new ();
+        public List<CommentResponseDTO> Comments { get; set; } = new();
         public IssueType IssueType { get; set; }
-
     }
 }

@@ -128,6 +128,8 @@ export interface IssueResponse {
     priority: PriorityResponse;
     assignedPeople: Array<AssignedPersonResponse>;
     comments: Array<CommentResponse>;
+    parentIssueId?: string;
+    childrenIssues?: Array<IssueResponse>
     issueType: IssueType;
 }
 

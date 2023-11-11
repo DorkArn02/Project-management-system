@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
 using Szakdolgozat_backend.Dtos.CommentDtos;
 using Szakdolgozat_backend.Dtos.IssueDtos;
@@ -15,12 +16,15 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
         private readonly IUserHelper _userHelper;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<ProjectListService> _logger;
-        public ProjectListService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, ILogger<ProjectListService> logger)
+        private readonly IMapper _mapper;
+
+        public ProjectListService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, ILogger<ProjectListService> logger, IMapper mapper)
         {
             _db = db;
             _userHelper = userHelper;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _mapper = mapper;
         }
 
         public async Task<ProjectList> AddListToProject(Guid projectId, ProjectListRequestDTO listRequestDTO)
@@ -154,6 +158,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         commentResponseDTOs.Add(commentResponseDTO);
                     }
 
+                    var childrenIssues = 
+                        await _db.Issues.Where(i=>i.ParentIssueId == issue.Id).ToListAsync();
+
                     IssueResponseDTO issueDTO = new()
                     {
                         Id = issue.Id,
@@ -170,7 +177,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         Priority = issuePriority,
                         AssignedPeople = assignedPersonDTOs,
                         Comments = commentResponseDTOs,
-                        IssueType = issueType
+                        IssueType = issueType,
+                        ParentIssueId = issue.ParentIssueId,
+                        ChildrenIssues = childrenIssues
                     };
 
                     issueResponseDTOs.Add(issueDTO);
