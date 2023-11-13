@@ -97,6 +97,42 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             return i;
         }
 
+        public async Task AddChildIssue(Guid projectId, Guid parentId, Guid childId)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+            Project? p = await _db.Projects.FindAsync(projectId);
+
+            var user = await _db.Users.FindAsync(userId);
+
+            if (user == null)
+                throw new NotFoundException($"User with id {userId} not found.");
+
+            if (p == null)
+                throw new NotFoundException($"Project with id {projectId} not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
+
+            Issue? parentIssue = await _db.Issues.FindAsync(parentId);
+
+            if (parentIssue == null)
+                throw new NotFoundException($"Issue with id {parentId} not found.");
+
+            Issue? childIssue = await _db.Issues.FindAsync(childId);
+
+            if (childIssue == null)
+                throw new NotFoundException($"Issue with id {childId} not found.");
+            
+            if(childIssue.ParentIssueId == null)
+            {
+                childIssue.ParentIssueId = parentIssue.Id;
+            }
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Issue with id {childId} in project {projectId} has connected to parent issue {parentId} by user {userId}.");
+        }
+
         public async Task<Issue> AddIssueToProjectList(Guid projectId, Guid projectListId, IssueRequestDTO issueRequestDTO)
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
@@ -398,6 +434,42 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"User with id {userId} has removed a user {assignee.Id} from issue {issueId} in project {projectId}.");
+        }
+
+        public async Task RemoveChildIssue(Guid projectId, Guid parentId, Guid childId)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+            Project? p = await _db.Projects.FindAsync(projectId);
+
+            var user = await _db.Users.FindAsync(userId);
+
+            if (user == null)
+                throw new NotFoundException($"User with id {userId} not found.");
+
+            if (p == null)
+                throw new NotFoundException($"Project with id {projectId} not found.");
+
+            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
+                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
+
+            Issue? parentIssue = await _db.Issues.FindAsync(parentId);
+
+            if (parentIssue == null)
+                throw new NotFoundException($"Issue with id {parentId} not found.");
+
+            Issue? childIssue = await _db.Issues.FindAsync(childId);
+
+            if (childIssue == null)
+                throw new NotFoundException($"Issue with id {childId} not found.");
+
+            if (childIssue.ParentIssueId != null)
+            {
+                childIssue.ParentIssueId = null;
+            }
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation($"Issue with id {childId} in project {projectId} has removed from parent issue {parentId} by user {userId}.");
         }
 
         public async Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s)

@@ -29,7 +29,6 @@ export const deleteIssueFromBoard = async (projectId: string, boardId: string, i
 export const addAssignee = async (projectId: string, boardId: string, issueId: string, assigneeId: number) => {
     const result
         = await api.post(`/Issue/AddAssignee/${projectId}/${boardId}/${issueId}/${assigneeId}`)
-
     return result
 }
 
@@ -47,7 +46,16 @@ export const changeIssuePosition2 = async (projectId: string, sourceColumnId: st
 }
 
 export const changeIssue = async (projectId: string, projectListId: string, issueId: string, patchData: Array<{ op: string, path: string, value: any }>) => {
-    console.log(patchData)
     const result = await api.patch(`/Issue/UpdateIssueDetails/${projectId}/${projectListId}/${issueId}`, patchData)
+    return result
+}
+
+export const addChildIssue = async (projectId: string, childId: string, parentId: string) => {
+    const result = await api.put(`/Issue/AddChildIssue/${projectId}/${parentId}/${childId}`)
+    return result
+}
+
+export const deleteChildIssue = async (projectId: string, childId: string, parentId: string) => {
+    const result = await api.delete(`/Issue/RemoveChildIssue/${projectId}/${parentId}/${childId}`)
     return result
 }

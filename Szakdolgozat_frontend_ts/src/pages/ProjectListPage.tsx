@@ -1,7 +1,6 @@
 import {
     Avatar,
     AvatarGroup,
-    Box,
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
@@ -56,7 +55,7 @@ import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import { ImCross } from "react-icons/im"
 import { MdInfo, MdNumbers } from "react-icons/md"
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition2, deleteIssueFromBoard } from '../api/issue'
+import { addChildIssue, addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition2, deleteChildIssue, deleteIssueFromBoard } from '../api/issue'
 import { getProjectById } from '../api/project'
 import { addProjectBoard, deleteProjectBoard, editProjectBoard, editProjectBoardPosition, getProjectBoards } from '../api/projectBoard'
 import InputComponent from '../components/InputComponent'
@@ -153,6 +152,7 @@ export default function ProjectListPage() {
     const { isOpen: isOpenBoardDelete, onOpen: onOpenBoardDelete, onClose: onCloseBoardDelete } = useDisclosure()
     const { isOpen: isOpenBoardEditPos, onOpen: onOpenBoardEditPos, onClose: onCloseBoardEditPos } = useDisclosure()
     const { isOpen: isOpenAddSubtask, onOpen: onOpenAddSubtask, onClose: onCloseAddSubtask } = useDisclosure()
+    const { isOpen: isOpenDeleteSubtask, onOpen: onOpenDeleteSubtask, onClose: onCloseDeleteSubtask } = useDisclosure()
 
     // REACT HOOK FORM
     const { register: registerBoardCreate, handleSubmit: handleSubmitBoardCreate, reset: resetBoardCreate, formState: { errors: errorsBoardCreate, isSubmitting: isSubmittingBoardCreate } } = useForm<ProjectListRequest>();
@@ -165,8 +165,10 @@ export default function ProjectListPage() {
         shouldUnregister: true
     })
     const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm()
-    // const { register: registerComment, handleSubmit: handleSubmitComment, reset: resetComment } = useForm()
+
     const { register: registerBoardEditPos, handleSubmit: handleSubmitBoardEditPos, reset: resetBoardEditPos, formState: { isSubmitting: isSubmittingBoardEditPos } } = useForm<{ boardId: string }>();
+
+    const { register: registerAddSubtask, handleSubmit: handleSubmitAddSubtask, reset: resetAddSubtask, formState: { isSubmitting: isSubmittingAddSubtask } } = useForm<{ childId: string }>();
 
     const handleIssueTypeIcon = (title: string) => {
         if (title === "Task") {
@@ -199,10 +201,32 @@ export default function ProjectListPage() {
     ]
 
     const [childrenIssuesList, setChildrenIssuesList] = useState<Array<IssueResponse>>()
+    const [selectedChildrenIssues, setSelectedChildrenIssues] = useState<Array<{ label: string, value: string }>>([])
+
+    const handleOpenChildIssue = (issueObject: IssueResponse) => {
+        let boardId = "0"
+        boards!.forEach(board => {
+            const foundIssue = board.issues.find(issue => issue.id === issueObject.id);
+            if (foundIssue) {
+                boardId = board.id;
+            }
+        });
+        setCommenting(0)
+        resetView()
+        setSlide(0)
+        setComment("")
+        setAssignedPeople([])
+        onCloseIssue()
+
+        // Modal delay
+        setTimeout(function () {
+            handleOpenIssue(issueObject, boardId)
+        }, 500);
+    }
 
     // FUNCTIONS
     const handleOpenIssue = (issueObject: IssueResponse, boardId: string) => {
-        if (project) {
+        if (project && boards) {
             setCurrentIssue(issueObject)
             setCurrentBoardId(boardId)
             const arr: Array<{ id: number, label: string, value: string }> = []
@@ -213,10 +237,11 @@ export default function ProjectListPage() {
             })
 
             const tmp: Array<IssueResponse> = []
-
-            issueObject.childrenIssues.forEach(i => {
-                tmp.push(boards?.filter(b => b.id == i.projectListId)[0].issues.filter(is => is.id == i.id)[0])
-            })
+            if (issueObject.childrenIssues) {
+                issueObject.childrenIssues.forEach(i => {
+                    tmp.push(boards.filter(b => b.id == i.projectListId)[0].issues.filter(is => is.id == i.id)[0])
+                })
+            }
 
             setChildrenIssuesList(tmp)
             setSlide(issueObject.timeSpent)
@@ -677,8 +702,6 @@ export default function ProjectListPage() {
         }
     }
 
-    const [selectedChildrenIssues, setSelectedChildrenIssues] = useState<Array<{ label: string, value: string, id: string }>>()
-
     const handleOpenSubtask = () => {
 
         const tmp = boards?.flatMap(i => i.issues.filter(j => j.issueType.name === "Subtask" && j.parentIssueId === null))
@@ -687,9 +710,61 @@ export default function ProjectListPage() {
         tmp?.forEach(t => {
             tmp2.push({ label: t.title, value: t.id, id: t.id })
         })
-
         setSelectedChildrenIssues(tmp2)
         onOpenAddSubtask()
+    }
+
+    const handleAddSubtask = async (obj: { childId: string }) => {
+
+        try {
+            await addChildIssue(projectId!, obj.childId, currentIssue!.id)
+            toast({
+                title: 'Feladat hozzárendelés sikeres.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+        } catch (e) {
+            toast({
+                title: 'Hiba történt a hozzárendelés során.',
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+        }
+        updateProjectBoards()
+        resetAddSubtask()
+        onCloseAddSubtask()
+        onCloseIssue()
+    }
+
+    const [currentChildIssue, setCurrentChildIssue] = useState<string>("")
+
+    const handleOpenDeleteSubtask = (issueId: string) => {
+        setCurrentChildIssue(issueId)
+        onOpenDeleteSubtask()
+    }
+
+    const handleDeleteSubtask = async () => {
+        try {
+            await deleteChildIssue(projectId!, currentChildIssue, currentIssue!.id)
+            toast({
+                title: 'Feladat leválasztása sikeres.',
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
+        } catch (e) {
+            toast({
+                title: 'Hiba történt a feladat leválasztása során.',
+                status: 'error',
+                duration: 4000,
+                isClosable: true,
+            })
+        }
+        updateProjectBoards()
+        onCloseDeleteSubtask()
+        onCloseIssue()
     }
 
     moment.locale('hu')
@@ -860,18 +935,19 @@ export default function ProjectListPage() {
                                                         <HStack align={"center"} ml={3}>
                                                             <TbSubtask size={20} />
                                                             <Heading size="md">Hozzárendelt feladatok: </Heading>
-                                                            <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="ghost" size="sm" icon={<FaPlus />} />
+                                                            <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="solid" size="sm" icon={<FaPlus />} />
                                                         </HStack>
                                                         <Stack ml={3}>
                                                             {childrenIssuesList ? childrenIssuesList.map((i, k) => {
                                                                 return <Tag gap={3} key={k} p={2}>
                                                                     {handleIssueTypeIcon(i.issueType.name)}
-                                                                    <Text _hover={{ textDecor: "underline", cursor: "Pointer" }}>
+                                                                    <Tooltip label={`Ugrás a(z) ${i.title} feladatra`}><Text onClick={() => handleOpenChildIssue(i)} _hover={{ textDecor: "underline", cursor: "Pointer" }}>
                                                                         {i.title}
-                                                                    </Text>
+                                                                    </Text></Tooltip>
                                                                     <Spacer />
                                                                     <Avatar name={i.reporterName} size="xs" />
                                                                     {handlePriorityIcon(i.priority)}
+                                                                    <Tooltip label="Hozzárendelt feladat leválasztása"><IconButton variant="solid" onClick={() => handleOpenDeleteSubtask(i.id)} icon={<ImCross />} aria-label='remove subtask' size="sm" /></Tooltip>
                                                                 </Tag>
                                                             }) : ""}
                                                         </Stack>
@@ -1122,12 +1198,37 @@ export default function ProjectListPage() {
                             <Text>Feladat hozzárendelése</Text>
                         </ModalHeader>
                         <ModalCloseButton />
+                        <form onSubmit={handleSubmitAddSubtask(handleAddSubtask)}>
+                            <ModalBody>
+                                <Select {...registerAddSubtask("childId", { required: true })}>
+                                    {selectedChildrenIssues.map((i, k) => {
+                                        return <option value={i.value} key={k}>{i.label}</option>
+                                    })}
+                                </Select>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button isLoading={isSubmittingAddSubtask} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendelés</Button>
+                                <Button onClick={onCloseAddSubtask}>
+                                    Visszavonás
+                                </Button>
+                            </ModalFooter>
+                        </form>
+                    </ModalContent>
+                </Modal>
+                {/* Subtask leválasztása */}
+                <Modal isOpen={isOpenDeleteSubtask} onClose={onCloseDeleteSubtask}>
+                    <ModalOverlay />
+                    <ModalContent>
+                        <ModalHeader>
+                            <Text>Feladat leválasztásának a megerősítése</Text>
+                        </ModalHeader>
+                        <ModalCloseButton />
                         <ModalBody>
-                            <ChakraSelect options={selectedChildrenIssues} placeholder={"Válasszon ki alfeladatot..."} />
+                            <Text>Biztosan szeretné leválasztani a feladatot?</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendelés</Button>
-                            <Button onClick={onCloseAddSubtask}>
+                            <Button isLoading={isSubmittingAddSubtask} onClick={handleDeleteSubtask} type="submit" colorScheme='blue' mr={3} variant='solid'>Leválasztás</Button>
+                            <Button onClick={onCloseDeleteSubtask}>
                                 Visszavonás
                             </Button>
                         </ModalFooter>

@@ -15,5 +15,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions);
         Task ChangePositionBetweenColumns(Guid projectId, Guid sourceColumnId, Guid destColumnId, Guid issueId, Dictionary<Guid, int> sourcePositions, Dictionary<Guid, int> destPositions);
         Task<Issue> UpdateIssueDetails(Guid projectId, Guid projectListId, Guid issueId, JsonPatchDocument<Issue> s);
+        Task AddChildIssue(Guid projectId, Guid parentId, Guid childId);
+        Task RemoveChildIssue(Guid projectId, Guid parentId, Guid childId);
+
     }
 }

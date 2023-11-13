@@ -108,5 +108,21 @@ namespace Szakdolgozat_backend.Controllers
             return Ok(res);
         }
 
+        [HttpPut("AddChildIssue/{projectId}/{parentId}/{childId}")]
+        public async Task<IActionResult> AddChildIssue(Guid projectId, Guid parentId, Guid childId)
+        {
+            await _issueService.AddChildIssue(projectId, parentId, childId);
+
+            return Ok();
+        }
+
+        [HttpDelete("RemoveChildIssue/{projectId}/{parentId}/{childId}")]
+        public async Task<IActionResult> RemoveChildIssue(Guid projectId, Guid parentId, Guid childId)
+        {
+            await _issueService.RemoveChildIssue(projectId, parentId, childId);
+
+            return Ok();
+        }
+
     }
 }
