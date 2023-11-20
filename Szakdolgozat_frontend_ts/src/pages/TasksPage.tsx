@@ -30,7 +30,7 @@ const customComponents: SelectComponentsConfig<
 };
 
 
-export default function TasksPage2() {
+export default function TasksPage() {
 
     const [projectId, setProjectId] = useState("")
 

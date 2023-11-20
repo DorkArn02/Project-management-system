@@ -221,7 +221,7 @@ export default function ProjectListPage() {
         // Modal delay
         setTimeout(function () {
             handleOpenIssue(issueObject, boardId)
-        }, 500);
+        }, 650);
     }
 
     // FUNCTIONS

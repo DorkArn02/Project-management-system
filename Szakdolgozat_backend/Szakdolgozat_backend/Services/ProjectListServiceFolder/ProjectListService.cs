@@ -100,106 +100,127 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             List<ProjectList> projectLists = await _db.ProjectLists.Where(p => p.ProjectId == projectId)
                 .Include(p => p.Issues)
                     .ThenInclude(p => p.AssignedPeople)
-                    .AsQueryable()
+                 .Include(p => p.Issues)
+                    .ThenInclude(p => p.Priority)
+                 .Include(p => p.Issues)
+                    .ThenInclude(p => p.IssueType)
+                 .Include(p => p.Issues)
+                    .ThenInclude(p => p.Comments)
+                 .Include(p => p.Issues)
+                    .ThenInclude(p => p.User)
+                    .AsSplitQuery()
                 .ToListAsync();
 
-            List<ProjectListResponseDTO> projectListResponseDTO = new();
+            //List<ProjectListResponseDTO> projectListResponseDTO = new();
 
-            foreach (var item in projectLists)
-            {
-                List<IssueResponseDTO> issueResponseDTOs = new();
+            //foreach (var item in projectLists)
+            //{
+            //    List<IssueResponseDTO> issueResponseDTOs = new();
 
-                foreach (var issue in item.Issues.ToList())
-                {
-                    var issueReporter = await _db.Users.FindAsync(issue.UserId);
-                    var issuePriority = await _db.Priorities.FindAsync(issue.PriorityId);
-                    var comment = await _db.Comments
-                        .Where(c => c.IssueId == issue.Id)
-                        .ToListAsync();
-                    var issueType = await _db.IssueTypes.FindAsync(issue.IssueTypeId);
+            //    foreach (var issue in item.Issues.ToList())
+            //    {
+            //        var issueReporter = await _db.Users.FindAsync(issue.UserId);
+            //        var issuePriority = await _db.Priorities.FindAsync(issue.PriorityId);
+            //        var comment = await _db.Comments
+            //            .Where(c => c.IssueId == issue.Id)
+            //            .ToListAsync();
+            //        var issueType = await _db.IssueTypes.FindAsync(issue.IssueTypeId);
 
-                    List<AssignedPersonDTO> assignedPersonDTOs = new();
+            //        List<AssignedPersonDTO> assignedPersonDTOs = new();
 
-                    foreach (var assignedPerson in issue.AssignedPeople)
-                    {
-                        var u = await _db.Users.FindAsync(assignedPerson.UserId);
+            //        foreach (var assignedPerson in issue.AssignedPeople)
+            //        {
+            //            var u = await _db.Users.FindAsync(assignedPerson.UserId);
 
-                        AssignedPersonDTO assignedPersonDTO = new()
-                        {
-                            Id = assignedPerson.Id,
-                            IssueId = assignedPerson.IssueId,
-                            UserId = assignedPerson.UserId,
-                            PersonName = u!.LastName + " " + u.FirstName
-                        };
+            //            AssignedPersonDTO assignedPersonDTO = new()
+            //            {
+            //                Id = assignedPerson.Id,
+            //                IssueId = assignedPerson.IssueId,
+            //                UserId = assignedPerson.UserId,
+            //                PersonName = u!.LastName + " " + u.FirstName
+            //            };
 
-                        assignedPersonDTOs.Add(assignedPersonDTO);
-                    }
+            //            assignedPersonDTOs.Add(assignedPersonDTO);
+            //        }
 
-                    List<CommentResponseDTO> commentResponseDTOs = new();
+            //        List<CommentResponseDTO> commentResponseDTOs = new();
 
-                    foreach(var c in comment)
-                    {
-                        var user = await _db.Users.FindAsync(c.UserId);
+            //        foreach(var c in comment)
+            //        {
+            //            var user = await _db.Users.FindAsync(c.UserId);
 
-                        if (user == null)
-                            throw new NotFoundException($"User with id {c.UserId} not found.");
+            //            if (user == null)
+            //                throw new NotFoundException($"User with id {c.UserId} not found.");
 
-                        CommentResponseDTO commentResponseDTO = new()
-                        {
-                            Content = c.Content,
-                            Created = c.Created,
-                            Updated = c.Updated,
-                            IssueId = c.IssueId,
-                            Id = c.Id,
-                            UserId = c.UserId,
-                            AuthorName = $"{user.LastName} {user.FirstName}"
-                        };
+            //            CommentResponseDTO commentResponseDTO = new()
+            //            {
+            //                Content = c.Content,
+            //                Created = c.Created,
+            //                Updated = c.Updated,
+            //                IssueId = c.IssueId,
+            //                Id = c.Id,
+            //                UserId = c.UserId,
+            //                AuthorName = $"{user.LastName} {user.FirstName}"
+            //            };
 
-                        commentResponseDTOs.Add(commentResponseDTO);
-                    }
+            //            commentResponseDTOs.Add(commentResponseDTO);
+            //        }
 
-                    var childrenIssues = 
-                        await _db.Issues.Where(i=>i.ParentIssueId == issue.Id).ToListAsync();
+            //        var childrenIssues = 
+            //            await _db.Issues.Where(i=>i.ParentIssueId == issue.Id).ToListAsync();
 
-                    IssueResponseDTO issueDTO = new()
-                    {
-                        Id = issue.Id,
-                        Description = issue.Description,
-                        Created = issue.Created,
-                        DueDate = issue.DueDate,
-                        Position = issue.Position,
-                        Title = issue.Title,
-                        TimeEstimate = issue.TimeEstimate,
-                        Updated = issue.Updated,
-                        TimeSpent = issue.TimeSpent,
-                        ReporterId = issue.UserId,
-                        ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
-                        Priority = issuePriority,
-                        AssignedPeople = assignedPersonDTOs,
-                        Comments = commentResponseDTOs,
-                        IssueType = issueType,
-                        ParentIssueId = issue.ParentIssueId,
-                        ChildrenIssues = childrenIssues
-                    };
+            //        IssueResponseDTO issueDTO = new()
+            //        {
+            //            Id = issue.Id,
+            //            Description = issue.Description,
+            //            Created = issue.Created,
+            //            DueDate = issue.DueDate,
+            //            Position = issue.Position,
+            //            Title = issue.Title,
+            //            TimeEstimate = issue.TimeEstimate,
+            //            Updated = issue.Updated,
+            //            TimeSpent = issue.TimeSpent,
+            //            ReporterId = issue.UserId,
+            //            ReporterName = issueReporter.LastName + " " + issueReporter.FirstName,
+            //            Priority = issuePriority,
+            //            AssignedPeople = assignedPersonDTOs,
+            //            Comments = commentResponseDTOs,
+            //            IssueType = issueType,
+            //            ParentIssueId = issue.ParentIssueId,
+            //            ChildrenIssues = childrenIssues
+            //        };
 
-                    issueResponseDTOs.Add(issueDTO);
-                }
+            //        issueResponseDTOs.Add(issueDTO);
+            //    }
 
-                ProjectListResponseDTO itemDTO = new()
-                {
-                    Id = item.Id,
-                    Position = item.Position,
-                    Title = item.Title,
-                    ProjectId = item.ProjectId,
-                    Issues = issueResponseDTOs.OrderBy(i => i.Position).ToList()
-                };
+            //    ProjectListResponseDTO itemDTO = new()
+            //    {
+            //        Id = item.Id,
+            //        Position = item.Position,
+            //        Title = item.Title,
+            //        ProjectId = item.ProjectId,
+            //        Issues = issueResponseDTOs.OrderBy(i => i.Position).ToList()
+            //    };
 
-                projectListResponseDTO.Add(itemDTO);
-            }
+            //    projectListResponseDTO.Add(itemDTO);
+            //}
 
             _logger.LogInformation($"GetAllListByProject called by user {userId} and project id {p.Id}.");
 
-            return projectListResponseDTO.OrderBy(p=>p.Position).ToList();
+            var result = _mapper.Map<List<ProjectListResponseDTO>>(projectLists);
+
+            foreach (var itemDTO in result)
+            {
+                foreach (var issueDTO in itemDTO.Issues)
+                {
+                    var childrenIssues = await _db.Issues.Where(i => i.ParentIssueId == issueDTO.Id).ToListAsync();
+                    issueDTO.ChildrenIssues = childrenIssues;
+                }
+            }
+
+            return result.OrderBy(p=>p.Position).ToList();
+
+            //return projectListResponseDTO.OrderBy(p=>p.Position).ToList();
         }
 
         public async Task<ProjectList> GetListByProject(Guid projectId, Guid projectListId)

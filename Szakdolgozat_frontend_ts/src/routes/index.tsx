@@ -5,8 +5,8 @@ import ProjectPage from "../pages/ProjectPage"
 import Dashboard from "../pages/DashboardPage"
 import ProjectListPage from "../pages/ProjectListPage"
 import UserPage from "../pages/UserPage"
-import TasksPage2 from "../pages/TasksPage2"
-import StatisticsPage2 from "../pages/StatisticsPage2"
+import TasksPage from "../pages/TasksPage.tsx"
+import StatisticsPage from "../pages/StatisticsPage"
 
 export const router = createBrowserRouter([
     {
@@ -31,11 +31,11 @@ export const router = createBrowserRouter([
             },
             {
                 path: '/dashboard/tasks',
-                element: <TasksPage2 />
+                element: <TasksPage />
             },
             {
                 path: '/dashboard/stats',
-                element: <StatisticsPage2 />
+                element: <StatisticsPage />
             },
             {
                 path: '/dashboard/myprofile',

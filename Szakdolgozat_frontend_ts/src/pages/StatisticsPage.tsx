@@ -24,7 +24,7 @@ ChartJS.register(
     ArcElement
 );
 
-export default function StatisticsPage2() {
+export default function StatisticsPage() {
 
     const [projectId, setProjectId] = useState("")
     const [view, setView] = useState<string>(ViewMode.Month.valueOf())

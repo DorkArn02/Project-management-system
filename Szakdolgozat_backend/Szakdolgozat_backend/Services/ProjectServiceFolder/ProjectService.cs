@@ -28,60 +28,25 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             _notificationService = notificationService;
             _logger = logger;
         }
-
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
-
+            
             var userProjects = await _db.Projects
-            .Where(project => 
-            _db.Participants
-            .Any(participant => participant.ProjectId == project.Id && participant.UserId == userId))
+            .Where(project => _db.Participants
+                .Where(participant => 
+                participant.UserId == userId && participant.ProjectId == project.Id)
+                .Any())
             .Include(project => project.Participants)
-            .Include(project => project.ProjectLists)
+                .ThenInclude(participant => participant.Role)
+            .Include(project => project.Participants)
+                .ThenInclude(participant => participant.User)
+            .AsSplitQuery()
             .ToListAsync();
-
-            List<ProjectResponseDTO> projectResponseDTOs = new();
-
-            foreach (var project in userProjects)
-            {
-                var part = project.Participants.ToList();
-                var partResp = new List<ParticipantResponseDTO>();
-
-                foreach (var participant in part)
-                {
-                    var role = await _db.Roles.FindAsync(participant.RoleId);
-                    var user = await _db.Users.FindAsync(participant.UserId);
-
-                    string roleName = role!.Name;
-                    string firstName = user!.FirstName;
-                    string lastName = user!.LastName;
-
-                    ParticipantResponseDTO participantResponseDTO = new()
-                    {
-                        Id = participant.Id,
-                        FirstName = firstName,
-                        LastName = lastName,
-                        RoleName = roleName,
-                        UserId = participant.UserId
-                    };
-
-                    partResp.Add(participantResponseDTO);
-                }
-                projectResponseDTOs.Add(new ProjectResponseDTO()
-                {
-                    Id = project.Id,
-                    Created = project.Created,
-                    Description = project.Description,
-                    Title = project.Title,
-                    Updated = project.Updated,
-                    Participants = partResp
-                });
-            }
 
             _logger.LogInformation($"GetAllProjects called by user {userId}.");
 
-            return projectResponseDTOs;
+            return _iMapper.Map<List<ProjectResponseDTO>>(userProjects);
         }
         public async Task<ProjectResponseDTO> GetProjectById(Guid projectId)
         {
@@ -90,7 +55,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             Project? existingProject = await _db.Projects
                 .Where(project => project.Id == projectId)
                 .Include(project => project.Participants)
-                .Include(project => project.ProjectLists)
+                    .ThenInclude(participant => participant.Role)
+                .Include(project => project.Participants)
+                    .ThenInclude(participant => participant.User)
                 .FirstOrDefaultAsync();
 
             if (existingProject == null)
@@ -99,42 +66,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             if (!_userHelper.IsUserMemberOfProject(userId, existingProject.Id))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project {existingProject.Id}.");
 
-            List<ParticipantResponseDTO> participantResponseDTO = new();
-
-            foreach (var participant in existingProject.Participants)
-            {
-                User u = await _db.Users.Where(u => u.Id == participant.UserId).FirstAsync();
-                Role r = await _db.Roles.Where(r => r.Id == participant.RoleId).FirstAsync();
-
-                string firstName = u.FirstName;
-                string lastName = u.LastName;
-                string roleName = r.Name;
-
-                ParticipantResponseDTO participantResponse = new()
-                {
-                    Id = participant.Id,
-                    FirstName = firstName,
-                    LastName = lastName,
-                    RoleName = roleName,
-                    UserId = participant.UserId
-                };
-
-                participantResponseDTO.Add(participantResponse);
-            }
-
-            ProjectResponseDTO projectResponseDTO = new()
-            {
-                Created = existingProject.Created,
-                Updated = existingProject.Updated,
-                Id = existingProject.Id,
-                Description = existingProject.Description,
-                Title = existingProject.Title,
-                Participants = participantResponseDTO
-            };
-
             _logger.LogInformation($"GetProjectById called by user {userId}.");
 
-            return projectResponseDTO;
+            return _iMapper.Map<ProjectResponseDTO>(existingProject);
         }
         public async Task<ProjectCreatedDTO> AddProject(ProjectRequestDTO p)
         {
