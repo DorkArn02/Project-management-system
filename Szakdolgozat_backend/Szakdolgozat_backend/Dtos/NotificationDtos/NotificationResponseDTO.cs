@@ -10,13 +10,10 @@
 
         public Guid UserId { get; set; }
 
-        public Guid IssueId { get; set; }
+        public int IsRead { get; set; }
 
         public Guid ProjectId { get; set; }
 
         public string ProjectName { get; set; } = null!;
-
-        public string ProjectListName { get; set; } = null!;
-        public string IssueName { get; set; } = null!;
     }
 }

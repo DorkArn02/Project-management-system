@@ -52,22 +52,18 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
 
             List<NotificationResponseDTO> notificationResponseDTOs = new();
 
-            foreach(var notification in notifications)
+            foreach (var notification in notifications)
             {
-                var issue = await _db.Issues.FindAsync(notification.IssueId);
-                var project = await _db.Projects.FindAsync(issue.ProjectId);
-                var projectList = await _db.ProjectLists.FindAsync(issue.ProjectListId);
+                var project = await _db.Projects.FindAsync(notification.ProjectId);
 
                 NotificationResponseDTO notificationResponseDTO = new()
                 {
                     Created = notification.Created,
                     Content = notification.Content, 
-                    IssueId = notification.IssueId,
                     UserId = userId,
                     Id = notification.Id,
-                    IssueName = issue.Title,
-                    ProjectListName = projectList.Title,
                     ProjectName = project.Title,
+                    //IsRead = notification.IsRead,
                     ProjectId = project.Id
                 };
 
@@ -76,25 +72,24 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
             return notificationResponseDTOs;
         }
 
-        public async Task<Notification> SendNotification(Guid userId, Guid issueId, string content)
+        public async Task<Notification> SendNotification(Guid userId, Guid projectId, string content)
         {
             User? u = await _db.Users.FindAsync(userId);
 
             if (u == null)
                 throw new NotFoundException($"User with id {userId} not found.");
 
-            Issue? i = await _db.Issues.FindAsync(issueId);
+            Project? p = await _db.Projects.FindAsync(projectId);
 
-            if (i == null)
-                throw new NotFoundException($"Issue with id {issueId} not found.");
-
+            if (p == null)
+                throw new NotFoundException($"Project with id {projectId} not found.");
 
             Notification n = new()
             {
                 Content = content,
                 Created = DateTime.Now,
-                Issue = i,
                 User = u,
+                Project = p
             };
 
             await _db.Notifications.AddAsync(n);

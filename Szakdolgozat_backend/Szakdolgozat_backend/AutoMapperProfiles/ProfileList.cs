@@ -28,7 +28,8 @@ namespace Szakdolgozat_backend.AutoMapperProfiles
            .ForMember(dest => dest.Priority, opt => opt.MapFrom(src => src.Priority))
            .ForMember(dest => dest.AssignedPeople, opt => opt.MapFrom(src => src.AssignedPeople))
            .ForMember(dest => dest.Comments, opt => opt.MapFrom(src => src.Comments))
-           .ForMember(dest => dest.IssueType, opt => opt.MapFrom(src => src.IssueType));
+           .ForMember(dest => dest.IssueType, opt => opt.MapFrom(src => src.IssueType))
+           .ForMember(dest => dest.ReporterId, opt => opt.MapFrom(src => src.Id));
 
 
             CreateMap<Participant, ParticipantResponseDTO>()

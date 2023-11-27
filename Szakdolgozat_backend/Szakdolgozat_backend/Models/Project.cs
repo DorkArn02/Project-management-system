@@ -19,4 +19,7 @@ public partial class Project
     public virtual ICollection<Participant> Participants { get; set; } = new List<Participant>();
 
     public virtual ICollection<ProjectList> ProjectLists { get; set; } = new List<ProjectList>();
+
+    [JsonIgnore]
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

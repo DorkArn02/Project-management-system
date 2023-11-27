@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Dtos.ProjectDtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
+using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Models;
 using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
@@ -18,8 +20,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly INotificationService _notificationService;
         private readonly ILogger<ProjectService> _logger;
+        private readonly IHubContext<MessageHub, IMessageHub> _messageHub;
 
-        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService, ILogger<ProjectService> logger)
+        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService, ILogger<ProjectService> logger, IHubContext<MessageHub, IMessageHub> messageHub)
         {
             _db = db;
             _userHelper = userHelper;
@@ -27,6 +30,7 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             _contextAccessor = contextAccessor;
             _notificationService = notificationService;
             _logger = logger;
+            _messageHub = messageHub;
         }
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
@@ -131,6 +135,8 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 Role = r
             };
 
+            await _notificationService.SendNotification(u.Id, projectId, $"Hozzá letté rendelve a(z) {p.Title} nevű projekthez.");
+
             _logger.LogInformation($"User with id {userId} has added a user ({u.Id}) to project {p.Title}.");
 
             await _db.Participants.AddAsync(participant);
@@ -185,12 +191,16 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             _db.Participants.Remove(participant);
             await _db.SaveChangesAsync();
 
+            await _notificationService.SendNotification(u.Id, projectId, $"El lettél távolítva a(z) {p.Title} nevű projektből.");
+
+
             _logger.LogInformation($"User with id {userId} has removed a user ({u.Id}) from project {p.Title}.");
 
         }
         public async Task<ProjectCreatedDTO> UpdateProjectById(Guid projectId, ProjectRequestDTO projectRequestDTO)
         {
-            Project? existingProject = await _db.Projects.FirstOrDefaultAsync(i => i.Id == projectId);
+            Project? existingProject = await _db.Projects
+                .Where(p=>p.Id==projectId).Include(p=>p.Participants).FirstOrDefaultAsync();
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
 
             if (existingProject == null)
@@ -198,13 +208,19 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
 
             if (!_userHelper.IsUserOwnerOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not project owner.");
-
+            
             existingProject.Title = projectRequestDTO.Title;
             existingProject.Updated = DateTime.Now;
             existingProject.Description = projectRequestDTO.Description;
 
             _db.Projects.Update(existingProject);
             await _db.SaveChangesAsync();
+
+            foreach(var item in existingProject.Participants)
+            {
+                if(item.UserId != userId)
+                    await _notificationService.SendNotification(item.UserId, projectId, $"A(z) {existingProject.Title} nevű projekt beállításai módosultak.");
+            }
 
             _logger.LogInformation($"User with id {userId} has updated a project with id {existingProject.Id}.");
 

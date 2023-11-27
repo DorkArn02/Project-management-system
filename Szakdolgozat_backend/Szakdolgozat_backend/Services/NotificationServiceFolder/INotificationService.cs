@@ -5,7 +5,7 @@ namespace Szakdolgozat_backend.Services.NotificationServiceFolder
 {
     public interface INotificationService
     {
-        Task<Notification> SendNotification(Guid userId, Guid issueId, string content);
+        Task<Notification> SendNotification(Guid userId, Guid projectId, string content);
 
         Task<List<NotificationResponseDTO>> GetUserNotifications();
         Task DeleteNotificationById(Guid id);

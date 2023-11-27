@@ -10,12 +10,15 @@ public partial class Notification
 
     public DateTime Created { get; set; }
 
+    public bool IsRead { get; set; }
+
     public Guid UserId { get; set; }
 
-    public Guid IssueId { get; set; }
+    public Guid ProjectId { get; set; }
 
     [JsonIgnore]
-    public virtual Issue Issue { get; set; } = null!;
+    public virtual Project Project { get; set; } = null!;
+
     [JsonIgnore]
     public virtual User User { get; set; } = null!;
 }

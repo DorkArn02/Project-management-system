@@ -61,6 +61,9 @@ export default function EditorComponent({ data, setData, theme, toolbar }: Edito
         zIndex: 0,
         tabIndex: -1,
         theme: theme,
+        cleanHTML: {
+            fillEmptyParagraph: false
+        },
         toolbarButtonSize: "medium",
         toolbarAdaptive: false,
         showCharsCounter: false,

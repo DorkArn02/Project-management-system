@@ -29,6 +29,7 @@ import {
     ModalOverlay,
     NumberInput,
     NumberInputField,
+    Progress,
     Select,
     Spacer,
     Spinner,
@@ -50,7 +51,7 @@ import { DragDropContext, DropResult, Droppable } from "react-beautiful-dnd"
 import { Controller, useForm } from 'react-hook-form'
 import { AiFillBug, AiFillCheckSquare } from "react-icons/ai"
 import { BsBarChartFill, BsChatLeftTextFill, BsFillBookmarkFill, BsFillCalendarDateFill, BsThreeDots } from "react-icons/bs"
-import { FaClock, FaPen, FaPlus, FaSearch, FaTrash, FaUser, FaUsers } from 'react-icons/fa'
+import { FaClock, FaExternalLinkAlt, FaPen, FaPlus, FaSearch, FaTrash, FaUser, FaUsers } from 'react-icons/fa'
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import { ImCross } from "react-icons/im"
 import { MdInfo, MdNumbers } from "react-icons/md"
@@ -224,6 +225,29 @@ export default function ProjectListPage() {
         }, 650);
     }
 
+    const handleOpenParentIssue = (issueObject: IssueResponse) => {
+        let boardId = "0"
+        let targetIssue: IssueResponse
+        boards!.forEach(board => {
+            const foundIssue = board.issues.find(issue => issue.id === issueObject.parentIssueId);
+            if (foundIssue) {
+                targetIssue = foundIssue
+                boardId = board.id;
+            }
+        });
+        setCommenting(0)
+        resetView()
+        setSlide(0)
+        setComment("")
+        setAssignedPeople([])
+        onCloseIssue()
+
+        // Modal delay
+        setTimeout(function () {
+            handleOpenIssue(targetIssue, boardId)
+        }, 650);
+    }
+
     // FUNCTIONS
     const handleOpenIssue = (issueObject: IssueResponse, boardId: string) => {
         if (project && boards) {
@@ -235,10 +259,10 @@ export default function ProjectListPage() {
                     arr.push({ id: p.id, label: `${p.lastName} ${p.firstName}`, value: `${p.userId}` })
                 }
             })
-
             const tmp: Array<IssueResponse> = []
             if (issueObject.childrenIssues) {
                 issueObject.childrenIssues.forEach(i => {
+                    console.log(i)
                     tmp.push(boards.filter(b => b.id == i.projectListId)[0].issues.filter(is => is.id == i.id)[0])
                 })
             }
@@ -590,6 +614,7 @@ export default function ProjectListPage() {
                         }
                     }
                 })
+                console.log(patchData)
                 await changeIssue(projectId!, currentBoardId!, currentIssue!.id, patchData)
                 updateProjectBoards()
                 toast({
@@ -915,10 +940,17 @@ export default function ProjectListPage() {
                                             </FormControl>
                                         </HStack>
                                     </ModalHeader>
-                                    <IconButton aria-label='Delete issue' onClick={onOpenDelete} size="md" right={14} top={5} position={"absolute"} variant="ghost" icon={<FaTrash />} />
-                                    <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                    <Tooltip label="Feladat törlése">
+                                        <IconButton aria-label='Delete issue' onClick={onOpenDelete} size="md" right={14} top={5} position={"absolute"} variant="ghost" icon={<FaTrash />} />
+                                    </Tooltip>
+
+                                    <Tooltip label="Előnézet bezárása">
+                                        <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                    </Tooltip>
                                     {currentIssue.issueType.name === 'Subtask' ?
-                                        <IconButton aria-label='Navigate to parent issue' type="submit" size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                        <Tooltip label="Navigálás a szülő feladatra">
+                                            <IconButton aria-label='Navigate to parent issue' onClick={() => handleOpenParentIssue(currentIssue)} size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<FaExternalLinkAlt />} />
+                                        </Tooltip>
                                         : ""}
                                     <ModalBody overflowY={"auto"}>
                                         <HStack gap="30px" align={"flex-start"}>
@@ -938,6 +970,7 @@ export default function ProjectListPage() {
                                                             <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="solid" size="sm" icon={<FaPlus />} />
                                                         </HStack>
                                                         <Stack ml={3}>
+                                                            <Progress hasStripe value={64} />
                                                             {childrenIssuesList ? childrenIssuesList.map((i, k) => {
                                                                 return <Tag gap={3} key={k} p={2}>
                                                                     {handleIssueTypeIcon(i.issueType.name)}
@@ -1089,12 +1122,6 @@ export default function ProjectListPage() {
                                                                     </Slider>
                                                                 </>
                                                             )} /> */}
-
-                                                        <HStack>
-                                                            <Text>{slide ? slide : "0"} óra</Text>
-                                                            <Spacer />
-                                                            <Text>{currentIssue.timeEstimate} órából</Text>
-                                                        </HStack>
                                                     </Stack>
                                                 </FormControl>
                                                 <FormControl isInvalid={Boolean(errorsView.dueDate)}>

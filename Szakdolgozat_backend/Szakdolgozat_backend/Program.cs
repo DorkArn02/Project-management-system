@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Serilog;
 using System.Text;
 using Szakdolgozat_backend.Helpers;
+using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Middlewares;
 using Szakdolgozat_backend.Models;
 using Szakdolgozat_backend.Services.AuthServiceFolder;
@@ -39,9 +40,9 @@ builder.Services.AddControllers()
 .AddNewtonsoftJson(options =>
 {
     options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-});//.AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
-                
+});
 
+builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("MyPolicy",
@@ -56,40 +57,33 @@ builder.Services.AddCors(options =>
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
-    options.MinimumSameSitePolicy = SameSiteMode.None; // Engedélyezi a cross-site sütiket
+    options.MinimumSameSitePolicy = SameSiteMode.None;
+    options.HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always;
 });
 
-/*
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-        .AddCookie(options =>
-        {
-            options.Cookie.SameSite = SameSiteMode.None;
-            options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-        });
-*/
-// Add AutoMapper
 builder.Services.AddAutoMapper(typeof(Program));
 builder.Logging.ClearProviders();
 
 if(builder.Environment.IsDevelopment())
 {
-    builder.Host.UseSerilog((hostContext, services, configuration) => {
-        configuration
-             //.MinimumLevel.Debug()
-            .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
-            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
-            .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
-    });
+    builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
+    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
+    //builder.Host.UseSerilog((hostContext, services, configuration) => {
+    //    configuration
+    //        .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
+    //        .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
+    //        .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
+    //});
 }
 else
 {
-
-    builder.Host.UseSerilog((hostContext, services, configuration) => {
-        configuration
-            .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
-            .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
-    });
+    builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
+    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
+    //builder.Host.UseSerilog((hostContext, services, configuration) => {
+    //    configuration
+    //        .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
+    //        .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
+    //});
 }
 
 builder.Services.AddSwaggerGen(c =>
@@ -156,5 +150,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<MessageHub>("/notify");
 
 app.Run();

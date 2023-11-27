@@ -17,6 +17,7 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
         public DateTime Updated { get; set; }
 
         public DateTime? DueDate { get; set; }
+        public Guid ProjectListId { get; set; }
 
         public int Position { get; set; }
 
@@ -26,7 +27,7 @@ namespace Szakdolgozat_backend.Dtos.IssueDtos
 
         public Guid? ParentIssueId { get; set; }
 
-        public List<Issue>? ChildrenIssues { get; set; }
+        public List<IssueResponseDTO>? ChildrenIssues { get; set; }
 
         public Guid ReporterId { get; set; } // Bejelentő azonosítója
 

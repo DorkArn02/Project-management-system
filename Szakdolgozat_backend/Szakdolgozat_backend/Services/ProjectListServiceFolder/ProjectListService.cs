@@ -214,7 +214,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 foreach (var issueDTO in itemDTO.Issues)
                 {
                     var childrenIssues = await _db.Issues.Where(i => i.ParentIssueId == issueDTO.Id).ToListAsync();
-                    issueDTO.ChildrenIssues = childrenIssues;
+                    issueDTO.ChildrenIssues = _mapper.Map<List<IssueResponseDTO>>(childrenIssues);
                 }
             }
 

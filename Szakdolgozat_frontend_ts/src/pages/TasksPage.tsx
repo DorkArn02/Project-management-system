@@ -40,14 +40,14 @@ export default function TasksPage() {
     const [startDate, setStartDate] = useState<string | null>(null)
     const [endDate, setEndDate] = useState<string | null>(null)
 
-    const { data: projects } = useQuery({
-        queryKey: ['getUserProjects'],
+    const { data: projects, isLoading } = useQuery({
+        queryKey: ['getUserProjects2'],
         queryFn: () => getUserProjects().then(res => res.data.map(i => {
             return { label: i.title, value: i.id }
         }))
     })
 
-    const { data: tasks, isLoading } = useQuery({
+    const { data: tasks } = useQuery({
         queryKey: ['getUserTasks', projectId],
         queryFn: () => getTasksByProjectId(projectId).then(res => res.data),
         enabled: !!projectId,

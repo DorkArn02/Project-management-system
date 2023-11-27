@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Szakdolgozat_backend.Dtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
+using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Models;
 using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
@@ -15,14 +18,16 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly INotificationService _notificationService;
         private readonly ILogger<IssueService> _logger;
+        private readonly IHubContext<MessageHub, IMessageHub> _messageHub;
 
-        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService, ILogger<IssueService> logger)
+        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService, ILogger<IssueService> logger, IHubContext<MessageHub, IMessageHub> messageHub)
         {
             _db = db;
             _userHelper = userHelper;
             _httpContextAccessor = httpContextAccessor;
             _notificationService = notificationService;
             _logger = logger;
+            _messageHub = messageHub;
         }
 
         public async Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int participantId)
@@ -83,8 +88,11 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             // Send notification
             if (participant.UserId != userId)
             {
+
+                //await _messageHub.Clients.User(participant.UserId.ToString()).SendMessage(participant.UserId.ToString(), "Hello World");
+
                 await _notificationService
-                .SendNotification(participant.UserId, issueId, 
+                .SendNotification(participant.UserId, i.ProjectId, 
                 $"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz." +
                 $" Módosító: {u2.LastName + " " + u2.FirstName}.");
             }
@@ -425,7 +433,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (assignee.Id != userId)
             {
                 await _notificationService
-                .SendNotification(assignee.Id, issueId,
+                .SendNotification(assignee.Id, i.ProjectId,
                 $"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül." +
                 $" Módosító: {u.LastName + " " + u.FirstName}.");
             }
@@ -488,6 +496,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
 
+            //await _messageHub.Clients.All.SendMessage("wqdwqdwqdqqwdí");
+
             ProjectList? projectList = await _db.ProjectLists
                 .Where(p => p.ProjectId == projectId
             && p.Id == projectListId).FirstOrDefaultAsync();
@@ -511,7 +521,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 if(userId != assignedPerson.UserId)
                 {
                     await _notificationService
-               .SendNotification(assignedPerson.UserId, issueId,
+               .SendNotification(assignedPerson.UserId, i.ProjectId,
                $"Módosultak a(z) {i.Title} nevű feladat részletei." +
                $" Módosító: {user.LastName + " " + user.FirstName}.");
                 }
@@ -519,19 +529,72 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             foreach(var op in s.Operations)
             {
-                if(op.path == "ParentIssueId")
+                if(op.path == "/assignedPeople")
                 {
-                    var i2 = await _db.Issues.FindAsync(op.value);
+                    List<string> modifiedIds = new();
 
-                    if (i2 == null)
-                        throw new NotFoundException("Issue with id not found.");
+                    var jsonData = JsonConvert.DeserializeObject<List<dynamic>>(op.value.ToString());
+                    var uIds = await _db.Issues.Where(i => i.Id == issueId).Select(i => i.AssignedPeople).ToListAsync();
+                    
+                    for(int it = 0; it < jsonData.Count; it++)
+                    {
+                        var uId = jsonData[it]["userId"];
+                        modifiedIds.Add((string)uId);
+                    }
 
-                    if (i2.IssueType.Name == "Subtask")
-                        throw new BadRequestException("Subtask can not be parent of task.");
+                    var assignedPeopleIds = assignedPeople.Select(a => a.UserId.ToString());
 
-                    i.ParentIssue = i2;
+                    // Ebben a részben ellenőrizze, hogy mely elemek vannak az assignedPeopleIds-ben, de nincsenek a modifiedIds-ben
+                    var missingInModifiedIds = assignedPeopleIds.Except(modifiedIds).ToList();
+
+                    // Ebben a részben ellenőrizze, hogy mely elemek vannak a modifiedIds-ben, de nincsenek az assignedPeopleIds-ben
+                    var missingInAssignedPeopleIds = modifiedIds.Except(assignedPeopleIds).ToList();
+
+
+                    if(missingInModifiedIds.Any())
+                    {
+                        foreach(var item in missingInModifiedIds)
+                        {
+                            //Console.WriteLine("TÖRÖLT USER:");
+                            //Console.WriteLine(item);
+                            await _notificationService
+                                .SendNotification(Guid.Parse(item), projectId, $"A(z) {i.Title} nevű feladatról el lettél távolítva, módosító {user.LastName} {user.FirstName}.");
+                        }
+                    }
+
+                    if(missingInAssignedPeopleIds.Any())
+                    {
+                        foreach (var item in missingInAssignedPeopleIds)
+                        {
+                            //Console.WriteLine("HOZZÁADOTT USER:");
+                            //Console.WriteLine(item);
+                            await _notificationService
+                               .SendNotification(Guid.Parse(item), projectId, $"A(z) {i.Title} nevű feladathoz hozzá lettél rendelve, módosító {user.LastName} {user.FirstName}.");
+                        }
+                    }
+
+                    //foreach(var data in jsonData)
+                    //{
+                    //    var uId = data?.First.userId;
+                    //}
                 }
             }
+
+            //foreach(var op in s.Operations)
+            //{
+            //    if(op.path == "ParentIssueId")
+            //    {
+            //        var i2 = await _db.Issues.FindAsync(op.value);
+
+            //        if (i2 == null)
+            //            throw new NotFoundException("Issue with id not found.");
+
+            //        if (i2.IssueType.Name == "Subtask")
+            //            throw new BadRequestException("Subtask can not be parent of task.");
+
+            //        i.ParentIssue = i2;
+            //    }
+            //}
 
             s.ApplyTo(i);
 

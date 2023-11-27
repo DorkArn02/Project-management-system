@@ -14,17 +14,18 @@ import {
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
-import { FaArrowLeft, FaArrowRight, FaBell, FaMoon, FaSun, FaTasks, FaTrash, FaUser } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaBell, FaCircle, FaMoon, FaSun, FaTasks, FaTrash, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
 import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m, motion } from 'framer-motion';
 import moment from 'moment';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications } from '../api/user';
 import { NotificationResponse } from '../interfaces/interfaces';
+import { createSignalRContext } from "react-signalr/signalr";
 
 export default function Dashboard() {
 
@@ -35,6 +36,8 @@ export default function Dashboard() {
     const [opened, setOpened] = useState<boolean>(initialValue);
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
+    const SignalRContext = createSignalRContext();
+
 
     useEffect(() => {
         if (!user) {
@@ -59,6 +62,15 @@ export default function Dashboard() {
         await deleteNotification(id)
         await loadNotifications()
     }
+
+    const [newMessage, setNewMessage] = useState(false);
+
+    SignalRContext.useSignalREffect(
+        "SendMessage",
+        (message) => {
+            setNewMessage(true)
+        },
+        []);
 
     if (user == null) {
         return ""
@@ -123,7 +135,9 @@ export default function Dashboard() {
                         <Spacer />
                         <Popover placement='right' isLazy>
                             <PopoverTrigger>
-                                <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : ""}</Button>
+                                <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : <>
+                                    {newMessage ? <FaCircle /> : ""}
+                                </>}</Button>
                             </PopoverTrigger>
                             <PopoverContent>
                                 <PopoverHeader fontWeight='semibold'>
