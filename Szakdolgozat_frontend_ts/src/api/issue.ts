@@ -35,6 +35,8 @@ export const addAssignee = async (projectId: string, boardId: string, issueId: s
 export const changeIssuePosition1 = async (projectId: string, columnId: string, positions: string) => {
     const result =
         await api.put(`/Issue/ChangePosition1/${projectId}/${columnId}`, positions)
+
+    console.log(result)
     return result
 }
 

@@ -7,6 +7,12 @@ import ProjectListPage from "../pages/ProjectListPage"
 import UserPage from "../pages/UserPage"
 import TasksPage from "../pages/TasksPage.tsx"
 import StatisticsPage from "../pages/StatisticsPage"
+import { createSignalRContext } from "react-signalr/signalr";
+import { LoginResponse } from "../interfaces/interfaces.ts"
+
+const user: LoginResponse = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null
+export const SignalRContext = createSignalRContext();
+
 
 export const router = createBrowserRouter([
     {
@@ -19,7 +25,15 @@ export const router = createBrowserRouter([
     },
     {
         path: '/dashboard',
-        element: <Dashboard />,
+        element: user ? <SignalRContext.Provider
+            connectEnabled={!!user.accessToken}
+            accessTokenFactory={() => user.accessToken}
+            dependencies={[user.accessToken]}
+            automaticReconnect={false}
+            skipNegotiation={true}
+            transport={1}
+            url={import.meta.env.MODE === "development" ? "https://localhost:7093/notify" : "http://localhost:80/api/notify"}><Dashboard /></SignalRContext.Provider>
+            : <Dashboard />,
         children: [
             {
                 path: '/dashboard/',

@@ -1,5 +1,5 @@
 import { api } from "."
-import { PasswordChangeRequest } from "../interfaces/interfaces"
+import { NotificationResponse, PasswordChangeRequest } from "../interfaces/interfaces"
 
 export const changePassword = async (userObj: PasswordChangeRequest) => {
     const result = await api.put(`/User/PasswordChange/`, userObj)
@@ -19,7 +19,11 @@ export const deleteCommentFromIssue = async (projectId: string, issueId: string,
 
 export const getNotifications = async () => {
     const result = await api.get("/Notification")
+    return result.data
+}
 
+export const getNotificationsByProjectId = async (projectId: string) => {
+    const result = await api.get<Array<NotificationResponse>>(`/Notification/${projectId}`)
     return result.data
 }
 

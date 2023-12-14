@@ -1,14 +1,14 @@
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, Flex, HStack, Icon, Input, InputGroup, InputRightElement, Spinner, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from "@chakra-ui/react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, Flex, HStack, Icon, IconButton, Input, InputGroup, InputRightElement, Spinner, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tooltip, Tr } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { GroupBase, Select, SelectComponentsConfig, chakraComponents } from "chakra-react-select";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getTasksByProjectId, getUserProjects } from "../api/project";
 import { ReactNode, useState } from "react";
 import moment from "moment";
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc";
 import { AiFillBug, AiFillCheckSquare } from "react-icons/ai";
 import { BsFillBookmarkFill } from "react-icons/bs";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaSortAmountDown, FaSortAmountUpAlt } from "react-icons/fa";
 import { TbSubtask } from "react-icons/tb";
 
 interface PriorityL {
@@ -39,6 +39,8 @@ export default function TasksPage() {
     const [type, setType] = useState<string | null>(null)
     const [startDate, setStartDate] = useState<string | null>(null)
     const [endDate, setEndDate] = useState<string | null>(null)
+    const [sortOrder, setSortOrder] = useState(true);
+
 
     const { data: projects, isLoading } = useQuery({
         queryKey: ['getUserProjects2'],
@@ -52,6 +54,8 @@ export default function TasksPage() {
         queryFn: () => getTasksByProjectId(projectId).then(res => res.data),
         enabled: !!projectId,
     })
+
+    const navigate = useNavigate();
 
     const handlePriorityIcon = (priority: string) => {
         if (priority === "Alacsony") {
@@ -76,10 +80,10 @@ export default function TasksPage() {
             return <AiFillCheckSquare color='#42a4ff' />
         }
         else if (title === "Bug") {
-            return <AiFillBug color='red' />
+            return <AiFillBug color='#eb5757' />
         }
         else if (title == "Story") {
-            return <BsFillBookmarkFill color='green' />
+            return <BsFillBookmarkFill color='#c5ff3d' />
         }
         else if (title == "Subtask") {
             return <TbSubtask color='#42a4ff' />
@@ -132,7 +136,7 @@ export default function TasksPage() {
 
 
             <HStack>
-                <Select variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={"Kérem válassza ki a projektet..."} options={projects} />
+                <Select tabIndex={1} variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={"Kérem válassza ki a projektet..."} options={projects} />
             </HStack>
             {tasks ?
                 <>
@@ -141,16 +145,18 @@ export default function TasksPage() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input onChange={(e) => setTitle(e.target.value)} variant={"filled"} type='text' placeholder='Feladat keresése...' />
+                            <Input tabIndex={2} onChange={(e) => setTitle(e.target.value)} variant={"filled"} type='text' placeholder='Feladat keresése...' />
                         </InputGroup>
-                        <Select components={customComponents} isClearable={true} onChange={(e) => e ? setPriority(e.value) : setPriority(null)} variant="filled" placeholder={"Szűrés prioritás szerint..."} options={priorities} />
-                        <Select components={customComponents} isClearable={true} onChange={(e) => e ? setType(e.value) : setType(null)} variant="filled" placeholder={"Szűrés feladattípus szerint..."} options={issueTypes} />
+                        <Select tabIndex={3} components={customComponents} isClearable={true} onChange={(e) => e ? setPriority(e.value) : setPriority(null)} variant="filled" placeholder={"Szűrés prioritás szerint..."} options={priorities} />
+                        <Select tabIndex={4} components={customComponents} isClearable={true} onChange={(e) => e ? setType(e.value) : setType(null)} variant="filled" placeholder={"Szűrés feladattípus szerint..."} options={issueTypes} />
                     </HStack>
                     <HStack>
-                        <Input onChange={(e) => setStartDate(e.target.value)} variant="filled" w="200px" type="date" />
+                        <Input tabIndex={5} onChange={(e) => setStartDate(e.target.value)} variant="filled" w="200px" type="date" />
                         <Text>-</Text>
-                        <Input onChange={(e) => setEndDate(e.target.value)} variant="filled" w="200px" type="date" />
+                        <Input tabIndex={6} onChange={(e) => setEndDate(e.target.value)} variant="filled" w="200px" type="date" />
+
                     </HStack>
+
 
                     <TableContainer>
                         <Table variant='striped'>
@@ -160,7 +166,13 @@ export default function TasksPage() {
                                     <Th>Státusz</Th>
                                     <Th>Feladat</Th>
                                     <Th>Bejelentő</Th>
-                                    <Th>Határidő</Th>
+                                    <Th>
+                                        <HStack>
+                                            <Text>Határidő</Text>
+                                            <IconButton size="sm" variant="ghost" onClick={() => setSortOrder(!sortOrder)} aria-label='Sort by date' icon={sortOrder ? <FaSortAmountUpAlt /> : < FaSortAmountDown />} />
+                                        </HStack>
+
+                                    </Th>
                                     <Th>Prioritás</Th>
                                 </Tr>
                             </Thead>
@@ -168,21 +180,27 @@ export default function TasksPage() {
                                 {tasks.filter(i => i.title.includes(title)).filter(i => (priority == null || i.priority.id == parseInt(priority))).filter(i => (type == null || i.issueType.id == parseInt(type)))
                                     .filter(i => (startDate == null || moment(i.dueDate).isAfter(startDate)))
                                     .filter(i => (endDate == null || moment(i.dueDate).isBefore(endDate)))
+                                    .sort((a, b) => {
+                                        const order = sortOrder === true ? 1 : -1;
+                                        return order * (new Date(b.created).valueOf() - new Date(a.created).valueOf());
+                                    })
                                     .map((i, k) => (
-                                        <Tr _hover={{ opacity: 0.6, cursor: "pointer" }} key={k}>
-                                            <Td>{handleIssueTypeIcon(i.issueType.name)}</Td>
-                                            <Td>{i.boardName}</Td>
-                                            <Td>{i.title}</Td>
-                                            <Td>{i.reporterName}</Td>
-                                            <Td>{moment(i.dueDate).format("YYYY/MM/DD")}</Td>
-                                            <Td>{handlePriorityIcon(i.priority.name)}</Td>
-                                        </Tr>
+                                        <Tooltip key={k} label={`Ugrás a(z) ${i.title} nevű feladatra`}>
+                                            <Tr onClick={() => navigate(`/dashboard/${projectId}`, { replace: true, state: { id: i.id, boardId: i.boardId } })} _hover={{ opacity: 0.6, cursor: "pointer" }} >
+                                                <Td>{handleIssueTypeIcon(i.issueType.name)}</Td>
+                                                <Td>{i.boardName}</Td>
+                                                <Td>{i.title}</Td>
+                                                <Td>{i.reporterName}</Td>
+                                                <Td>{moment(i.dueDate).format("YYYY/MM/DD")}</Td>
+                                                <Td>{handlePriorityIcon(i.priority.name)}</Td>
+                                            </Tr>
+                                        </Tooltip>
                                     ))}
                             </Tbody>
                         </Table>
                     </TableContainer>
                 </>
-                : ""}
+                : null}
         </Flex>
     )
 }

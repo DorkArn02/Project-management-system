@@ -26,7 +26,7 @@ export default function ProjectPage() {
     const { isLoading, data: project, error, refetch } = useQuery({
         queryKey: ['projects'],
         queryFn: () => getUserProjects().then(res => res.data),
-        staleTime: 6000 // 1 min
+        staleTime: 6000
     })
 
     const createProjectMutation = useMutation({

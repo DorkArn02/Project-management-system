@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
@@ -21,6 +20,13 @@ namespace Szakdolgozat_backend.Controllers
         public async Task<IActionResult> GetNotifications()
         {
             var result = await _notificationService.GetUserNotifications();
+            return Ok(result);
+        }
+
+        [HttpGet("{projectId}")]
+        public async Task<IActionResult> GetNotificationsByProjectId(Guid projectId)
+        {
+            var result = await _notificationService.GetNotificationsByProjectId(projectId);
             return Ok(result);
         }
 

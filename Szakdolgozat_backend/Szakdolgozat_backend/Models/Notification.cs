@@ -10,9 +10,10 @@ public partial class Notification
 
     public DateTime Created { get; set; }
 
-    public bool IsRead { get; set; }
+    //public bool IsRead { get; set; }
 
     public Guid UserId { get; set; }
+    public Guid ModifierId { get; set; }
 
     public Guid ProjectId { get; set; }
 
@@ -21,4 +22,7 @@ public partial class Notification
 
     [JsonIgnore]
     public virtual User User { get; set; } = null!;
+
+    [JsonIgnore]
+    public virtual User Modifier { get; set; } = null!;
 }

@@ -15,6 +15,7 @@ public partial class Project
     public DateTime Updated { get; set; }
     [JsonIgnore]
     public virtual ICollection<Issue> Issues { get; set; } = new List<Issue>();
+    public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     public virtual ICollection<Participant> Participants { get; set; } = new List<Participant>();
 

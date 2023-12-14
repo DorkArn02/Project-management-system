@@ -131,6 +131,7 @@ export interface IssueResponse {
     parentIssueId?: string;
     childrenIssues?: Array<IssueResponse>
     issueType: IssueType;
+    projectListId?: string;
 }
 
 export interface AssignedPersonResponse {
@@ -168,6 +169,7 @@ export interface NotificationResponse {
     projectName: string;
     projectListName: string;
     issueName: string;
+    personName: string;
 }
 
 //--------------------------------
@@ -188,6 +190,7 @@ export interface Task {
     boardName: string;
     projectName: string;
     issueType: IssueType;
+    boardId: string
 }
 
 //--
@@ -195,4 +198,15 @@ export interface PasswordChangeRequest {
     oldPassword: string;
     password1: string;
     password2: string;
+}
+
+//--
+export interface AuditLogResponse {
+    id: string,
+    userId: string,
+    created: Date,
+    content: string,
+    projectId: string,
+    personName: string,
+    projectName: string
 }

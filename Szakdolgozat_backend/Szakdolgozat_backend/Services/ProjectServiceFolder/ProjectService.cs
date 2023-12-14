@@ -7,6 +7,7 @@ using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
 namespace Szakdolgozat_backend.Services.ProjectServiceFolder
@@ -21,8 +22,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
         private readonly INotificationService _notificationService;
         private readonly ILogger<ProjectService> _logger;
         private readonly IHubContext<MessageHub, IMessageHub> _messageHub;
+        private readonly IAuditLogService _auditLogService;
 
-        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService, ILogger<ProjectService> logger, IHubContext<MessageHub, IMessageHub> messageHub)
+        public ProjectService(DbCustomContext db, IUserHelper userHelper, IMapper iMapper, IHttpContextAccessor contextAccessor, INotificationService notificationService, ILogger<ProjectService> logger, IHubContext<MessageHub, IMessageHub> messageHub, IAuditLogService auditLogService)
         {
             _db = db;
             _userHelper = userHelper;
@@ -31,6 +33,7 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             _notificationService = notificationService;
             _logger = logger;
             _messageHub = messageHub;
+            _auditLogService = auditLogService;
         }
         public async Task<List<ProjectResponseDTO>> GetAllProjects()
         {
@@ -135,7 +138,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
                 Role = r
             };
 
-            await _notificationService.SendNotification(u.Id, projectId, $"Hozzá letté rendelve a(z) {p.Title} nevű projekthez.");
+            await _notificationService.SendNotification(u.Id, userId, projectId, $"Hozzá letté rendelve a(z) {p.Title} nevű projekthez.");
+            await _messageHub.Clients.Client(u.Id.ToString()).SendMessage($"Hozzá letté rendelve a(z) {p.Title} nevű projekthez.");
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {u.LastName} {u.FirstName} nevű személy hozzárendelése a projekthez.");
 
             _logger.LogInformation($"User with id {userId} has added a user ({u.Id}) to project {p.Title}.");
 
@@ -191,7 +196,9 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             _db.Participants.Remove(participant);
             await _db.SaveChangesAsync();
 
-            await _notificationService.SendNotification(u.Id, projectId, $"El lettél távolítva a(z) {p.Title} nevű projektből.");
+            await _notificationService.SendNotification(u.Id, userId, projectId, $"El lettél távolítva a(z) {p.Title} nevű projektből.");
+            await _messageHub.Clients.Client(u.Id.ToString()).SendMessage($"El lettél távolítva a(z) {p.Title} nevű projektből.");
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {u.LastName} {u.FirstName} nevű személy eltávolítása a projektből.");
 
 
             _logger.LogInformation($"User with id {userId} has removed a user ({u.Id}) from project {p.Title}.");
@@ -219,8 +226,13 @@ namespace Szakdolgozat_backend.Services.ProjectServiceFolder
             foreach(var item in existingProject.Participants)
             {
                 if(item.UserId != userId)
-                    await _notificationService.SendNotification(item.UserId, projectId, $"A(z) {existingProject.Title} nevű projekt beállításai módosultak.");
+                {
+                    await _notificationService.SendNotification(item.UserId, userId, projectId, $"A(z) {existingProject.Title} nevű projekt beállításai módosultak.");
+                    await _messageHub.Clients.Client(item.UserId.ToString()).SendMessage($"A(z) {existingProject.Title} nevű projekt beállításai módosultak.");
+                }
             }
+
+            await _auditLogService.AddAuditLog(projectId, $"A projekt beállításainak a módosítása.");
 
             _logger.LogInformation($"User with id {userId} has updated a project with id {existingProject.Id}.");
 

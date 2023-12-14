@@ -4,7 +4,7 @@ namespace Szakdolgozat_backend.Models;
 
 public partial class DbCustomContext : DbContext
 {
-    // Scaffold-DbContext "Server=localhost;Database=DB_TESZT;Integrated Security=true;Encrypt=false;" -OutputDir "Models2"  Microsoft.EntityFrameworkCore.SqlServer
+    // Scaffold-DbContext "Server=localhost;Database=DB_ELES_2;Integrated Security=true;Encrypt=false;" -OutputDir "Models2"  Microsoft.EntityFrameworkCore.SqlServer
     public DbCustomContext()
     {
     }
@@ -14,6 +14,20 @@ public partial class DbCustomContext : DbContext
     {
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Notification>()
+            .HasOne(d => d.Modifier).WithMany(p => p.NotificationModifiers)
+                .HasForeignKey(d => d.ModifierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__notificat__Modif__1F63A897");
+        modelBuilder.Entity<Notification>().HasOne(d => d.User).WithMany(p => p.NotificationUsers)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__notificat__UserI__1E6F845E");
+    }
+
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
     public virtual DbSet<AssignedPerson> AssignedPeople { get; set; }
 
     public virtual DbSet<Comment> Comments { get; set; }

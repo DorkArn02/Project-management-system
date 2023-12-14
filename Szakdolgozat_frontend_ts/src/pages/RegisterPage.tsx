@@ -59,7 +59,7 @@ export default function RegisterPage() {
             })
             setTimeout(() => {
                 navigate('/')
-            }, 2000)
+            }, 1000)
         } catch (error) {
             toast({
                 title: 'Sikertelen regisztráció.',

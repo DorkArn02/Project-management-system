@@ -7,6 +7,7 @@ using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 using Szakdolgozat_backend.Services.NotificationServiceFolder;
 
 namespace Szakdolgozat_backend.Services.IssueServiceFolder
@@ -19,8 +20,9 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
         private readonly INotificationService _notificationService;
         private readonly ILogger<IssueService> _logger;
         private readonly IHubContext<MessageHub, IMessageHub> _messageHub;
+        private readonly IAuditLogService _auditLogService;
 
-        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService, ILogger<IssueService> logger, IHubContext<MessageHub, IMessageHub> messageHub)
+        public IssueService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, INotificationService notificationService, ILogger<IssueService> logger, IHubContext<MessageHub, IMessageHub> messageHub, IAuditLogService auditLogService)
         {
             _db = db;
             _userHelper = userHelper;
@@ -28,6 +30,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             _notificationService = notificationService;
             _logger = logger;
             _messageHub = messageHub;
+            _auditLogService = auditLogService;
         }
 
         public async Task<Issue> AddAssigneeToIssue(Guid projectId, Guid projectListId, Guid issueId, int participantId)
@@ -89,13 +92,15 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (participant.UserId != userId)
             {
 
-                //await _messageHub.Clients.User(participant.UserId.ToString()).SendMessage(participant.UserId.ToString(), "Hello World");
+                await _messageHub.Clients.User(participant.UserId.ToString()).SendMessage($"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz." +
+                $" Módosító: {u2.LastName + " " + u2.FirstName}.");
 
                 await _notificationService
-                .SendNotification(participant.UserId, i.ProjectId, 
-                $"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz." +
-                $" Módosító: {u2.LastName + " " + u2.FirstName}.");
+                .SendNotification(participant.UserId, u2.Id, i.ProjectId, 
+                $"Hozzá lettél rendelve a(z) {i.Title} nevű feladathoz.");
             }
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {u.LastName} {u.FirstName} nevű felhasználót hozzárendelte a(z) {i.Title} nevű feladathoz.");
 
             await _db.AssignedPeople.AddAsync(assigned);
             await _db.SaveChangesAsync();
@@ -137,6 +142,9 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             }
 
             await _db.SaveChangesAsync();
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {parentIssue.Title} nevű feladathoz hozzárendelte a(z) {childIssue.Title} nevű alfeladatot.");
+
 
             _logger.LogInformation($"Issue with id {childId} in project {projectId} has connected to parent issue {parentId} by user {userId}.");
         }
@@ -223,6 +231,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             await _db.Issues.AddAsync(i);
             await _db.SaveChangesAsync();
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladatot hozzáadta a projekt tábla {projectList.Title} nevű oszlopához.");
 
             _logger.LogInformation($"Issue with id {i.Id} has added to project list {projectListId} in project {projectId} by user {userId}.");
 
@@ -319,8 +329,9 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                     temp.Position = t.Value;
                 }
             }
-
             await _db.SaveChangesAsync();
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {issue.Title} nevű feladat állapotát megváltoztatta.");
 
             _logger.LogInformation($"Issue status has changed by {userId} in project {projectId}.");
         }
@@ -379,6 +390,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (i == null)
                 throw new NotFoundException($"Issue with id {issueId} not found.");
 
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladatot törölte.");
+
             _db.Issues.Remove(i);
             await _db.SaveChangesAsync();
 
@@ -433,10 +446,14 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (assignee.Id != userId)
             {
                 await _notificationService
-                .SendNotification(assignee.Id, i.ProjectId,
-                $"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül." +
+                .SendNotification(assignee.Id, u.Id, i.ProjectId,
+                $"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül.");
+
+                await _messageHub.Clients.User(assignee.Id.ToString()).SendMessage($"El lettél távolítva a(z) {i.Title} nevű feladat hozzárendelt személyei közül." +
                 $" Módosító: {u.LastName + " " + u.FirstName}.");
             }
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {assignee.LastName} {assignee.FirstName} nevű felhasználót törölte a(z) {i.Title} nevű feladatról.");
 
             _db.AssignedPeople.Remove(assignedPerson);
             await _db.SaveChangesAsync();
@@ -475,6 +492,8 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 childIssue.ParentIssueId = null;
             }
 
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {parentIssue.Title} nevű feladatról eltávolította a(z) {childIssue.Title} nevű alfeladatot.");
+
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"Issue with id {childId} in project {projectId} has removed from parent issue {parentId} by user {userId}.");
@@ -495,8 +514,6 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} not member of project.");
-
-            //await _messageHub.Clients.All.SendMessage("wqdwqdwqdqqwdí");
 
             ProjectList? projectList = await _db.ProjectLists
                 .Where(p => p.ProjectId == projectId
@@ -521,9 +538,14 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                 if(userId != assignedPerson.UserId)
                 {
                     await _notificationService
-               .SendNotification(assignedPerson.UserId, i.ProjectId,
-               $"Módosultak a(z) {i.Title} nevű feladat részletei." +
+               .SendNotification(assignedPerson.UserId, user.Id, i.ProjectId,
+               $"Módosultak a(z) {i.Title} nevű feladat részletei.");
+
+                    await _messageHub.Clients.User(assignedPerson.UserId.ToString()).SendMessage($"Módosultak a(z) {i.Title} nevű feladat részletei." +
                $" Módosító: {user.LastName + " " + user.FirstName}.");
+
+             //       await _messageHub.Clients.All.SendMessage($"Módosultak a(z) {i.Title} nevű feladat részletei." +
+             //$" Módosító: {user.LastName + " " + user.FirstName}.");
                 }
             }
 
@@ -550,15 +572,12 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                     // Ebben a részben ellenőrizze, hogy mely elemek vannak a modifiedIds-ben, de nincsenek az assignedPeopleIds-ben
                     var missingInAssignedPeopleIds = modifiedIds.Except(assignedPeopleIds).ToList();
 
-
                     if(missingInModifiedIds.Any())
                     {
                         foreach(var item in missingInModifiedIds)
                         {
-                            //Console.WriteLine("TÖRÖLT USER:");
-                            //Console.WriteLine(item);
                             await _notificationService
-                                .SendNotification(Guid.Parse(item), projectId, $"A(z) {i.Title} nevű feladatról el lettél távolítva, módosító {user.LastName} {user.FirstName}.");
+                                .SendNotification(Guid.Parse(item), user.Id, projectId, $"A(z) {i.Title} nevű feladatról el lettél távolítva.");
                         }
                     }
 
@@ -566,42 +585,22 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
                     {
                         foreach (var item in missingInAssignedPeopleIds)
                         {
-                            //Console.WriteLine("HOZZÁADOTT USER:");
-                            //Console.WriteLine(item);
                             await _notificationService
-                               .SendNotification(Guid.Parse(item), projectId, $"A(z) {i.Title} nevű feladathoz hozzá lettél rendelve, módosító {user.LastName} {user.FirstName}.");
+                               .SendNotification(Guid.Parse(item), user.Id, projectId, $"A(z) {i.Title} nevű feladathoz hozzá lettél rendelve.");
                         }
                     }
 
-                    //foreach(var data in jsonData)
-                    //{
-                    //    var uId = data?.First.userId;
-                    //}
                 }
             }
-
-            //foreach(var op in s.Operations)
-            //{
-            //    if(op.path == "ParentIssueId")
-            //    {
-            //        var i2 = await _db.Issues.FindAsync(op.value);
-
-            //        if (i2 == null)
-            //            throw new NotFoundException("Issue with id not found.");
-
-            //        if (i2.IssueType.Name == "Subtask")
-            //            throw new BadRequestException("Subtask can not be parent of task.");
-
-            //        i.ParentIssue = i2;
-            //    }
-            //}
 
             s.ApplyTo(i);
 
             i.Updated = DateTime.Now;
 
             _db.Entry(i).State = EntityState.Modified;
-            
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladat tulajdonságait módosította.");
+
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"Issue {issueId} details changed by user {userId}.");

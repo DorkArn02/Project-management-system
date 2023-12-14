@@ -39,10 +39,10 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
 
             var claims = new List<Claim>
             {
-               new Claim(ClaimTypes.Email, u.Email),
-               new Claim(ClaimTypes.NameIdentifier, u.Id.ToString()),
-               new Claim(ClaimTypes.Surname, u.FirstName),
-               new Claim(ClaimTypes.GivenName, u.LastName)
+               new (ClaimTypes.Email, u.Email),
+               new (ClaimTypes.NameIdentifier, u.Id.ToString()),
+               new (ClaimTypes.Surname, u.FirstName),
+               new (ClaimTypes.GivenName, u.LastName)
             };
 
             var token = _tokenService.GenerateAccessToken(claims);
@@ -57,7 +57,9 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
                 Secure = true,
             };
 
-            _httpContextAccessor.HttpContext.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+            _httpContextAccessor
+                .HttpContext.Response.Cookies
+                .Append("refreshToken", refreshToken, cookieOptions);
 
             _logger.LogInformation($"User with id {u.Id} has logged in.");
 
@@ -92,7 +94,8 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
 
         public async Task<string> RenewAccessToken()
         {
-            var oldRefreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+            var oldRefreshToken = _httpContextAccessor
+                .HttpContext.Request.Cookies["refreshToken"];
 
             if (oldRefreshToken == null)
                 throw new BadRequestException("Invalid token.");
@@ -111,10 +114,10 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
 
             var claims = new List<Claim>
             {
-               new Claim(ClaimTypes.Email, u.Email),
-               new Claim(ClaimTypes.NameIdentifier, u.Id.ToString()),
-               new Claim(ClaimTypes.Surname, u.FirstName),
-               new Claim(ClaimTypes.GivenName, u.LastName)
+               new (ClaimTypes.Email, u.Email),
+               new (ClaimTypes.NameIdentifier, u.Id.ToString()),
+               new (ClaimTypes.Surname, u.FirstName),
+               new (ClaimTypes.GivenName, u.LastName)
             };
 
             var token = _tokenService.GenerateAccessToken(claims);

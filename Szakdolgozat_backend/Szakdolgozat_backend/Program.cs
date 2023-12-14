@@ -9,6 +9,7 @@ using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Hubs;
 using Szakdolgozat_backend.Middlewares;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 using Szakdolgozat_backend.Services.AuthServiceFolder;
 using Szakdolgozat_backend.Services.CommentServiceFolder;
 using Szakdolgozat_backend.Services.IssueServiceFolder;
@@ -33,9 +34,14 @@ builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure();
+        }));
 builder.Services.AddControllers()
 .AddNewtonsoftJson(options =>
 {
@@ -48,7 +54,11 @@ builder.Services.AddCors(options =>
     options.AddPolicy("MyPolicy",
         builder =>
         {
-            builder.WithOrigins("http://127.0.0.1:5173", "http://localhost:5173", "https://localhost:7093")
+            builder.WithOrigins("http://127.0.0.1:5173", 
+                "http://localhost:5173",
+                "https://localhost:7093",
+                "https://localhost:80",
+                "http://localhost:80")
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
@@ -68,22 +78,11 @@ if(builder.Environment.IsDevelopment())
 {
     builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
     loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
-    //builder.Host.UseSerilog((hostContext, services, configuration) => {
-    //    configuration
-    //        .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
-    //        .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
-    //        .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
-    //});
 }
 else
 {
     builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
     loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
-    //builder.Host.UseSerilog((hostContext, services, configuration) => {
-    //    configuration
-    //        .WriteTo.File("logs.txt", Serilog.Events.LogEventLevel.Information)
-    //        .WriteTo.Console(Serilog.Events.LogEventLevel.Information);
-    //});
 }
 
 builder.Services.AddSwaggerGen(c =>
@@ -131,13 +130,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
+        options.Events = new JwtBearerEvents()
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Path.ToString().StartsWith("/notify"))
+                    context.Token = context.Request.Query["access_token"];
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();

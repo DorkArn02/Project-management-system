@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration.UserSecrets;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 
 namespace Szakdolgozat_backend.Services.CommentServiceFolder
 {
@@ -12,13 +13,15 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
         private readonly IHttpContextAccessor _contextAccessor;
         private readonly IUserHelper _userHelper;
         private readonly ILogger<CommentService> _logger;
+        private readonly IAuditLogService _auditLogService;
 
-        public CommentService(DbCustomContext db, IHttpContextAccessor contextAccessor, IUserHelper userHelper, ILogger<CommentService> logger)
+        public CommentService(DbCustomContext db, IHttpContextAccessor contextAccessor, IUserHelper userHelper, ILogger<CommentService> logger, IAuditLogService auditLogService)
         {
             _db = db;
             _contextAccessor = contextAccessor;
             _userHelper = userHelper;
             _logger = logger;
+            _auditLogService = auditLogService;
         }
 
         public async Task<Comment> AddCommentToIssue(Guid projectId, Guid issueId, string content)
@@ -54,6 +57,8 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
 
             await _db.Comments.AddAsync(c);
             await _db.SaveChangesAsync();
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladathoz hozzászólást rögzített.");
 
             _logger.LogInformation($"User with id {userId} added comment to issue {issueId} in project {projectId}.");
 
@@ -111,7 +116,9 @@ namespace Szakdolgozat_backend.Services.CommentServiceFolder
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
 
-            if(c.UserId == userId)
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladatról hozzászólást törölt.");
+
+            if (c.UserId == userId)
             {
                 _db.Comments.Remove(c);
                 await _db.SaveChangesAsync();

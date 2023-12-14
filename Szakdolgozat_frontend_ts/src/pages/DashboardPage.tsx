@@ -10,22 +10,22 @@ import {
     Modal,
     ModalOverlay, ModalBody, ModalFooter, ModalContent, ModalHeader,
     ModalCloseButton,
-    Popover, PopoverTrigger, PopoverHeader, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody, Divider, HStack
+    Popover, PopoverTrigger, PopoverHeader, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody, Divider, HStack, useToast
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
-import { FaArrowLeft, FaArrowRight, FaBell, FaCircle, FaMoon, FaSun, FaTasks, FaTrash, FaUser } from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaBell, FaMoon, FaSortAmountDown, FaSortAmountUpAlt, FaSun, FaTasks, FaTrash, FaUser } from "react-icons/fa";
 import { useEffect } from 'react';
 import { BiLogOut, BiStats } from 'react-icons/bi';
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { m, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import moment from 'moment';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications } from '../api/user';
 import { NotificationResponse } from '../interfaces/interfaces';
-import { createSignalRContext } from "react-signalr/signalr";
+import { SignalRContext } from '../routes';
 
 export default function Dashboard() {
 
@@ -36,7 +36,6 @@ export default function Dashboard() {
     const [opened, setOpened] = useState<boolean>(initialValue);
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
-    const SignalRContext = createSignalRContext();
 
 
     useEffect(() => {
@@ -54,6 +53,7 @@ export default function Dashboard() {
 
     const loadNotifications = async () => {
         const result = await getNotifications()
+        setNewMessage(false)
         setNotification(result)
     }
 
@@ -63,21 +63,30 @@ export default function Dashboard() {
         await loadNotifications()
     }
 
+    const toast = useToast()
+
     const [newMessage, setNewMessage] = useState(false);
+    const [sortOrder, setSortOrder] = useState(true);
 
     SignalRContext.useSignalREffect(
         "SendMessage",
         (message) => {
+            toast({
+                title: message,
+                status: 'success',
+                duration: 4000,
+                isClosable: true,
+            })
             setNewMessage(true)
         },
         []);
+
 
     if (user == null) {
         return ""
     } else
         return (
             <>
-
                 <Modal isOpen={isOpen} onClose={onClose}>
                     <ModalOverlay />
                     <ModalContent>
@@ -136,31 +145,54 @@ export default function Dashboard() {
                         <Popover placement='right' isLazy>
                             <PopoverTrigger>
                                 <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : <>
-                                    {newMessage ? <FaCircle /> : ""}
+                                    {newMessage ? <Box
+                                        position="absolute"
+                                        bottom="-4px"
+                                        right="5px"
+                                        borderRadius="50%"
+                                        bg="red.500"
+                                        width="20px"
+                                        height="20px"
+                                        display="flex"
+                                        justifyContent="center"
+                                        alignItems="center"
+                                    >
+                                        <Text color="white" fontSize="xs">
+                                            !
+                                        </Text>
+                                    </Box> : ""}
                                 </>}</Button>
                             </PopoverTrigger>
                             <PopoverContent>
                                 <PopoverHeader fontWeight='semibold'>
-                                    <Text>Értesítések ({notification && notification.length})</Text>
+                                    <HStack>
+                                        <Text>Értesítések ({notification && notification.length})</Text>
+                                        <IconButton position={"absolute"} size="sm" right={"12%"} variant="ghost" onClick={() => setSortOrder(!sortOrder)} aria-label='Sort by date' icon={sortOrder ? <FaSortAmountUpAlt /> : < FaSortAmountDown />} />
+                                    </HStack>
                                 </PopoverHeader>
                                 <PopoverArrow />
-                                <PopoverCloseButton />
+                                <PopoverCloseButton size={"md"} />
                                 <PopoverBody>
                                     <Stack maxHeight={"350px"} overflowY={"scroll"}>
-                                        {notification && notification.map((i, k) => {
-                                            return <>
-                                                <HStack align="baseline">
-                                                    <Text key={k}>{i.content}</Text>
-                                                    <IconButton aria-label='Delete notification' onClick={() => handleDeleteNotification(i.id)} size="sm" variant="ghost" icon={<FaTrash />} />
-                                                </HStack>
-                                                <HStack>
-                                                    <Link to={`${i.projectId}`}><Text _hover={{ textDecor: "underline", color: "lightblue" }}>{i.projectName}</Text></Link>
-                                                    <Spacer />
-                                                    <Text align="right">{moment(i.created).fromNow()}</Text>
-                                                </HStack>
-                                                <Divider />
-                                            </>
-                                        })}
+                                        {notification && notification
+                                            .sort((a, b) => {
+                                                const order = sortOrder === true ? 1 : -1;
+                                                return order * (new Date(b.created).valueOf() - new Date(a.created).valueOf());
+                                            })
+                                            .map((i, k) => {
+                                                return <>
+                                                    <HStack align="baseline">
+                                                        <Text key={k}>{i.content}</Text>
+                                                        <IconButton aria-label='Delete notification' onClick={() => handleDeleteNotification(i.id)} size="sm" variant="ghost" icon={<FaTrash />} />
+                                                    </HStack>
+                                                    <HStack>
+                                                        <Link to={`${i.projectId}`}><Text _hover={{ textDecor: "underline", color: "lightblue" }}>{i.projectName}</Text></Link>
+                                                        <Spacer />
+                                                        <Text align="right">{moment(i.created).fromNow()}</Text>
+                                                    </HStack>
+                                                    <Divider />
+                                                </>
+                                            })}
                                     </Stack>
                                 </PopoverBody>
                             </PopoverContent>
@@ -170,6 +202,7 @@ export default function Dashboard() {
                         <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? "Téma váltása" : ""}</Button>
                         <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? "Kijelentkezés" : ""}</Button>
                     </Box>
+                    <Box p={1} color="red.400" fontWeight={"bold"} position={"absolute"} top={0} left={"50%"}>{import.meta.env.MODE === "development" ? "TESZT RENDSZER" : "ÉLES RENDSZER"}</Box>
                     <Outlet />
                 </Flex>
             </>

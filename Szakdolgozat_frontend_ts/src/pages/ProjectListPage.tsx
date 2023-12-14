@@ -29,7 +29,6 @@ import {
     ModalOverlay,
     NumberInput,
     NumberInputField,
-    Progress,
     Select,
     Spacer,
     Spinner,
@@ -55,7 +54,7 @@ import { FaClock, FaExternalLinkAlt, FaPen, FaPlus, FaSearch, FaTrash, FaUser, F
 import { FcHighPriority, FcLowPriority, FcMediumPriority } from "react-icons/fc"
 import { ImCross } from "react-icons/im"
 import { MdInfo, MdNumbers } from "react-icons/md"
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { addChildIssue, addIssueToBoard, changeIssue, changeIssuePosition1, changeIssuePosition2, deleteChildIssue, deleteIssueFromBoard } from '../api/issue'
 import { getProjectById } from '../api/project'
 import { addProjectBoard, deleteProjectBoard, editProjectBoard, editProjectBoardPosition, getProjectBoards } from '../api/projectBoard'
@@ -123,12 +122,26 @@ export default function ProjectListPage() {
     const [comment, setComment] = useState<string>("")
     const [otherBoards, setOtherBoards] = useState<Array<ProjectListResponse>>([])
 
-    const [slide, setSlide] = useState<number>(0)
     const [commenting, setCommenting] = useState<number>(0)
     const formRef = useRef<HTMLFormElement>(null)
     const initRef = useRef(null)
 
     const navigate = useNavigate()
+    const { state } = useLocation();
+
+    useEffect(() => {
+        if (state && boards) {
+            let obj = boards?.filter(i => i.id == state.boardId)
+
+            if (obj.length != 0) {
+                let issueObject = boards?.filter(i => i.id == state.boardId)[0].issues
+                    .filter(i => i.id == state.id)[0]
+
+                handleOpenIssue(issueObject!, state.boardId)
+            }
+        }
+    }, [state, boards])
+
 
     useEffect(() => {
         if (project) {
@@ -158,7 +171,7 @@ export default function ProjectListPage() {
     // REACT HOOK FORM
     const { register: registerBoardCreate, handleSubmit: handleSubmitBoardCreate, reset: resetBoardCreate, formState: { errors: errorsBoardCreate, isSubmitting: isSubmittingBoardCreate } } = useForm<ProjectListRequest>();
 
-    const { register: registerIssueCreate, handleSubmit: handleSubmitIssueCreate, reset: resetIssueCreate, formState: { errors: errorsIssueCreate, isSubmitting: isSubmittingIssueCreate }, control: controlIssueCreate } = useForm<IssueRequestView>({ defaultValues: { description: "" } });
+    const { register: registerIssueCreate, handleSubmit: handleSubmitIssueCreate, reset: resetIssueCreate, formState: { errors: errorsIssueCreate, isSubmitting: isSubmittingIssueCreate }, control: controlIssueCreate, setFocus: setFocusIssueCreate } = useForm<IssueRequestView>({ defaultValues: { description: "" } });
 
     const { register: registerBoardEdit, handleSubmit: handleSubmitBoardEdit, reset: resetBoardEdit, formState: { errors: errorsBoardEdit, isSubmitting: isSubmittingBoardEdit } } = useForm<ProjectListRequest>();
 
@@ -214,7 +227,6 @@ export default function ProjectListPage() {
         });
         setCommenting(0)
         resetView()
-        setSlide(0)
         setComment("")
         setAssignedPeople([])
         onCloseIssue()
@@ -237,7 +249,6 @@ export default function ProjectListPage() {
         });
         setCommenting(0)
         resetView()
-        setSlide(0)
         setComment("")
         setAssignedPeople([])
         onCloseIssue()
@@ -262,13 +273,11 @@ export default function ProjectListPage() {
             const tmp: Array<IssueResponse> = []
             if (issueObject.childrenIssues) {
                 issueObject.childrenIssues.forEach(i => {
-                    console.log(i)
-                    tmp.push(boards.filter(b => b.id == i.projectListId)[0].issues.filter(is => is.id == i.id)[0])
+                    tmp.push(boards.filter(b => b.id == i.projectListId!)[0].issues.filter(is => is.id == i.id)[0])
                 })
             }
 
             setChildrenIssuesList(tmp)
-            setSlide(issueObject.timeSpent)
             setAssignedPeople(arr)
             onOpenIssue()
         }
@@ -374,7 +383,7 @@ export default function ProjectListPage() {
                     updateProjectBoards()
                 }
             }
-            // csere soron belül
+            // csere oszlopon belül
             else {
                 const column = boards.filter(b => b.id === result.source.droppableId)[0]
 
@@ -397,6 +406,7 @@ export default function ProjectListPage() {
                 for (let i = 0; i < newIssues.length; i++) {
                     positions[newIssues[i].id] = newIssues[i].position;
                 }
+
 
                 // Az új elemekkel frissítjük a 'column' objektumot
                 column.issues = newIssues;
@@ -434,6 +444,7 @@ export default function ProjectListPage() {
     const handleAddIssueOpen = (boardId: string) => {
         setCurrentBoardId(boardId)
         onOpenAddIssue()
+        setFocusIssueCreate('title')
     }
 
     const handleAddIssueForm = async (object: IssueRequestView) => {
@@ -614,7 +625,6 @@ export default function ProjectListPage() {
                         }
                     }
                 })
-                console.log(patchData)
                 await changeIssue(projectId!, currentBoardId!, currentIssue!.id, patchData)
                 updateProjectBoards()
                 toast({
@@ -627,7 +637,6 @@ export default function ProjectListPage() {
         }
         setCommenting(0)
         resetView()
-        setSlide(0)
         setComment("")
         setAssignedPeople([])
         onCloseIssue()
@@ -794,6 +803,7 @@ export default function ProjectListPage() {
 
     moment.locale('hu')
 
+
     if (projectIsError || projectListIsError) {
         navigate('/dashboard')
     }
@@ -821,11 +831,12 @@ export default function ProjectListPage() {
                                     error={Boolean(errorsBoardCreate.title)}
                                     label='Tábla neve'
                                     errorMessage='Kérem adja meg a tábla címét.'
+                                    tabIndex={1}
                                 />
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingBoardCreate} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
-                                <Button onClick={handleCloseAddBoard}>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardCreate} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button tabIndex={3} onClick={handleCloseAddBoard}>
                                     Visszavonás
                                 </Button>
                             </ModalFooter>
@@ -833,7 +844,7 @@ export default function ProjectListPage() {
                     </ModalContent>
                 </Modal>
                 {/* Issue létrehozása */}
-                <Modal trapFocus={false} size="3xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
+                <Modal size="3xl" isOpen={isOpenAddIssue} onClose={handleAddIssueClose}>
                     <ModalOverlay />
                     <ModalContent>
                         <ModalCloseButton />
@@ -843,13 +854,13 @@ export default function ProjectListPage() {
                                 <Stack spacing={5}>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.title)}>
                                         <FormLabel>Cím</FormLabel>
-                                        <Input placeholder='Feladat címe' variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
+                                        <Input tabIndex={1} placeholder='Feladat címe' variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
                                         <FormErrorMessage>{errorsIssueCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl zIndex={1000} isInvalid={Boolean(errorsIssueCreate.issueTypeId)}>
                                         <FormLabel>Feladat típusa</FormLabel>
                                         <Controller name="issueTypeId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
-                                            <ChakraSelect components={customComponents} placeholder="Feladat típusa" isClearable={true} variant='filled' options={issueTypes} onChange={onChange} value={value} />
+                                            <ChakraSelect tabIndex={2} components={customComponents} placeholder="Feladat típusa" isClearable={true} variant='filled' options={issueTypes} onChange={onChange} value={value} />
                                         )} />
                                         <FormErrorMessage>{errorsIssueCreate.priorityId ? "Kérem válasszon ki feladat típust." : ""}</FormErrorMessage>
                                     </FormControl>
@@ -857,7 +868,7 @@ export default function ProjectListPage() {
                                         <FormLabel>Leírás</FormLabel>
                                         <Controller name="description" rules={{ required: false }} control={controlIssueCreate}
                                             render={({ field: { value, onChange } }) => (
-                                                <EditorComponent toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
+                                                <EditorComponent tabIndex={3} toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
                                             )} />
                                     </FormControl>
                                     <FormControl>
@@ -866,7 +877,7 @@ export default function ProjectListPage() {
                                             <Controller name="assignedPeople" rules={{ required: false }} control={controlIssueCreate}
                                                 render={({ field: { value, onChange } }) => (
                                                     <>
-                                                        <ChakraSelect isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
+                                                        <ChakraSelect tabIndex={4} isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
                                                     </>
                                                 )} />
 
@@ -875,25 +886,25 @@ export default function ProjectListPage() {
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.priorityId)}>
                                         <FormLabel>Prioritás</FormLabel>
                                         <Controller name="priorityId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
-                                            <ChakraSelect components={customComponents} placeholder="Szűrés prioritás szerint..." isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
+                                            <ChakraSelect tabIndex={5} components={customComponents} placeholder="Szűrés prioritás szerint..." isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
                                         )} />
                                         <FormErrorMessage>{errorsIssueCreate.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.timeEstimate)}>
                                         <FormLabel>Becsült idő (óra)</FormLabel>
-                                        <Input placeholder='1' variant={"filled"}  {...registerIssueCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} type="number" />
+                                        <Input tabIndex={6} placeholder='1' variant={"filled"}  {...registerIssueCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} type="number" />
                                         <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.dueDate)}>
                                         <FormLabel>Határidő</FormLabel>
-                                        <Input variant={"filled"} {...registerIssueCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > (new Date()) })} type="date" />
+                                        <Input tabIndex={7} variant={"filled"} {...registerIssueCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > (new Date()) })} type="date" />
                                         <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingIssueCreate} mr={3} type="submit" colorScheme='blue'>Létrehozás</Button>
-                                <Button onClick={handleAddIssueClose}>Visszavonás</Button>
+                                <Button tabIndex={8} isLoading={isSubmittingIssueCreate} mr={3} type="submit" colorScheme='blue'>Létrehozás</Button>
+                                <Button tabIndex={9} onClick={handleAddIssueClose}>Visszavonás</Button>
                             </ModalFooter>
                         </form>
                     </ModalContent>
@@ -917,8 +928,8 @@ export default function ProjectListPage() {
                         </ModalFooter>
                     </ModalContent>
                 </Modal>
-                {/* Issue megtekintése */}
-                <Modal trapFocus={false} initialFocusRef={initRef} closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
+                {/* Issue megtekintése initialFocusRef={initRef} */}
+                <Modal closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
                     formRef.current!.requestSubmit()
                 }
                 }>
@@ -929,13 +940,9 @@ export default function ProjectListPage() {
                                 <form ref={formRef!} autoComplete='off' onSubmit={handleSubmitView(handleOnCloseIssue)}>
                                     <ModalHeader>
                                         <HStack align={"center"}>
-                                            {handleIssueTypeIcon(currentIssue.issueType.name)}
+                                            <Tooltip label={currentIssue.issueType.name} shouldWrapChildren={true}>{handleIssueTypeIcon(currentIssue.issueType.name)}</Tooltip>
                                             <FormControl isInvalid={Boolean(errorsView.title)} mt={1}>
-                                                <Input maxW="80%" border="0" {...registerView("title", { required: true })} defaultValue={currentIssue.title} />
-                                                {/* <Editable selectAllOnFocus={false} maxW={"90%"} defaultValue={currentIssue.title}>
-                                                    <EditablePreview />
-                                                    <EditableInput {...registerView("title", { required: true })} />
-                                                </Editable> */}
+                                                <Input tabIndex={1} maxLength={50} maxW="80%" border="0" {...registerView("title", { required: true })} defaultValue={currentIssue.title} />
                                                 <FormErrorMessage>{errorsView.title ? "Kérem adjon címet a feladatnak." : ""}</FormErrorMessage>
                                             </FormControl>
                                         </HStack>
@@ -947,7 +954,7 @@ export default function ProjectListPage() {
                                     <Tooltip label="Előnézet bezárása">
                                         <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     </Tooltip>
-                                    {currentIssue.issueType.name === 'Subtask' ?
+                                    {currentIssue.issueType.name === 'Subtask' && currentIssue.parentIssueId != null ?
                                         <Tooltip label="Navigálás a szülő feladatra">
                                             <IconButton aria-label='Navigate to parent issue' onClick={() => handleOpenParentIssue(currentIssue)} size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<FaExternalLinkAlt />} />
                                         </Tooltip>
@@ -959,7 +966,7 @@ export default function ProjectListPage() {
                                                     <FormLabel>Leírás</FormLabel>
                                                     <Controller defaultValue={currentIssue.description} name="description" rules={{ required: false }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
-                                                            <EditorComponent toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
+                                                            <EditorComponent tabIndex={2} toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
                                                         )} />
                                                 </FormControl>
                                                 {currentIssue.issueType.name !== "Subtask" ?
@@ -970,7 +977,6 @@ export default function ProjectListPage() {
                                                             <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="solid" size="sm" icon={<FaPlus />} />
                                                         </HStack>
                                                         <Stack ml={3}>
-                                                            <Progress hasStripe value={64} />
                                                             {childrenIssuesList ? childrenIssuesList.map((i, k) => {
                                                                 return <Tag gap={3} key={k} p={2}>
                                                                     {handleIssueTypeIcon(i.issueType.name)}
@@ -1031,13 +1037,13 @@ export default function ProjectListPage() {
                                                             <Text>Státusz</Text>
                                                         </HStack>
                                                     </FormLabel>
-                                                    <Select {...registerView("projectListId", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
+                                                    <Select tabIndex={3} {...registerView("projectListId", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
                                                         {boards!.map((j, k) => {
                                                             return <option key={k} value={j.id}>{j.title}</option>
                                                         })}
                                                     </Select>
                                                 </FormControl>
-                                                <FormControl>
+                                                <FormControl >
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaUsers />
@@ -1047,7 +1053,9 @@ export default function ProjectListPage() {
                                                     <Controller defaultValue={assignedPeople} name="assignedPeople" rules={{ required: false }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <>
-                                                                <ChakraSelect useBasicStyles tagVariant='solid' isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
+                                                                <ChakraSelect
+                                                                    tabIndex={4}
+                                                                    useBasicStyles tagVariant='solid' isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
                                                             </>
                                                         )} />
                                                 </FormControl>
@@ -1073,7 +1081,7 @@ export default function ProjectListPage() {
                                                     <Controller defaultValue={{ value: `${currentIssue.priority.id}`, label: `${currentIssue.priority.name}` }} name="priorityId" rules={{ required: true }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <>
-                                                                <ChakraSelect components={customComponents} placeholder={"Prioritás kiválasztása"} isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
+                                                                <ChakraSelect tabIndex={5} components={customComponents} placeholder={"Prioritás kiválasztása"} isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
                                                             </>
                                                         )} />
                                                     <FormErrorMessage>{errorsView.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
@@ -1084,8 +1092,8 @@ export default function ProjectListPage() {
                                                             <FaClock />
                                                             <Text>Feladatra becsült idő (órában)</Text>
                                                         </HStack>
-                                                    </FormLabel>                                                    <NumberInput step={1} defaultValue={currentIssue.timeEstimate} variant={"filled"}>
-                                                        <NumberInputField {...registerView("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} />
+                                                    </FormLabel>                              <NumberInput step={1} defaultValue={currentIssue.timeEstimate} variant={"filled"}>
+                                                        <NumberInputField tabIndex={6}{...registerView("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} />
                                                     </NumberInput>
                                                     <FormErrorMessage>{errorsView.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
                                                 </FormControl>
@@ -1098,7 +1106,7 @@ export default function ProjectListPage() {
                                                     </FormLabel>
                                                     <Stack >
                                                         <NumberInput step={1} defaultValue={currentIssue.timeSpent} variant={"filled"}>
-                                                            <NumberInputField {...registerView("timeSpent", {
+                                                            <NumberInputField tabIndex={7} {...registerView("timeSpent", {
                                                                 required: false, valueAsNumber: true, validate: (value) => {
                                                                     if (isNaN(value)) {
                                                                         return true
@@ -1111,17 +1119,6 @@ export default function ProjectListPage() {
                                                             })} />
                                                         </NumberInput>
                                                         <FormErrorMessage>{errorsView.timeSpent ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
-                                                        {/* <Controller defaultValue={currentIssue.timeSpent ? currentIssue.timeSpent : 0} name="timeSpent" rules={{ required: false }} control={controlView}
-                                                            render={({ field: { value, onChange } }) => (
-                                                                <>
-                                                                    <Slider onChangeEnd={(e) => setSlide(e)} onChange={onChange} min={0} max={currentIssue.timeEstimate} aria-label='slider-ex-1' value={value}>
-                                                                        <SliderTrack>
-                                                                            <SliderFilledTrack />
-                                                                        </SliderTrack>
-                                                                        <SliderThumb />
-                                                                    </Slider>
-                                                                </>
-                                                            )} /> */}
                                                     </Stack>
                                                 </FormControl>
                                                 <FormControl isInvalid={Boolean(errorsView.dueDate)}>
@@ -1131,7 +1128,7 @@ export default function ProjectListPage() {
                                                             <Text>Határidő (dátum)</Text>
                                                         </HStack>
                                                     </FormLabel>
-                                                    <Input color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "#e88374" : "green"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: true, valueAsDate: true })} type="date" />
+                                                    <Input tabIndex={8} color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "#e88374" : "green"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: true, valueAsDate: true })} type="date" />
                                                     <FormErrorMessage>{errorsView.dueDate ? "Adjon meg egy határidőt." : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <Divider />
@@ -1157,13 +1154,13 @@ export default function ProjectListPage() {
                             <ModalBody>
                                 <FormControl isInvalid={Boolean(errorsBoardEdit.title)}>
                                     <FormLabel>Tábla neve</FormLabel>
-                                    <Input defaultValue={title} {...registerBoardEdit("title", { required: true })} type="text" />
+                                    <Input tabIndex={1} defaultValue={title} {...registerBoardEdit("title", { required: true })} type="text" />
                                     {errorsBoardEdit.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
                                 </FormControl>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingBoardEdit} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
-                                <Button onClick={handleBoardEditClose}>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardEdit} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button tabIndex={3} onClick={handleBoardEditClose}>
                                     Visszavonás
                                 </Button>
                             </ModalFooter>
@@ -1202,15 +1199,15 @@ export default function ProjectListPage() {
                         <form onSubmit={handleSubmitBoardEditPos(handleBoardPosition)}>
                             <ModalBody>
                                 <Text mb={5}>Válassza ki azt a board-ot, amelyet kicserélne az aktuálissal</Text>
-                                <Select {...registerBoardEditPos("boardId", { required: true })}>
+                                <Select tabIndex={1} {...registerBoardEditPos("boardId", { required: true })}>
                                     {otherBoards.map((i, k) => {
                                         return <option key={k} value={i.id}>{i.title}</option>
                                     })}
                                 </Select>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingBoardEditPos} type="submit" colorScheme='blue' mr={3} variant='solid'>Módosítás</Button>
-                                <Button onClick={onCloseBoardEditPos}>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardEditPos} type="submit" colorScheme='blue' mr={3} variant='solid'>Módosítás</Button>
+                                <Button tabIndex={3} onClick={onCloseBoardEditPos}>
                                     Visszavonás
                                 </Button>
                             </ModalFooter>
@@ -1279,7 +1276,7 @@ export default function ProjectListPage() {
                         </InputGroup>
                         <AvatarGroup userSelect={'none'} size={"md"}>
                             {selectedPeople && selectedPeople.map((i, k) => {
-                                return <Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} />
+                                return <Tooltip label={i.label}><Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} /></Tooltip>
                             })}
                         </AvatarGroup>
                         <ChakraSelect components={customComponents} placeholder="Szűrés prioritás szerint..." onChange={(e) => handlePriorityFilter(e)} isClearable={true} variant='filled' options={priorities} name='priorities' />
@@ -1367,7 +1364,11 @@ export default function ProjectListPage() {
                                     align={"center"}
                                     justify={"center"}
                                     _hover={{ cursor: "pointer", bg: "green.300" }}
-                                    onClick={() => onOpen()}
+                                    onClick={() => {
+                                        if (IsUserProjectOwner(project!.participants)) {
+                                            onOpen()
+                                        }
+                                    }}
                                 >
                                     <FaPlus size={40} />
                                 </Flex>

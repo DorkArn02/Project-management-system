@@ -10,7 +10,8 @@
 
         public Guid UserId { get; set; }
 
-        public int IsRead { get; set; }
+        //public bool IsRead { get; set; }
+        public string PersonName { get; set; }
 
         public Guid ProjectId { get; set; }
 

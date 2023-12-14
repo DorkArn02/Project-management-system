@@ -14,7 +14,8 @@ interface InputProps {
     variant?: React.ComponentProps<typeof Input>["variant"];
     type?: React.HTMLInputTypeAttribute,
     defaultValue?: string | number,
-    autoComplete?: string
+    autoComplete?: string,
+    tabIndex?: number
 }
 
 const InputComponent: FC<InputProps> = ({

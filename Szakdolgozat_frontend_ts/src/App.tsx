@@ -4,6 +4,7 @@ import { ChakraProvider } from "@chakra-ui/react"
 import { AuthProvider } from './contexts/AuthContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+
 export default function App() {
 
     const queryClient = new QueryClient()

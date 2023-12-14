@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace Szakdolgozat_backend.Hubs
 {
+    [Authorize]
     public class MessageHub : Hub<IMessageHub>
     {
-        public async Task Send(string message)
-        {
-            await Clients.All.SendMessage(message);
-        }
+        //public override async Task OnConnectedAsync()
+        //{
+        //    //await base.OnConnectedAsync();
+        //    //var userid = Context.User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value;
+        //    //await Console.Out.WriteLineAsync(userid);
+        //}
     }
 }

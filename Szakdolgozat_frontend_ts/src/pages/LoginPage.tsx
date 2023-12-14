@@ -38,6 +38,7 @@ export default function LoginPage() {
             })
             login!(result)
         } catch (error) {
+
             toast({
                 title: 'Sikertelen bejelentkezés.',
                 description: "Rossz e-mail címet vagy jelszót adott meg.",

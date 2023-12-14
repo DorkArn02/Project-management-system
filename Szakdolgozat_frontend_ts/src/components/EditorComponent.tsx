@@ -6,11 +6,12 @@ interface EditorComponentProps {
     data: string,
     setData: (data: string) => void,
     theme: string,
-    toolbar: boolean
+    toolbar: boolean,
+    tabIndex?: number
 }
 
 
-export default function EditorComponent({ data, setData, theme, toolbar }: EditorComponentProps) {
+export default function EditorComponent({ data, setData, theme, toolbar, tabIndex }: EditorComponentProps) {
 
     const buttons = [
         "undo",
@@ -59,7 +60,7 @@ export default function EditorComponent({ data, setData, theme, toolbar }: Edito
         spellcheck: true,
         language: "auto",
         zIndex: 0,
-        tabIndex: -1,
+        tabIndex: tabIndex ? tabIndex : -1,
         theme: theme,
         cleanHTML: {
             fillEmptyParagraph: false

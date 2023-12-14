@@ -7,6 +7,7 @@ using Szakdolgozat_backend.Dtos.ProjectListDtos;
 using Szakdolgozat_backend.Exceptions;
 using Szakdolgozat_backend.Helpers;
 using Szakdolgozat_backend.Models;
+using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 
 namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
 {
@@ -17,14 +18,16 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<ProjectListService> _logger;
         private readonly IMapper _mapper;
+        private readonly IAuditLogService _auditLogService;
 
-        public ProjectListService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, ILogger<ProjectListService> logger, IMapper mapper)
+        public ProjectListService(DbCustomContext db, IUserHelper userHelper, IHttpContextAccessor httpContextAccessor, ILogger<ProjectListService> logger, IMapper mapper, IAuditLogService auditLogService)
         {
             _db = db;
             _userHelper = userHelper;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
             _mapper = mapper;
+            _auditLogService = auditLogService;
         }
 
         public async Task<ProjectList> AddListToProject(Guid projectId, ProjectListRequestDTO listRequestDTO)
@@ -57,6 +60,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             await _db.ProjectLists.AddAsync(l);
             await _db.SaveChangesAsync();
 
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {listRequestDTO.Title} nevű oszlop hozzá lett adva a projekt táblához.");
+
             _logger.LogInformation($"User with id {userId} has added a list to project {p.Id}.");
 
             return l;
@@ -79,6 +84,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             if (projectList == null)
                 throw new NotFoundException($"Project list with id {projectListId} not found.");
 
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {projectList.Title} nevű oszlop el lett távolítva a projekt táblából.");
+
             _db.ProjectLists.Remove(projectList);
             await _db.SaveChangesAsync();
 
@@ -100,18 +107,19 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             List<ProjectList> projectLists = await _db.ProjectLists.Where(p => p.ProjectId == projectId)
                 .Include(p => p.Issues)
                     .ThenInclude(p => p.AssignedPeople)
+                    .ThenInclude(p => p.User)
+                .Include(p => p.Issues)
+                    .ThenInclude(p => p.User)
                  .Include(p => p.Issues)
                     .ThenInclude(p => p.Priority)
                  .Include(p => p.Issues)
                     .ThenInclude(p => p.IssueType)
                  .Include(p => p.Issues)
                     .ThenInclude(p => p.Comments)
-                 .Include(p => p.Issues)
-                    .ThenInclude(p => p.User)
                     .AsSplitQuery()
                 .ToListAsync();
 
-            //List<ProjectListResponseDTO> projectListResponseDTO = new();
+            List<ProjectListResponseDTO> projectListResponseDTO = new();
 
             //foreach (var item in projectLists)
             //{
@@ -145,7 +153,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
 
             //        List<CommentResponseDTO> commentResponseDTOs = new();
 
-            //        foreach(var c in comment)
+            //        foreach (var c in comment)
             //        {
             //            var user = await _db.Users.FindAsync(c.UserId);
 
@@ -166,8 +174,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             //            commentResponseDTOs.Add(commentResponseDTO);
             //        }
 
-            //        var childrenIssues = 
-            //            await _db.Issues.Where(i=>i.ParentIssueId == issue.Id).ToListAsync();
+            //        var childrenIssues =
+            //            await _db.Issues.Where(i => i.ParentIssueId == issue.Id).ToListAsync();
 
             //        IssueResponseDTO issueDTO = new()
             //        {
@@ -187,7 +195,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             //            Comments = commentResponseDTOs,
             //            IssueType = issueType,
             //            ParentIssueId = issue.ParentIssueId,
-            //            ChildrenIssues = childrenIssues
+            //            ChildrenIssues = _mapper.Map<List<IssueResponseDTO>>(childrenIssues)
             //        };
 
             //        issueResponseDTOs.Add(issueDTO);
@@ -218,9 +226,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 }
             }
 
-            return result.OrderBy(p=>p.Position).ToList();
+            return result.ToList();
 
-            //return projectListResponseDTO.OrderBy(p=>p.Position).ToList();
+            //return projectListResponseDTO.OrderBy(p => p.Position).ToList();
         }
 
         public async Task<ProjectList> GetListByProject(Guid projectId, Guid projectListId)
@@ -301,7 +309,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         Priority = issuePriority,
                         BoardName = board.Title,
                         ProjectName = project.Title,
-                        IssueType = issueType
+                        IssueType = issueType,
+                        BoardId = board.Id
                     };
                     taskResponseDTOs.Add(issueDTO);
                 }
@@ -367,7 +376,8 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                         Priority = issuePriority,
                         BoardName = board.Title,
                         ProjectName = project.Title,
-                        IssueType = issueType
+                        IssueType = issueType,
+                        BoardId = board.Id
                     };
                     taskResponseDTOs.Add(issueDTO);
                 }
@@ -399,6 +409,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
 
             _logger.LogInformation($"Project list {projectList.Id} updated by user {userId} in project {p.Id}.");
 
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {projectList.Title} nevű oszlop neve módosítva lett.");
+
+
             return projectList;
         }
 
@@ -427,6 +440,9 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
             projectList2.Position = temp;
 
             await _db.SaveChangesAsync();
+
+            await _auditLogService.AddAuditLog(projectId, $"A(z) {projectList1.Title} és {projectList2.Title} nevű oszlopok poziciója módosult.");
+
 
             _logger.LogInformation($"Project list position {projectList1.Id} and {projectList2.Id} updated by user {userId} in project {p.Id}.");
         }
