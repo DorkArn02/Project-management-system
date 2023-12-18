@@ -54,7 +54,7 @@ namespace Szakdolgozat_backend.Services.AuthServiceFolder
                 Expires = DateTime.UtcNow.AddDays(7),
                 IsEssential = true,
                 SameSite = SameSiteMode.None,
-                Secure = true,
+                Secure = true
             };
 
             _httpContextAccessor

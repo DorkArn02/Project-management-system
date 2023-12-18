@@ -17,6 +17,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import InputComponent from "../components/InputComponent"
 import { isAxiosError } from "axios"
 import { ParticipantRequest, ParticipantResponse, ProjectRequest, ProjectResponse } from "../interfaces/interfaces"
+import { useTranslation } from "react-i18next"
 
 export default function ProjectPage() {
     // AUTH
@@ -86,7 +87,7 @@ export default function ProjectPage() {
         await createProjectMutation.mutateAsync(projectRequest, {
             onSuccess: () => {
                 toast({
-                    title: 'Projekt létrehozva.',
+                    title: t('dashboard.popup_project_created'),
                     description: "",
                     status: 'success',
                     duration: 4000,
@@ -97,8 +98,8 @@ export default function ProjectPage() {
             },
             onError: () => {
                 toast({
-                    title: 'Hiba.',
-                    description: "Projekt létrehozása sikertelen",
+                    title: t('dashboard.error'),
+                    description: t('dashboard.popup_project_created_error'),
                     status: 'error',
                     duration: 4000,
                     isClosable: true,
@@ -126,7 +127,7 @@ export default function ProjectPage() {
         await editProjectMutation.mutateAsync(object, {
             onSuccess: () => {
                 toast({
-                    title: 'Projekt adatainak módosítása sikeres.',
+                    title: t('dashboard.popup_project_modified'),
                     description: "",
                     status: 'success',
                     duration: 4000,
@@ -138,8 +139,8 @@ export default function ProjectPage() {
             },
             onError: () => {
                 toast({
-                    title: 'Hiba.',
-                    description: "Projekt adatainak módosítása sikertelen",
+                    title: t('dashboard.error'),
+                    description: t('dashboard.popup_project_modified_error'),
                     status: 'error',
                     duration: 4000,
                     isClosable: true,
@@ -154,7 +155,7 @@ export default function ProjectPage() {
         await deleteProjectMutation.mutateAsync(currentProject.id!, {
             onSuccess: () => {
                 toast({
-                    title: 'Projekt törlése sikeres.',
+                    title: t('dashboard.popup_project_deleted'),
                     description: "",
                     status: 'success',
                     duration: 4000,
@@ -166,8 +167,8 @@ export default function ProjectPage() {
             },
             onError: () => {
                 toast({
-                    title: 'Hiba.',
-                    description: "Projekt törlése sikertelen",
+                    title: t('dashboard.error'),
+                    description: t('dashboard.popup_project_deleted_error'),
                     status: 'error',
                     duration: 4000,
                     isClosable: true,
@@ -191,8 +192,8 @@ export default function ProjectPage() {
         await addProjectToPersonMutation.mutateAsync(data.email, {
             onSuccess: () => {
                 toast({
-                    title: 'Siker.',
-                    description: "Személy hozzárendelés sikeres",
+                    title: t('dashboard.success'),
+                    description: t('dashboard.popup_project_add_person'),
                     status: 'success',
                     duration: 4000,
                     isClosable: true,
@@ -206,16 +207,16 @@ export default function ProjectPage() {
                     if (error.response)
                         if (error.response.status === 404)
                             toast({
-                                title: 'Hiba.',
-                                description: `Felhasználó ilyen e-mail címmel nem létezik.`,
+                                title: t('dashboard.error'),
+                                description: t('dashboard.popup_project_add_person_error'),
                                 status: 'error',
                                 duration: 4000,
                                 isClosable: true,
                             })
                         else if (error.response.status === 409)
                             toast({
-                                title: 'Hiba.',
-                                description: `A felhasználó már tagja a projektnek.`,
+                                title: t('dashboard.error'),
+                                description: t('dashboard.popup_project_add_person_exist'),
                                 status: 'error',
                                 duration: 4000,
                                 isClosable: true,
@@ -241,7 +242,7 @@ export default function ProjectPage() {
         await deletePersonFromProjectMutation.mutateAsync(personId!, {
             onSuccess: () => {
                 toast({
-                    title: 'Személy törölve..',
+                    title: t('dashboard.popup_project_delete_person'),
                     description: "",
                     status: 'success',
                     duration: 4000,
@@ -274,7 +275,10 @@ export default function ProjectPage() {
         return <Text>Hiba van!</Text>
     }
 
-    if (isLoading) {
+    const { i18n, t, ready } = useTranslation()
+
+
+    if (isLoading && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -284,9 +288,9 @@ export default function ProjectPage() {
             <>
                 {/* Project létrehozás */}
                 <Modal isOpen={isOpenCreate} onClose={handleProjectCreateClose}>
-                    <ModalOverlay />
-                    <ModalContent>
-                        <ModalHeader>Projekt létrehozása</ModalHeader>
+                    <ModalOverlay w={"full"} />
+                    <ModalContent margin={"auto"}>
+                        <ModalHeader>{t('dashboard.modal_project_create')}</ModalHeader>
                         <ModalCloseButton />
                         <form autoComplete='off' onSubmit={handleSubmitCreate(createProject)}>
                             <ModalBody>
@@ -296,22 +300,22 @@ export default function ProjectPage() {
                                         name="title"
                                         type="text"
                                         required={true}
-                                        label="Projekt cím"
-                                        placeholder="Projekt cím"
-                                        errorMessage="Kérem adja meg a projekt címét."
+                                        label={t('dashboard.label_project_title')}
+                                        placeholder={t('dashboard.label_project_title')}
+                                        errorMessage={t('dashboard.label_project_title_error')}
                                         error={Boolean(errorsCreate.title)}
                                     />
                                     <FormControl isInvalid={Boolean(errorsCreate.description)}>
-                                        <FormLabel>Projekt leírás</FormLabel>
-                                        <Textarea {...registerCreate("description", { required: false })} placeholder="Projekt leírás" />
+                                        <FormLabel>{t('dashboard.label_project_description')}</FormLabel>
+                                        <Textarea {...registerCreate("description", { required: false })} placeholder={t('dashboard.label_project_description')} />
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
                                 <Button mr={3} onClick={handleProjectCreateClose}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
-                                <Button isLoading={isSubmittingCreate} type="submit" colorScheme='blue'>Létrehozás</Button>
+                                <Button isLoading={isSubmittingCreate} type="submit" colorScheme='blue'>{t('dashboard.btn_create')}</Button>
                             </ModalFooter>
                         </form>
                     </ModalContent>
@@ -320,17 +324,17 @@ export default function ProjectPage() {
                 <Modal isOpen={isOpenDelete} onClose={onCloseDelete}>
                     <ModalOverlay />
                     <ModalContent>
-                        <ModalHeader>Projekt törlése</ModalHeader>
+                        <ModalHeader>{t('dashboard.modal_project_delete')}</ModalHeader>
                         <ModalCloseButton />
                         <ModalBody>
-                            <Text>Biztosan szeretné törölni a projektet? A hozzá tartozó táblák és ticket-ek is törlésre kerülnek.</Text>
+                            <Text>{t('dashboard.modal_project_delete_confirm')}</Text>
                         </ModalBody>
                         <ModalFooter>
                             <form onSubmit={handleSubmitDelete(handleDeleteProject)}>
                                 <Button mr={3} onClick={onCloseDelete}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
-                                <Button isLoading={isSubmittingDelete} colorScheme='blue' type="submit" variant='solid'>Törlés</Button>
+                                <Button isLoading={isSubmittingDelete} colorScheme='blue' type="submit" variant='solid'>{t('dashboard.btn_delete')}</Button>
                             </form>
                         </ModalFooter>
                     </ModalContent>
@@ -339,34 +343,34 @@ export default function ProjectPage() {
                 <Modal isOpen={isOpenModify} onClose={handleModifyClose}>
                     <ModalOverlay />
                     <ModalContent>
-                        <ModalHeader>Projekt adatainak módosítása</ModalHeader>
+                        <ModalHeader>{t('dashboard.modal_project_settings')}</ModalHeader>
                         <ModalCloseButton />
                         <form onSubmit={handleSubmitEdit(handleModifyProject)}>
                             <ModalBody>
                                 <ModalBody>
                                     <Stack>
                                         <InputComponent
-                                            label="Projekt cím"
+                                            label={t('dashboard.label_project_title')}
                                             defaultValue={currentProject.title}
                                             register={registerEdit}
-                                            placeholder="Projekt cím"
+                                            placeholder={t('dashboard.label_project_title')}
                                             required={true}
                                             name="title"
                                             type="text"
                                             error={Boolean(errorsEdit.title)}
-                                            errorMessage=" Kérem adja meg a projekt címét."
+                                            errorMessage={t('dashboard.label_project_title_error')}
                                         />
                                         <FormControl>
-                                            <FormLabel>Projekt leírás</FormLabel>
-                                            <Textarea {...registerEdit("description")} defaultValue={currentProject.description} placeholder="Projekt leírás" />
+                                            <FormLabel>{t('dashboard.label_project_description')}</FormLabel>
+                                            <Textarea {...registerEdit("description")} defaultValue={currentProject.description} placeholder={t('dashboard.label_project_description')} />
                                         </FormControl>
                                     </Stack>
                                 </ModalBody>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingEdit} colorScheme='blue' mr={3} type="submit" variant='solid'>Módosít</Button>
+                                <Button isLoading={isSubmittingEdit} colorScheme='blue' mr={3} type="submit" variant='solid'>{t('dashboard.btn_settings')}</Button>
                                 <Button onClick={handleModifyClose}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -377,7 +381,7 @@ export default function ProjectPage() {
                 <Modal size={"3xl"} isOpen={isOpenPeople} onClose={handleCloseAddPerson}>
                     <ModalOverlay />
                     <ModalContent>
-                        <ModalHeader>Projekthez hozzárendelt személyek módosítása</ModalHeader>
+                        <ModalHeader>{t('dashboard.modal_project_members')}</ModalHeader>
                         <ModalCloseButton />
                         <form onSubmit={handleSubmitAddPerson(handleAddPeople)}>
                             <ModalBody>
@@ -385,9 +389,9 @@ export default function ProjectPage() {
                                     <Table>
                                         <Thead>
                                             <Tr>
-                                                <Th>Teljes név</Th>
-                                                <Th>Beosztás</Th>
-                                                <Th>Műveletek</Th>
+                                                <Th>{t('dashboard.table_full_name')}</Th>
+                                                <Th>{t('dashboard.table_role')}</Th>
+                                                <Th>{t('dashboard.table_actions')}</Th>
                                             </Tr>
                                         </Thead>
                                         <Tbody>
@@ -408,17 +412,17 @@ export default function ProjectPage() {
                                         error={Boolean(errorsAddPerson.email)}
                                         required={true}
                                         type="email"
-                                        placeholder="E-mail cím"
-                                        errorMessage="Kérem adja meg a meghívandó személy e-mail címét."
-                                        label="Személy meghívása a projektbe"
+                                        placeholder={t('dashboard.label_email')}
+                                        errorMessage={t('dashboard.label_invite_people_error')}
+                                        label={t('dashboard.label_invite_people')}
                                         autoComplete="new-password"
                                     />
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingAddPerson} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button isLoading={isSubmittingAddPerson} type="submit" colorScheme='blue' mr={3} variant='solid'>{t('dashboard.btn_invite')}</Button>
                                 <Button onClick={onClosePeople}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -446,7 +450,7 @@ export default function ProjectPage() {
                 <Flex gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem isCurrentPage>
-                            <BreadcrumbLink href='/dashboard'>Áttekintő</BreadcrumbLink>
+                            <BreadcrumbLink href='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                         </BreadcrumbItem>
                     </Breadcrumb>
                     <Stack direction={"row"}>
@@ -454,26 +458,26 @@ export default function ProjectPage() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input variant={"filled"} onChange={(e) => setSearch(e.target.value)} type='text' placeholder='Projekt keresése' />
+                            <Input variant={"filled"} onChange={(e) => setSearch(e.target.value)} type='text' placeholder={t('dashboard.label_search')} />
                         </InputGroup>
-                        <Button onClick={onOpenCreate} colorScheme='green' leftIcon={<FaPlus />}>Létrehozás</Button>
+                        <Button onClick={onOpenCreate} colorScheme='green' leftIcon={<FaPlus />}> {t('dashboard.create_project_btn')}</Button>
                     </Stack>
                     <Table maxW={"250px"} variant={"striped"}>
                         <Thead>
                             <Tr>
-                                <Th>Név</Th>
-                                <Th>Leírás</Th>
-                                <Th>Létrehozva</Th>
-                                <Th>Résztvevők</Th>
-                                <Th>Műveletek</Th>
+                                <Th>{t('dashboard.table_name')}</Th>
+                                <Th>{t('dashboard.table_description')}</Th>
+                                <Th>{t('dashboard.table_created')}</Th>
+                                <Th>{t('dashboard.table_members')}</Th>
+                                <Th>{t('dashboard.table_actions')}</Th>
                             </Tr>
                         </Thead>
                         <Tbody >
                             {project && project.filter(p => p.title.includes(search)).map((i: ProjectResponse, k: number) => {
                                 return <Tr key={k}>
                                     <Td>{i.title}</Td>
-                                    <Td>{i.description}</Td>
-                                    <Td>{moment.utc(i.created).format("yyyy/MM/DD")}</Td>
+                                    <Td display={["none", "table-cell"]}>{i.description}</Td>
+                                    <Td display={["none", "table-cell"]}>{moment.utc(i.created).format("yyyy/MM/DD")}</Td>
                                     <Td userSelect={'none'}>
                                         <AvatarGroup size="sm" max={2}>
                                             {i.participants &&
@@ -484,16 +488,16 @@ export default function ProjectPage() {
                                     </Td>
                                     <Td>
                                         <Stack direction="row">
-                                            <Tooltip label={"Megnyitás"}>
+                                            <Tooltip label={t('dashboard.tooltip_open_project')}>
                                                 <IconButton aria-label="open project" onClick={() => navigate(`/dashboard/${i.id}`)} icon={<FaArrowRight />} colorScheme='green' />
                                             </Tooltip>
-                                            <Tooltip label="Projekt beállítások">
+                                            <Tooltip label={t('dashboard.tooltip_settings_project')}>
                                                 <IconButton aria-label="project settings" isDisabled={IsUserProjectOwner(i.participants) ? false : true} onClick={() => handleModifyOpen(i)} icon={<FiSettings />} colorScheme='blue' />
                                             </Tooltip>
-                                            <Tooltip label={"Hozzárendelt személyek kezelése"}>
+                                            <Tooltip label={t('dashboard.tooltip_members_project')}>
                                                 <IconButton aria-label="manage project people" isDisabled={IsUserProjectOwner(i.participants) ? false : true} onClick={() => handlePeopleOpen(i)} colorScheme='facebook' icon={<BiUserPlus />} />
                                             </Tooltip>
-                                            <Tooltip label={"Projekt törlése"}>
+                                            <Tooltip label={t('dashboard.tooltip_delete_project')}>
                                                 <IconButton aria-label="delete project" isDisabled={IsUserProjectOwner(i.participants) ? false : true} onClick={() => handleDeleteOpen(i)} icon={<FaTrash />} colorScheme='red' />
                                             </Tooltip>
                                         </Stack>
@@ -502,7 +506,7 @@ export default function ProjectPage() {
                             })}
                         </Tbody>
                     </Table>
-                </Flex>
+                </Flex >
             </>
         )
 }
