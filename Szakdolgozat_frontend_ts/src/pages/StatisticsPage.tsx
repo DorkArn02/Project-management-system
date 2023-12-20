@@ -14,6 +14,7 @@ import TooltipContent from "../components/TooltipContent";
 import TaskListHeader from "../components/TaskListHeader";
 import TaskListTable from "../components/TaskListTable";
 import { getAuditLogs } from "../api/audit";
+import { useTranslation } from "react-i18next";
 
 ChartJS.register(
     CategoryScale,
@@ -49,17 +50,16 @@ export default function StatisticsPage() {
         queryFn: () => getAuditLogs(projectId).then(res => res.data),
         enabled: !!projectId
     })
+    const { t, ready } = useTranslation()
 
     const options: Array<{ label: string, value: string }> = [
-        { label: "Napi", value: ViewMode.Day },
-        { label: "Havi", value: ViewMode.Month },
-        { label: 'Éves', value: ViewMode.Year }
+        { label: t('stats.daily'), value: ViewMode.Day },
+        { label: t('stats.monthly'), value: ViewMode.Month },
+        { label: t('stats.yearly'), value: ViewMode.Year }
     ]
-    if (board) {
-        console.log()
-    }
 
-    if (isLoadingProjects) {
+
+    if (isLoadingProjects && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -69,10 +69,10 @@ export default function StatisticsPage() {
             {projectId ?
                 <Breadcrumb>
                     <BreadcrumbItem>
-                        <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                        <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem >
-                        <BreadcrumbLink href='/dashboard/stats'>Statisztikák</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/stats'>{t('stats.stats_stats')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
                         <BreadcrumbLink>{projects?.filter(i => i.value === projectId)[0].label}</BreadcrumbLink>
@@ -81,14 +81,14 @@ export default function StatisticsPage() {
                 :
                 <Breadcrumb>
                     <BreadcrumbItem>
-                        <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                        <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
-                        <BreadcrumbLink href='/dashboard/tasks'>Statisztikák</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/tasks'>{t('stats.stats_stats')}</BreadcrumbLink>
                     </BreadcrumbItem>
                 </Breadcrumb>}
             <HStack>
-                <Select variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={"Kérem válassza ki a projektet..."} options={projects} />
+                <Select variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={t('stats.label_select_project')} options={projects} />
             </HStack>
             {board && board.length > 0 && board.reduce((total, column) => total + column.issues.length, 0) > 0 ?
                 <>
@@ -96,7 +96,7 @@ export default function StatisticsPage() {
                     <Grid p={10} gap={5} templateColumns={["repeat(1, 1fr)", "repeat(1, 1fr)", "repeat(2, 1fr)", "repeat(3, 1fr)"]}>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
-                                <Heading size="md">Feladatok eloszlása állapotok szerint</Heading>
+                                <Heading size="md">{t('stats.stats_distribution_by_state')}</Heading>
                             </CardHeader>
                             <CardBody>
                                 <Bar
@@ -105,7 +105,7 @@ export default function StatisticsPage() {
                                         labels: board.map(i => i.title),
                                         datasets: [
                                             {
-                                                label: 'Feladatok száma',
+                                                label: t('stats.number_of_tasks'),
                                                 data: board.map(i => i.issues.length),
                                                 backgroundColor: '#42a4ff',
                                             },
@@ -116,7 +116,7 @@ export default function StatisticsPage() {
                         </Card>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
-                                <Heading size="md">Feladatok eloszlása prioritások szerint</Heading>
+                                <Heading size="md">{t('stats.stats_distribution_by_priority')}</Heading>
                             </CardHeader>
                             <CardBody>
                                 <Doughnut
@@ -132,7 +132,7 @@ export default function StatisticsPage() {
                                         labels: ["Legalacsonyabb", "Alacsony", "Közepes", "Magas", "Legmagasabb"],
                                         datasets: [
                                             {
-                                                label: 'Feladatok száma',
+                                                label: t('stats.number_of_tasks'),
                                                 data: Array.from({ length: 5 }, (_, index) => (
                                                     board[index]?.issues.filter(j => j.priority).length || 0
                                                 )),
@@ -152,7 +152,7 @@ export default function StatisticsPage() {
                         </Card>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
-                                <Heading size="md">Feladatok eloszlása bejelentők szerint</Heading>
+                                <Heading size="md">{t('stats.stats_distribution_by_reporter')}</Heading>
                             </CardHeader>
                             <CardBody>
                                 <Bar
@@ -160,7 +160,7 @@ export default function StatisticsPage() {
                                     data={{
                                         datasets: [
                                             {
-                                                label: 'Bejelentett feladatok',
+                                                label: t('stats.reported_tasks'),
                                                 data: board.flatMap(b => b.issues.map(i => i.reporterName))
                                                     .reduce((acc: any, name) => (acc[name] = (acc[name] || 0) + 1, acc), {}),
                                                 backgroundColor: '#42a4ff',
@@ -173,16 +173,16 @@ export default function StatisticsPage() {
                         </Card>
                         <Card variant={"filled"} align="center">
                             <CardHeader textAlign={"center"}>
-                                <Heading size="md">Feladatok eloszlása hozzárendeltek szerint</Heading>
+                                <Heading size="md">{t('stats.stats_distribution_by_assignees')}</Heading>
                             </CardHeader>
                             <CardBody>
                                 <TableContainer>
                                     <Table variant='simple'>
                                         <Thead>
                                             <Tr>
-                                                <Th textAlign={"center"}>Hozzárendelt</Th>
-                                                <Th textAlign={"center"}>Eloszlás</Th>
-                                                <Th textAlign={"center"} isNumeric>Feladatok</Th>
+                                                <Th textAlign={"center"}>{t('stats.assigned_person')}</Th>
+                                                <Th textAlign={"center"}>{t('stats.distribution')}</Th>
+                                                <Th textAlign={"center"} isNumeric>{t('stats.tasks')}</Th>
                                             </Tr>
                                         </Thead>
                                         <Tbody>
@@ -203,7 +203,7 @@ export default function StatisticsPage() {
                                                         </HStack>
                                                     </Td>
                                                     <Td>
-                                                        <ChakraTooltip label={`${Math.round((tasksCount / totalTasks) * 100)}% Eloszlás`}>
+                                                        <ChakraTooltip label={`${Math.round((tasksCount / totalTasks) * 100)}% ${t('stats.distribution')}`}>
                                                             <Progress hasStripe value={(tasksCount / totalTasks) * 100} />
                                                         </ChakraTooltip>
                                                     </Td>
@@ -231,7 +231,7 @@ export default function StatisticsPage() {
                         </Card>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
-                                <Heading size="md">Feladatok eloszlása típus szerint</Heading>
+                                <Heading size="md">{t('stats.stats_distribution_by_issue_type')}</Heading>
                             </CardHeader>
                             <CardBody>
                                 <Bar
@@ -240,7 +240,7 @@ export default function StatisticsPage() {
                                         labels: ['Task', 'Story', 'Bug', 'Subtask'],
                                         datasets: [
                                             {
-                                                label: 'Feladatok száma',
+                                                label: t('stats.number_of_tasks'),
                                                 data: board.reduce((acc: any, b) => (b.issues.forEach(issue => acc[issue.issueType.name] = (acc[issue.issueType.name] || 0) + 1), acc), {}),
                                                 backgroundColor: '#42a4ff',
                                             }
@@ -251,7 +251,7 @@ export default function StatisticsPage() {
                         </Card>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
-                                <Heading size="md">Legutóbbi történések</Heading>
+                                <Heading size="md">{t('stats.stats_last_activity')}</Heading>
                             </CardHeader>
                             <CardBody maxH={"400px"} overflow={"auto"}>
                                 {logging ?
@@ -268,16 +268,16 @@ export default function StatisticsPage() {
                                             </HStack>
                                                 <Divider />
                                             </>
-                                        }) : <Text>Nincs jelenleg egyetlen történés sem.</Text>}
+                                        }) : <Text>{t('stats.stats_no_activities')}</Text>}
                                     </Stack>
                                     : ""}
                             </CardBody>
                         </Card>
                     </Grid>
-                    <Heading size="md">Gantt-diagram</Heading>
+                    <Heading size="md">{t('stats.gantt')}</Heading>
                     <HStack>
-                        <Select variant="filled" onChange={(e) => setView(e ? e.value.valueOf() : "Day")} defaultValue={{ label: "Havi", value: ViewMode.Month.valueOf() }} options={options} />
-                        <Checkbox onChange={() => setColumn(column ? "" : "100px")}>Bővebb leírás</Checkbox>
+                        <Select variant="filled" onChange={(e) => setView(e ? e.value.valueOf() : "Day")} defaultValue={{ label: t('stats.monthly'), value: ViewMode.Month.valueOf() }} options={options} />
+                        <Checkbox onChange={() => setColumn(column ? "" : "100px")}>{t('stats.more_details')}</Checkbox>
                     </HStack>
                     <HStack>
                         <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" viewMode={view as ViewMode} tasks={board.flatMap(b =>

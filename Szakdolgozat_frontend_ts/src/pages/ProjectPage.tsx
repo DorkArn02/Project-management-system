@@ -275,7 +275,7 @@ export default function ProjectPage() {
         return <Text>Hiba van!</Text>
     }
 
-    const { i18n, t, ready } = useTranslation()
+    const { t, ready } = useTranslation()
 
 
     if (isLoading && ready) {

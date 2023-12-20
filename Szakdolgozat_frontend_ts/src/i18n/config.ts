@@ -5,7 +5,7 @@ import huTranslation from './hu/translation.json'
 
 i18next.use(initReactI18next).init({
     debug: true,
-    lng: "en",
+    lng: localStorage.getItem('language') || "hu",
     fallbackLng: "en",
     interpolation: {
         escapeValue: false

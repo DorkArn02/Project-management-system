@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications } from '../api/user';
 import { NotificationResponse } from '../interfaces/interfaces';
 import { SignalRContext } from '../routes';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard() {
 
@@ -82,23 +83,26 @@ export default function Dashboard() {
         []);
 
 
+    const { t, ready } = useTranslation()
+
+
     if (user == null) {
         return ""
-    } else
+    } else if (ready)
         return (
             <>
                 <Modal isOpen={isOpen} onClose={onClose}>
                     <ModalOverlay />
                     <ModalContent>
-                        <ModalHeader>Megerősítés</ModalHeader>
+                        <ModalHeader>{t('users.label_logout_confirmation')}</ModalHeader>
                         <ModalCloseButton />
                         <ModalBody>
-                            <Text>Biztos kijelentkezel?</Text>
+                            <Text>{t('users.label_logout_more')}</Text>
                         </ModalBody>
                         <ModalFooter>
-                            <Button onClick={logout} colorScheme='blue' mr={3} variant='solid'>Kijelentkezés</Button>
+                            <Button onClick={logout} colorScheme='blue' mr={3} variant='solid'>{t('users.label_logout')}</Button>
                             <Button onClick={onClose}>
-                                Visszavonás
+                                {t('dashboard.btn_cancel')}
                             </Button>
                         </ModalFooter>
                     </ModalContent>
@@ -136,15 +140,15 @@ export default function Dashboard() {
                                 <Text fontSize={"small"}>{`${user.email}`}</Text>
                             </Stack>
                         </Stack>
-                        <Button onClick={() => navigate('/dashboard')} leftIcon={<AiOutlineProject />} variant={"ghost"}>{opened ? "Projektek" : ""} </Button>
-                        <Button onClick={() => navigate('/dashboard/tasks')} leftIcon={<FaTasks />} variant={"ghost"}>{opened ? "Saját feladataim" : ""}</Button>
+                        <Button onClick={() => navigate('/dashboard')} leftIcon={<AiOutlineProject />} variant={"ghost"}>{opened ? t('sidebar.projects_btn') : ""} </Button>
+                        <Button onClick={() => navigate('/dashboard/tasks')} leftIcon={<FaTasks />} variant={"ghost"}>{opened ? t('sidebar.tasks_btn') : ""}</Button>
                         <Button onClick={() => navigate('/dashboard/stats')} variant={"ghost"} leftIcon={<BiStats />}>
-                            {opened ? "Statisztikák" : ""}
+                            {opened ? t('sidebar.stats_btn') : ""}
                         </Button>
                         <Spacer />
                         <Popover placement='right' isLazy>
                             <PopoverTrigger>
-                                <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? "Értesítések" : <>
+                                <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? t('sidebar.notifications_btn') : <>
                                     {newMessage ? <Box
                                         position="absolute"
                                         bottom="-4px"
@@ -166,7 +170,7 @@ export default function Dashboard() {
                             <PopoverContent>
                                 <PopoverHeader fontWeight='semibold'>
                                     <HStack>
-                                        <Text>Értesítések ({notification && notification.length})</Text>
+                                        <Text>{t('sidebar.notifications_btn')} ({notification && notification.length})</Text>
                                         <IconButton position={"absolute"} size="sm" right={"12%"} variant="ghost" onClick={() => setSortOrder(!sortOrder)} aria-label='Sort by date' icon={sortOrder ? <FaSortAmountUpAlt /> : < FaSortAmountDown />} />
                                     </HStack>
                                 </PopoverHeader>
@@ -198,9 +202,9 @@ export default function Dashboard() {
                             </PopoverContent>
                         </Popover>
 
-                        <Button onClick={() => navigate('/dashboard/myprofile')} leftIcon={<FaUser />} variant="ghost" >{opened ? "Saját fiók" : ""}</Button>
-                        <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? "Téma váltása" : ""}</Button>
-                        <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? "Kijelentkezés" : ""}</Button>
+                        <Button onClick={() => navigate('/dashboard/myprofile')} leftIcon={<FaUser />} variant="ghost" >{opened ? t('sidebar.user_btn') : ""}</Button>
+                        <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? t('sidebar.theme_btn') : ""}</Button>
+                        <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? t('sidebar.logout_btn') : ""}</Button>
                     </Box>
                     <Box p={1} color="red.400" fontWeight={"bold"} position={"absolute"} top={0} left={"50%"}>{import.meta.env.MODE === "development" ? "TESZT RENDSZER" : "ÉLES RENDSZER"}</Box>
                     <Outlet />

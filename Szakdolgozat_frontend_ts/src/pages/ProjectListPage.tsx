@@ -65,6 +65,7 @@ import { IssueRequestView, IssueResponse, ParticipantResponse, ProjectListReques
 import EditorComponent from '../components/EditorComponent'
 import { addCommentToIssue, deleteCommentFromIssue } from '../api/user'
 import { TbSubtask } from "react-icons/tb"
+import { useTranslation } from 'react-i18next'
 
 interface PriorityL {
     value: string,
@@ -199,6 +200,9 @@ export default function ProjectListPage() {
         }
     }
 
+
+    const { t, ready } = useTranslation()
+
     const priorities = [
         { value: "1", label: "Legalacsonyabb", icon: <Icon mr={2} as={FcLowPriority} /> },
         { value: "2", label: "Alacsony", icon: <Icon mr={2} as={FcLowPriority} /> },
@@ -284,11 +288,12 @@ export default function ProjectListPage() {
     }
 
     const handleAddBoard = async (data: ProjectListRequest) => {
+
         if (project && boards)
             try {
                 await addProjectBoard(project.id, { title: data.title, position: boards.length + 1 })
                 toast({
-                    title: 'Board sikeresen létrehozva a projekthez.',
+                    title: t('projectlist.popup_board_add_success'),
                     status: 'success',
                     duration: 4000,
                     isClosable: true,
@@ -297,7 +302,7 @@ export default function ProjectListPage() {
                 handleCloseAddBoard()
             } catch (e) {
                 toast({
-                    title: 'Hiba történt a board hozzáadása közben...',
+                    title: t('projectlist.popup_board_add_error'),
                     status: 'error',
                     duration: 4000,
                     isClosable: true,
@@ -316,7 +321,7 @@ export default function ProjectListPage() {
             try {
                 await deleteIssueFromBoard(projectId, currentBoardId, currentIssue.id)
                 toast({
-                    title: 'Issue sikeresen törölve!.',
+                    title: t('projectlist.popup_issue_delete_success'),
                     status: 'success',
                     duration: 4000,
                     isClosable: true,
@@ -326,7 +331,7 @@ export default function ProjectListPage() {
                 onCloseIssue()
             } catch (e) {
                 toast({
-                    title: 'Hiba történt az issue törlésekor!.',
+                    title: t('projectlist.popup_issue_delete_error'),
                     description: "",
                     status: 'error',
                     duration: 4000,
@@ -468,7 +473,7 @@ export default function ProjectListPage() {
             }
 
             toast({
-                title: 'Issue sikeresen létrehozva!.',
+                title: t('projectlist.popup_issue_add_success'),
                 description: "",
                 status: 'success',
                 duration: 4000,
@@ -533,7 +538,7 @@ export default function ProjectListPage() {
         try {
             await deleteProjectBoard(projectId!, currentBoardId!)
             toast({
-                title: 'Board törölve.',
+                title: t('projectlist.popup_board_delete_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -542,7 +547,7 @@ export default function ProjectListPage() {
             onCloseBoardDelete()
         } catch (e) {
             toast({
-                title: 'Board törlése sikertelen.',
+                title: t('projectlist.popup_board_delete_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -569,7 +574,7 @@ export default function ProjectListPage() {
         try {
             await editProjectBoard(projectId!, currentBoardId!, obj)
             toast({
-                title: 'Board címe frissítve.',
+                title: t('projectlist.popup_board_edit_title_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -578,7 +583,7 @@ export default function ProjectListPage() {
             handleBoardEditClose()
         } catch (e) {
             toast({
-                title: 'Sikertelen művelet.',
+                title: t('projectlist.popup_board_edit_title_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -628,7 +633,7 @@ export default function ProjectListPage() {
                 await changeIssue(projectId!, currentBoardId!, currentIssue!.id, patchData)
                 updateProjectBoards()
                 toast({
-                    title: 'Feladat leírása sikeresen módosítva.',
+                    title: t('projectlist.popup_issue_edit_success'),
                     status: 'success',
                     duration: 4000,
                     isClosable: true,
@@ -667,7 +672,7 @@ export default function ProjectListPage() {
         try {
             await addCommentToIssue(projectId!, currentIssue!.id, comment)
             toast({
-                title: 'Hozzászólás sikeresen hozzáadva a feladathoz.',
+                title: t('projectlist.popup_comment_add_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -679,7 +684,7 @@ export default function ProjectListPage() {
             onCloseIssue()
         } catch (e) {
             toast({
-                title: 'Hozzászólás rögzítése sikertelen.',
+                title: t('projectlist.popup_comment_add_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -692,14 +697,14 @@ export default function ProjectListPage() {
         try {
             await deleteCommentFromIssue(projectId!, currentIssue!.id, id)
             toast({
-                title: 'Hozzászólás sikeresen törölve.',
+                title: t('projectlist.popup_comment_delete_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
             })
         } catch {
             toast({
-                title: 'Hozzászólás törlése sikertelen.',
+                title: t('projectlist.popup_comment_delete_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -718,7 +723,7 @@ export default function ProjectListPage() {
         try {
             await editProjectBoardPosition(projectId!, currentBoardId!, obj.boardId)
             toast({
-                title: 'Board pozíciója sikeresen módosult.',
+                title: t('projectlist.popup_board_edit_pos_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -727,7 +732,7 @@ export default function ProjectListPage() {
             handleCloseBoardEditPos()
         } catch (e) {
             toast({
-                title: 'Hiba történt a módosítás során.',
+                title: t('projectlist.popup_board_edit_pos_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -753,14 +758,14 @@ export default function ProjectListPage() {
         try {
             await addChildIssue(projectId!, obj.childId, currentIssue!.id)
             toast({
-                title: 'Feladat hozzárendelés sikeres.',
+                title: t('projectlist.popup_issue_add_subtasks_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
             })
         } catch (e) {
             toast({
-                title: 'Hiba történt a hozzárendelés során.',
+                title: t('projectlist.popup_issue_add_subtasks_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -783,14 +788,14 @@ export default function ProjectListPage() {
         try {
             await deleteChildIssue(projectId!, currentChildIssue, currentIssue!.id)
             toast({
-                title: 'Feladat leválasztása sikeres.',
+                title: t('projectlist.popup_issue_delete_subtasks_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
             })
         } catch (e) {
             toast({
-                title: 'Hiba történt a feladat leválasztása során.',
+                title: t('projectlist.popup_issue_delete_subtasks_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
@@ -807,7 +812,7 @@ export default function ProjectListPage() {
     if (projectIsError || projectListIsError) {
         navigate('/dashboard')
     }
-    if (isLoadingProject || isLoadingBoards) {
+    if (isLoadingProject && ready || isLoadingBoards && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -819,7 +824,7 @@ export default function ProjectListPage() {
                 <Modal isOpen={isOpen} onClose={handleCloseAddBoard}>
                     <ModalOverlay />
                     <ModalContent>
-                        <ModalHeader>Board hozzáadása a projekthez</ModalHeader>
+                        <ModalHeader>{t('projectlist.modal_add_board')}</ModalHeader>
                         <ModalCloseButton />
                         <form autoComplete='off' onSubmit={handleSubmitBoardCreate(handleAddBoard)}>
                             <ModalBody>
@@ -829,15 +834,15 @@ export default function ProjectListPage() {
                                     register={registerBoardCreate}
                                     required={true}
                                     error={Boolean(errorsBoardCreate.title)}
-                                    label='Tábla neve'
-                                    errorMessage='Kérem adja meg a tábla címét.'
+                                    label={t('projectlist.label_board_name')}
+                                    errorMessage={t('projectlist.label_board_name_error')}
                                     tabIndex={1}
                                 />
                             </ModalBody>
                             <ModalFooter>
-                                <Button tabIndex={2} isLoading={isSubmittingBoardCreate} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardCreate} type="submit" colorScheme='blue' mr={3} variant='solid'>{t('dashboard.btn_create')}</Button>
                                 <Button tabIndex={3} onClick={handleCloseAddBoard}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -848,63 +853,63 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalCloseButton />
-                        <ModalHeader>Ügy létrehozása</ModalHeader>
+                        <ModalHeader>{t('projectlist.modal_create_issue')}</ModalHeader>
                         <form autoComplete='off' onSubmit={handleSubmitIssueCreate(handleAddIssueForm)}>
                             <ModalBody>
                                 <Stack spacing={5}>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.title)}>
-                                        <FormLabel>Cím</FormLabel>
-                                        <Input tabIndex={1} placeholder='Feladat címe' variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
-                                        <FormErrorMessage>{errorsIssueCreate.title ? "Kérem írjon be címet." : ""}</FormErrorMessage>
+                                        <FormLabel>{t('projectlist.label_issue_title')}</FormLabel>
+                                        <Input tabIndex={1} placeholder={t('projectlist.label_issue_title_more')} variant={"filled"} type="text" {...registerIssueCreate("title", { required: true })} />
+                                        <FormErrorMessage>{errorsIssueCreate.title ? t('projectlist.label_issue_title_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl zIndex={1000} isInvalid={Boolean(errorsIssueCreate.issueTypeId)}>
-                                        <FormLabel>Feladat típusa</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_type')}</FormLabel>
                                         <Controller name="issueTypeId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
-                                            <ChakraSelect tabIndex={2} components={customComponents} placeholder="Feladat típusa" isClearable={true} variant='filled' options={issueTypes} onChange={onChange} value={value} />
+                                            <ChakraSelect tabIndex={2} components={customComponents} placeholder={t('projectlist.label_issue_type_more')} isClearable={true} variant='filled' options={issueTypes} onChange={onChange} value={value} />
                                         )} />
-                                        <FormErrorMessage>{errorsIssueCreate.priorityId ? "Kérem válasszon ki feladat típust." : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.priorityId ? t('projectlist.label_issue_type_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl>
-                                        <FormLabel>Leírás</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_description')}</FormLabel>
                                         <Controller name="description" rules={{ required: false }} control={controlIssueCreate}
                                             render={({ field: { value, onChange } }) => (
                                                 <EditorComponent tabIndex={3} toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
                                             )} />
                                     </FormControl>
                                     <FormControl>
-                                        <FormLabel>Személyek hozzárendelése</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_people')}</FormLabel>
                                         {project &&
                                             <Controller name="assignedPeople" rules={{ required: false }} control={controlIssueCreate}
                                                 render={({ field: { value, onChange } }) => (
                                                     <>
-                                                        <ChakraSelect tabIndex={4} isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
+                                                        <ChakraSelect tabIndex={4} isMulti={true} placeholder={t('projectlist.label_issue_people_more')} isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
                                                     </>
                                                 )} />
 
                                         }
                                     </FormControl>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.priorityId)}>
-                                        <FormLabel>Prioritás</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_priority')}</FormLabel>
                                         <Controller name="priorityId" rules={{ required: true }} control={controlIssueCreate} render={({ field: { value, onChange } }) => (
-                                            <ChakraSelect tabIndex={5} components={customComponents} placeholder="Szűrés prioritás szerint..." isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
+                                            <ChakraSelect tabIndex={5} components={customComponents} placeholder={t('projectlist.label_issue_priority_more')} isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
                                         )} />
-                                        <FormErrorMessage>{errorsIssueCreate.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.priorityId ? t('projectlist.label_issue_priority_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.timeEstimate)}>
-                                        <FormLabel>Becsült idő (óra)</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_time_estimate')}</FormLabel>
                                         <Input tabIndex={6} placeholder='1' variant={"filled"}  {...registerIssueCreate("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} type="number" />
-                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? t('projectlist.label_issue_time_estimate_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.dueDate)}>
-                                        <FormLabel>Határidő</FormLabel>
+                                        <FormLabel>{t('projectlist.label_issue_deadline')}</FormLabel>
                                         <Input tabIndex={7} variant={"filled"} {...registerIssueCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > (new Date()) })} type="date" />
-                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? "A határidőnek nagyobbnak kell lennie, mint ma" : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? t('projectlist.label_issue_deadline_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>
                             <ModalFooter>
-                                <Button tabIndex={8} isLoading={isSubmittingIssueCreate} mr={3} type="submit" colorScheme='blue'>Létrehozás</Button>
-                                <Button tabIndex={9} onClick={handleAddIssueClose}>Visszavonás</Button>
+                                <Button tabIndex={8} isLoading={isSubmittingIssueCreate} mr={3} type="submit" colorScheme='blue'>{t('dashboard.btn_create')}</Button>
+                                <Button tabIndex={9} onClick={handleAddIssueClose}>{t('dashboard.btn_cancel')}</Button>
                             </ModalFooter>
                         </form>
                     </ModalContent>
@@ -914,16 +919,16 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
-                            <Text>Megerősítés</Text>
+                            <Text>{t('projectlist.modal_delete_issue')}</Text>
                         </ModalHeader>
                         <ModalCloseButton />
                         <ModalBody>
-                            <Text>Biztos kitörli?</Text>
+                            <Text>{t('projectlist.modal_delete_issue_more')}</Text>
                         </ModalBody>
                         <ModalFooter>
                             <form onSubmit={handleSubmitDelete(handleDeleteIssue)}>
-                                <Button type="submit" isLoading={isSubmittingDelete} colorScheme='blue' mr={2}>Törlés</Button>
-                                <Button onClick={onCloseDelete}>Visszavonás</Button>
+                                <Button type="submit" isLoading={isSubmittingDelete} colorScheme='blue' mr={2}>{t('dashboard.btn_delete')}</Button>
+                                <Button onClick={onCloseDelete}>{t('dashboard.btn_cancel')}</Button>
                             </form>
                         </ModalFooter>
                     </ModalContent>
@@ -943,19 +948,19 @@ export default function ProjectListPage() {
                                             <Tooltip label={currentIssue.issueType.name} shouldWrapChildren={true}>{handleIssueTypeIcon(currentIssue.issueType.name)}</Tooltip>
                                             <FormControl isInvalid={Boolean(errorsView.title)} mt={1}>
                                                 <Input tabIndex={1} maxLength={50} maxW="80%" border="0" {...registerView("title", { required: true })} defaultValue={currentIssue.title} />
-                                                <FormErrorMessage>{errorsView.title ? "Kérem adjon címet a feladatnak." : ""}</FormErrorMessage>
+                                                <FormErrorMessage>{errorsView.title ? t('projectlist.label_issue_title_error') : ""}</FormErrorMessage>
                                             </FormControl>
                                         </HStack>
                                     </ModalHeader>
-                                    <Tooltip label="Feladat törlése">
+                                    <Tooltip label={t('projectlist.tooltip_delete_task')}>
                                         <IconButton aria-label='Delete issue' onClick={onOpenDelete} size="md" right={14} top={5} position={"absolute"} variant="ghost" icon={<FaTrash />} />
                                     </Tooltip>
 
-                                    <Tooltip label="Előnézet bezárása">
+                                    <Tooltip label={t('projectlist.tooltip_close_task')}>
                                         <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     </Tooltip>
                                     {currentIssue.issueType.name === 'Subtask' && currentIssue.parentIssueId != null ?
-                                        <Tooltip label="Navigálás a szülő feladatra">
+                                        <Tooltip label={t('projectlist.tooltip_navigate_parent_task')}>
                                             <IconButton aria-label='Navigate to parent issue' onClick={() => handleOpenParentIssue(currentIssue)} size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<FaExternalLinkAlt />} />
                                         </Tooltip>
                                         : ""}
@@ -963,7 +968,7 @@ export default function ProjectListPage() {
                                         <HStack gap="30px" align={"flex-start"}>
                                             <Flex maxH="100vh" w="60%" direction={"column"}>
                                                 <FormControl>
-                                                    <FormLabel>Leírás</FormLabel>
+                                                    <FormLabel>{t('projectlist.label_issue_description')}</FormLabel>
                                                     <Controller defaultValue={currentIssue.description} name="description" rules={{ required: false }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <EditorComponent tabIndex={2} toolbar={true} theme={colorMode === 'dark' ? 'dark' : 'light'} data={value!} setData={onChange} />
@@ -973,7 +978,7 @@ export default function ProjectListPage() {
                                                     <>
                                                         <HStack align={"center"} ml={3}>
                                                             <TbSubtask size={20} />
-                                                            <Heading size="md">Hozzárendelt feladatok: </Heading>
+                                                            <Heading size="md">{t('projectlist.label_issue_subtasks')} </Heading>
                                                             <IconButton onClick={() => handleOpenSubtask()} aria-label='add subtask' variant="solid" size="sm" icon={<FaPlus />} />
                                                         </HStack>
                                                         <Stack ml={3}>
@@ -986,7 +991,7 @@ export default function ProjectListPage() {
                                                                     <Spacer />
                                                                     <Avatar name={i.reporterName} size="xs" />
                                                                     {handlePriorityIcon(i.priority)}
-                                                                    <Tooltip label="Hozzárendelt feladat leválasztása"><IconButton variant="solid" onClick={() => handleOpenDeleteSubtask(i.id)} icon={<ImCross />} aria-label='remove subtask' size="sm" /></Tooltip>
+                                                                    <Tooltip label={t('projectlist.label_issue_remove_subtask')}><IconButton variant="solid" onClick={() => handleOpenDeleteSubtask(i.id)} icon={<ImCross />} aria-label='remove subtask' size="sm" /></Tooltip>
                                                                 </Tag>
                                                             }) : ""}
                                                         </Stack>
@@ -997,16 +1002,16 @@ export default function ProjectListPage() {
                                                     <FormLabel>
                                                         <HStack>
                                                             <BsChatLeftTextFill size={20} />
-                                                            <Heading size="md">Hozzászólások ({currentIssue.comments.length})</Heading>
+                                                            <Heading size="md">{t('projectlist.label_issue_comments')} ({currentIssue.comments.length})</Heading>
                                                         </HStack>
                                                     </FormLabel>
                                                     <HStack mb={3} align="baseline">
                                                         <Avatar size="sm" name={`${user?.lastName} ${user?.firstName}`} />
-                                                        <Textarea onFocus={() => setCommenting(1)} onChange={debouncedCommentHandler} placeholder='Hozzászólás írása...' />
+                                                        <Textarea onFocus={() => setCommenting(1)} onChange={debouncedCommentHandler} placeholder={t('projectlist.label_issue_comments_more')} />
                                                     </HStack>
                                                     {commenting ? <>
-                                                        <Button mb={5} ml={10} onClick={() => handleComment()} colorScheme='blue'>Elküldés</Button>
-                                                        <Button mb={5} ml={5} onClick={() => { setCommenting(0) }} colorScheme='gray'>Visszavonás</Button></> : ""}
+                                                        <Button mb={5} ml={10} onClick={() => handleComment()} colorScheme='blue'>{t('projectlist.label_issue_comments_send')}</Button>
+                                                        <Button mb={5} ml={5} onClick={() => { setCommenting(0) }} colorScheme='gray'>{t('dashboard.btn_cancel')}</Button></> : ""}
                                                 </FormControl>
                                                 {currentIssue.comments.map((c, k) => {
                                                     return <>
@@ -1034,7 +1039,7 @@ export default function ProjectListPage() {
                                                     <FormLabel>
                                                         <HStack>
                                                             <MdInfo />
-                                                            <Text>Státusz</Text>
+                                                            <Text>{t('projectlist.label_issue_state')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Select tabIndex={3} {...registerView("projectListId", { required: true })} variant={"filled"} size={"md"} defaultValue={currentBoardId}>
@@ -1047,7 +1052,7 @@ export default function ProjectListPage() {
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaUsers />
-                                                            <Text>Hozzárendelt személyek</Text>
+                                                            <Text>{t('projectlist.label_issue_assigned_people')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Controller defaultValue={assignedPeople} name="assignedPeople" rules={{ required: false }} control={controlView}
@@ -1055,7 +1060,7 @@ export default function ProjectListPage() {
                                                             <>
                                                                 <ChakraSelect
                                                                     tabIndex={4}
-                                                                    useBasicStyles tagVariant='solid' isMulti={true} placeholder="Személyek hozzárendelése" isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
+                                                                    useBasicStyles tagVariant='solid' isMulti={true} placeholder={t('projectlist.label_issue_people_more')} isClearable={true} variant='filled' options={people} onChange={onChange} value={value} />
                                                             </>
                                                         )} />
                                                 </FormControl>
@@ -1063,7 +1068,7 @@ export default function ProjectListPage() {
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaUser />
-                                                            <Text>Bejelentő</Text>
+                                                            <Text>{t('projectlist.label_issue_reporter')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Tag borderRadius={"full"} size="lg">
@@ -1075,33 +1080,33 @@ export default function ProjectListPage() {
                                                     <FormLabel>
                                                         <HStack>
                                                             <BsBarChartFill />
-                                                            <Text>Prioritás</Text>
+                                                            <Text>{t('projectlist.label_issue_priority')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Controller defaultValue={{ value: `${currentIssue.priority.id}`, label: `${currentIssue.priority.name}` }} name="priorityId" rules={{ required: true }} control={controlView}
                                                         render={({ field: { value, onChange } }) => (
                                                             <>
-                                                                <ChakraSelect tabIndex={5} components={customComponents} placeholder={"Prioritás kiválasztása"} isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
+                                                                <ChakraSelect tabIndex={5} components={customComponents} placeholder={t('projectlist.label_issue_priority_more')} isClearable={true} variant='filled' options={priorities} onChange={onChange} value={value} />
                                                             </>
                                                         )} />
-                                                    <FormErrorMessage>{errorsView.priorityId ? "Kérem válasszon ki prioritást." : ""}</FormErrorMessage>
+                                                    <FormErrorMessage>{errorsView.priorityId ? t('projectlist.label_issue_priority_error') : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <FormControl isInvalid={Boolean(errorsView.timeEstimate)}>
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaClock />
-                                                            <Text>Feladatra becsült idő (órában)</Text>
+                                                            <Text>{t('projectlist.label_issue_time_estimate')}</Text>
                                                         </HStack>
                                                     </FormLabel>                              <NumberInput step={1} defaultValue={currentIssue.timeEstimate} variant={"filled"}>
                                                         <NumberInputField tabIndex={6}{...registerView("timeEstimate", { required: false, valueAsNumber: true, validate: (value) => value! >= 1 })} />
                                                     </NumberInput>
-                                                    <FormErrorMessage>{errorsView.timeEstimate ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                                    <FormErrorMessage>{errorsView.timeEstimate ? t('projectlist.label_issue_time_estimate_error') : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <FormControl isInvalid={Boolean(errorsView.timeSpent)} zIndex={0}>
                                                     <FormLabel>
                                                         <HStack>
                                                             <FaClock />
-                                                            <Text>Befektetett idő (órában)</Text>
+                                                            <Text>{t('projectlist.label_issue_time_spent')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Stack >
@@ -1118,22 +1123,22 @@ export default function ProjectListPage() {
                                                                 }
                                                             })} />
                                                         </NumberInput>
-                                                        <FormErrorMessage>{errorsView.timeSpent ? "0-tól nagyobb számot adjon meg." : ""}</FormErrorMessage>
+                                                        <FormErrorMessage>{errorsView.timeSpent ? t('projectlist.label_issue_time_estimate_error') : ""}</FormErrorMessage>
                                                     </Stack>
                                                 </FormControl>
                                                 <FormControl isInvalid={Boolean(errorsView.dueDate)}>
                                                     <FormLabel>
                                                         <HStack>
                                                             <BsFillCalendarDateFill />
-                                                            <Text>Határidő (dátum)</Text>
+                                                            <Text>{t('projectlist.label_issue_deadline')}</Text>
                                                         </HStack>
                                                     </FormLabel>
                                                     <Input tabIndex={8} color={moment(currentIssue.dueDate).isBefore(Date.now()) ? "#e88374" : "green"} variant={"filled"} defaultValue={moment(currentIssue.dueDate).format("yyyy-MM-DD")} {...registerView("dueDate", { required: true, valueAsDate: true })} type="date" />
                                                     <FormErrorMessage>{errorsView.dueDate ? "Adjon meg egy határidőt." : ""}</FormErrorMessage>
                                                 </FormControl>
                                                 <Divider />
-                                                <Text>Létrehozva: {moment(currentIssue.created).fromNow()}</Text>
-                                                <Text>Frissítve: {moment(currentIssue.updated).fromNow()}</Text>
+                                                <Text>{t('projectlist.label_issue_created')}: {moment(currentIssue.created).fromNow()}</Text>
+                                                <Text>{t('projectlist.label_issue_updated')}: {moment(currentIssue.updated).fromNow()}</Text>
                                             </Stack>
                                         </HStack>
                                     </ModalBody>
@@ -1147,21 +1152,21 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
-                            <Text>Board nevének módosítása</Text>
+                            <Text>{t('projectlist.modal_edit_name')}</Text>
                         </ModalHeader>
                         <ModalCloseButton />
                         <form autoComplete='off' onSubmit={handleSubmitBoardEdit(handleBoardEdit)}>
                             <ModalBody>
                                 <FormControl isInvalid={Boolean(errorsBoardEdit.title)}>
-                                    <FormLabel>Tábla neve</FormLabel>
+                                    <FormLabel>{t('projectlist.label_board_name')}</FormLabel>
                                     <Input tabIndex={1} defaultValue={title} {...registerBoardEdit("title", { required: true })} type="text" />
-                                    {errorsBoardEdit.title ? <FormErrorMessage>Kérem adja meg a tábla címét.</FormErrorMessage> : ""}
+                                    {errorsBoardEdit.title ? <FormErrorMessage>{t('projectlist.label_board_name_error')}</FormErrorMessage> : ""}
                                 </FormControl>
                             </ModalBody>
                             <ModalFooter>
-                                <Button tabIndex={2} isLoading={isSubmittingBoardEdit} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendel</Button>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardEdit} type="submit" colorScheme='blue' mr={3} variant='solid'>{t('projectlist.btn_edit')}</Button>
                                 <Button tabIndex={3} onClick={handleBoardEditClose}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -1172,18 +1177,18 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
-                            <Text>Board törlés megerősítése</Text>
+                            <Text>{t('projectlist.modal_delete_board')}</Text>
                         </ModalHeader>
                         <ModalCloseButton />
                         <ModalBody>
-                            Biztosan törli?
+                            {t('projectlist.modal_delete_board_more')}
                         </ModalBody>
                         <ModalFooter>
                             <form onSubmit={handleSubmitDelete(handleBoardDelete)}>
                                 <Button mr={3} onClick={onCloseBoardDelete}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
-                                <Button colorScheme='blue' type="submit" isLoading={isSubmittingDelete} variant='solid'>Törlés</Button>
+                                <Button colorScheme='blue' type="submit" isLoading={isSubmittingDelete} variant='solid'>{t('dashboard.btn_delete')}</Button>
                             </form>
                         </ModalFooter>
                     </ModalContent>
@@ -1193,12 +1198,12 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
-                            <Text>Board pozíció módosítása</Text>
+                            <Text>{t('projectlist.modal_edit_position')}</Text>
                         </ModalHeader>
                         <ModalCloseButton />
                         <form onSubmit={handleSubmitBoardEditPos(handleBoardPosition)}>
                             <ModalBody>
-                                <Text mb={5}>Válassza ki azt a board-ot, amelyet kicserélne az aktuálissal</Text>
+                                <Text mb={5}>{t('projectlist.modal_edit_position')}</Text>
                                 <Select tabIndex={1} {...registerBoardEditPos("boardId", { required: true })}>
                                     {otherBoards.map((i, k) => {
                                         return <option key={k} value={i.id}>{i.title}</option>
@@ -1206,9 +1211,9 @@ export default function ProjectListPage() {
                                 </Select>
                             </ModalBody>
                             <ModalFooter>
-                                <Button tabIndex={2} isLoading={isSubmittingBoardEditPos} type="submit" colorScheme='blue' mr={3} variant='solid'>Módosítás</Button>
+                                <Button tabIndex={2} isLoading={isSubmittingBoardEditPos} type="submit" colorScheme='blue' mr={3} variant='solid'>{t('projectlist.btn_edit')}</Button>
                                 <Button tabIndex={3} onClick={onCloseBoardEditPos}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -1219,7 +1224,7 @@ export default function ProjectListPage() {
                     <ModalOverlay />
                     <ModalContent>
                         <ModalHeader>
-                            <Text>Feladat hozzárendelése</Text>
+                            <Text>{t('projectlist.modal_add_subtask')}</Text>
                         </ModalHeader>
                         <ModalCloseButton />
                         <form onSubmit={handleSubmitAddSubtask(handleAddSubtask)}>
@@ -1231,9 +1236,9 @@ export default function ProjectListPage() {
                                 </Select>
                             </ModalBody>
                             <ModalFooter>
-                                <Button isLoading={isSubmittingAddSubtask} type="submit" colorScheme='blue' mr={3} variant='solid'>Hozzárendelés</Button>
+                                <Button isLoading={isSubmittingAddSubtask} type="submit" colorScheme='blue' mr={3} variant='solid'>{t('projectlist.btn_add')}</Button>
                                 <Button onClick={onCloseAddSubtask}>
-                                    Visszavonás
+                                    {t('dashboard.btn_cancel')}
                                 </Button>
                             </ModalFooter>
                         </form>
@@ -1261,10 +1266,10 @@ export default function ProjectListPage() {
                 <Flex justify={"stretch"} gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
-                            <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                            <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbItem isCurrentPage>
-                            <BreadcrumbLink href='#'>{project!.title} (Kanban tábla)</BreadcrumbLink>
+                            <BreadcrumbLink href='#'>{project!.title} ({t('projectlist.label_kanban_table')})</BreadcrumbLink>
                         </BreadcrumbItem>
                     </Breadcrumb>
                     <HStack>
@@ -1272,15 +1277,15 @@ export default function ProjectListPage() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input variant={"filled"} onChange={debouncedChangeHandler} type='text' placeholder='Feladat keresése...' />
+                            <Input variant={"filled"} onChange={debouncedChangeHandler} type='text' placeholder={t('projectlist.label_search_task')} />
                         </InputGroup>
                         <AvatarGroup userSelect={'none'} size={"md"}>
                             {selectedPeople && selectedPeople.map((i, k) => {
                                 return <Tooltip label={i.label}><Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} /></Tooltip>
                             })}
                         </AvatarGroup>
-                        <ChakraSelect components={customComponents} placeholder="Szűrés prioritás szerint..." onChange={(e) => handlePriorityFilter(e)} isClearable={true} variant='filled' options={priorities} name='priorities' />
-                        <Checkbox isChecked={viewOld} onChange={() => setViewOld(!viewOld)}>Lejárt feladatok mutatása</Checkbox>
+                        <ChakraSelect components={customComponents} placeholder={t('projectlist.label_filter_priority')} onChange={(e) => handlePriorityFilter(e)} isClearable={true} variant='filled' options={priorities} name='priorities' />
+                        <Checkbox isChecked={viewOld} onChange={() => setViewOld(!viewOld)}>{t('projectlist.label_show_expired_tasks')}</Checkbox>
                     </HStack>
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <HStack minH="90vh" userSelect={"none"} gap={5} >
@@ -1311,20 +1316,20 @@ export default function ProjectListPage() {
                                             />
                                             <MenuList>
                                                 <MenuItem onClick={() => handleBoardDeleteOpen(i.id)} icon={<FaTrash />}>
-                                                    Board törlése
+                                                    {t('projectlist.menu_delete_board')}
                                                 </MenuItem>
                                                 <MenuItem onClick={() => handleBoardEditOpen(i.title, i.id)} icon={<FaPen />}>
-                                                    Board átnevezése
+                                                    {t('projectlist.menu_rename_board')}
                                                 </MenuItem>
                                                 <MenuItem onClick={() => handleBoardEditPosOpen(i.id)} icon={<MdNumbers />}>
-                                                    Board áthelyezése
+                                                    {t('projectlist.menu_move_board')}
                                                 </MenuItem>
                                             </MenuList>
                                         </Menu>
                                     </HStack>
                                     <Flex as={Button} gap={2} onClick={() => handleAddIssueOpen(i.id)} _hover={{ bg: (colorMode === 'light' ? "gray.100" : "gray.500"), cursor: 'pointer' }} bg={colorMode === 'light' ? "white" : '#333'} align="center" borderRadius={5} p={1} justify={"center"}>
                                         <FaPlus />
-                                        <Text>Ügy hozzáadása</Text>
+                                        <Text>{t('projectlist.board_add_issue')}</Text>
                                     </Flex>
                                     <Droppable droppableId={`${i.id}`} direction='vertical'>
                                         {(provided, snapshot) => (
@@ -1355,7 +1360,7 @@ export default function ProjectListPage() {
                                 </Stack>
 
                             })}
-                            <Tooltip label="Board hozzáadása">
+                            <Tooltip label={t('projectlist.label_add_board')}>
                                 <Flex
                                     height="full"
                                     width="200px"

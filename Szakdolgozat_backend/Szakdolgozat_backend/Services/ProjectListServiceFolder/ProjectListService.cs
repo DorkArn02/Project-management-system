@@ -226,7 +226,7 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
                 }
             }
 
-            return result.ToList();
+            return result.OrderBy(i=>i.Position).ToList();
 
             //return projectListResponseDTO.OrderBy(p => p.Position).ToList();
         }

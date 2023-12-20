@@ -1,6 +1,0 @@
-2023-11-25 22:31:13.397 +01:00 [INF] User profile is available. Using 'C:\Users\arnold\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
-2023-11-25 22:31:14.536 +01:00 [INF] Now listening on: https://localhost:7093
-2023-11-25 22:31:14.539 +01:00 [INF] Now listening on: http://localhost:5013
-2023-11-25 22:31:14.549 +01:00 [INF] Application started. Press Ctrl+C to shut down.
-2023-11-25 22:31:14.553 +01:00 [INF] Hosting environment: Development
-2023-11-25 22:31:14.555 +01:00 [INF] Content root path: C:\Users\arnold\Desktop\Szakdolgozat mappa\Project-management-system\Szakdolgozat_backend\Szakdolgozat_backend\

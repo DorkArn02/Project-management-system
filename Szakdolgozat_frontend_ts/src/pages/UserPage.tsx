@@ -1,4 +1,4 @@
-import { Flex, Breadcrumb, Stack, BreadcrumbItem, BreadcrumbLink, Heading, Text, Button, useToast } from "@chakra-ui/react"
+import { Flex, Breadcrumb, Select, Stack, BreadcrumbItem, BreadcrumbLink, Heading, Text, Button, useToast, FormControl, FormLabel } from "@chakra-ui/react"
 import { Link } from 'react-router-dom'
 import moment from 'moment'
 import { useForm } from 'react-hook-form'
@@ -9,22 +9,24 @@ import InputComponent from "../components/InputComponent"
 import { object, ref, string } from "yup"
 import { yupResolver } from "@hookform/resolvers/yup"
 import { useMutation } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 
 export default function UserPage() {
 
     const { user } = useAuth()
 
     const toast = useToast()
+    const { t, ready, i18n } = useTranslation()
 
     const validationSchema = object({
         oldPassword: string()
-            .required("Kérem adja meg a régi jelszavát."),
+            .required(t('users.label_old_password_error')),
         password1: string()
-            .required("Kérem adja meg a jelszavát.")
-            .min(8, "A jelszó hosszúság minimum 8 karakter."),
+            .required(t('users.label_new_password_error'))
+            .min(8, t('users.label_password_short')),
         password2: string()
-            .required("Kérem adja meg a jelszavát újra.")
-            .oneOf([ref("password1")], "A jelszavak nem egyeznek."),
+            .required(t('users.label_new_password_again_error'))
+            .oneOf([ref("password1")], t('users.label_passwords_not_match')),
     });
 
     const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<PasswordChangeRequest>({
@@ -59,27 +61,45 @@ export default function UserPage() {
             },
         })
     }
-    if (user)
+
+    const languageOptions = [
+        { label: "Magyar", value: "hu" },
+        { label: "English", value: "en" }
+    ]
+
+    const handleLanguageChange = (value: string) => {
+        i18n.changeLanguage(value)
+        localStorage.setItem('language', value)
+        toast({
+            title: t('users.label_language_changed', { lang: value }),
+            status: 'success',
+            duration: 4000,
+            isClosable: true,
+        })
+    }
+
+
+    if (user && ready)
         return (
             <>
                 <Flex gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
-                            <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                            <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbItem isCurrentPage>
-                            <BreadcrumbLink href='/dashboard/myprofile'>Saját fiók</BreadcrumbLink>
+                            <BreadcrumbLink href='/dashboard/myprofile'>{t('users.label_details')}</BreadcrumbLink>
                         </BreadcrumbItem>
                     </Breadcrumb>
                     <Flex w={"full"} gap={4} direction={"column"}>
-                        <Heading size="lg" mb={2}>Fiók adatok</Heading>
+                        <Heading size="lg" mb={2}>{t('users.label_details')}</Heading>
                         <Stack gap={3}>
                             <Text>UID: {user.id}</Text>
-                            <Text>Teljes név:{user.lastName + " " + user.firstName} </Text>
-                            <Text>Email cím: {user.email}</Text>
-                            <Text>Regisztrálás időpontja: {moment(user.registered).format("yyyy/MM/DD")}</Text>
+                            <Text>{`${t('users.label_full_name')}: ${user.lastName} ${user.firstName}`}</Text>
+                            <Text>{`${t('users.label_email')}: ${user.email}`}</Text>
+                            <Text>{t('users.label_register')}: {moment(user.registered).format("yyyy/MM/DD")}</Text>
                         </Stack>
-                        <Heading size="lg">Beállítások</Heading>
+                        <Heading size="lg">{t('users.label_settings')}</Heading>
                         <form onSubmit={handleSubmit(handlePasswordChange)}>
                             <Stack gap={3}>
                                 <InputComponent
@@ -88,8 +108,8 @@ export default function UserPage() {
                                     register={register}
                                     error={Boolean(errors.oldPassword)}
                                     errorMessage={errors.oldPassword?.message}
-                                    label="Régi jelszó"
-                                    placeholder="Régi jelszó"
+                                    label={t('users.label_old_password')}
+                                    placeholder={t('users.label_old_password')}
                                     required={true}
                                     type="password"
                                 />
@@ -99,8 +119,8 @@ export default function UserPage() {
                                     register={register}
                                     error={Boolean(errors.password1)}
                                     errorMessage={errors.password1?.message}
-                                    label="Új jelszó"
-                                    placeholder="Új jelszó"
+                                    label={t('users.label_new_password')}
+                                    placeholder={t('users.label_new_password')}
                                     required={true}
                                     type="password"
                                 />
@@ -110,17 +130,24 @@ export default function UserPage() {
                                     register={register}
                                     error={Boolean(errors.password2)}
                                     errorMessage={errors.password2?.message}
-                                    label="Új jelszó mégegyszer"
-                                    placeholder="Új jelszó mégegyszer"
+                                    label={t('users.label_new_password_again')}
+                                    placeholder={t('users.label_new_password_again')}
                                     required={true}
                                     type="password"
                                 />
 
-                                <Button isLoading={isSubmitting} colorScheme='blue' type="submit">Megváltoztatás</Button>
+                                <Button isLoading={isSubmitting} colorScheme='blue' type="submit">{t('users.label_change')}</Button>
                             </Stack>
                         </form>
-
                     </Flex>
+                    <FormControl>
+                        <FormLabel>{t('users.label_user_language')}</FormLabel>
+                        <Select onChange={(e) => handleLanguageChange(e.target.value)} defaultValue={i18n.language}>
+                            {languageOptions.map((i, k) => {
+                                return <option value={i.value} key={k}>{i.label}</option>
+                            })}
+                        </Select>
+                    </FormControl>
                 </Flex>
             </>
         )

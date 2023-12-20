@@ -10,6 +10,7 @@ import { AiFillBug, AiFillCheckSquare } from "react-icons/ai";
 import { BsFillBookmarkFill } from "react-icons/bs";
 import { FaSearch, FaSortAmountDown, FaSortAmountUpAlt } from "react-icons/fa";
 import { TbSubtask } from "react-icons/tb";
+import { useTranslation } from "react-i18next";
 
 interface PriorityL {
     value: string,
@@ -54,6 +55,8 @@ export default function TasksPage() {
         queryFn: () => getTasksByProjectId(projectId).then(res => res.data),
         enabled: !!projectId,
     })
+
+    const { t, ready } = useTranslation()
 
     const navigate = useNavigate();
 
@@ -105,7 +108,7 @@ export default function TasksPage() {
         { value: "4", label: "Subtask", icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> },
     ]
 
-    if (isLoading) {
+    if (isLoading && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
         </Flex>
@@ -115,10 +118,10 @@ export default function TasksPage() {
             {projectId ?
                 <Breadcrumb>
                     <BreadcrumbItem>
-                        <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                        <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem >
-                        <BreadcrumbLink href='/dashboard/tasks'>Saját feladatok</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/tasks'>{t('sidebar.tasks_btn')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
                         <BreadcrumbLink>{projects?.filter(i => i.value === projectId)[0].label}</BreadcrumbLink>
@@ -127,16 +130,16 @@ export default function TasksPage() {
                 :
                 <Breadcrumb>
                     <BreadcrumbItem>
-                        <BreadcrumbLink as={Link} to='/dashboard'>Áttekintő</BreadcrumbLink>
+                        <BreadcrumbLink as={Link} to='/dashboard'>{t('dashboard.dashboard_title')}</BreadcrumbLink>
                     </BreadcrumbItem>
                     <BreadcrumbItem isCurrentPage>
-                        <BreadcrumbLink href='/dashboard/tasks'>Saját feladatok</BreadcrumbLink>
+                        <BreadcrumbLink href='/dashboard/tasks'>{t('sidebar.tasks_btn')}</BreadcrumbLink>
                     </BreadcrumbItem>
                 </Breadcrumb>}
 
 
             <HStack>
-                <Select tabIndex={1} variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={"Kérem válassza ki a projektet..."} options={projects} />
+                <Select tabIndex={1} variant="filled" onChange={(e) => setProjectId(e!.value)} placeholder={t('stats.label_select_project')} options={projects} />
             </HStack>
             {tasks ?
                 <>
@@ -145,10 +148,10 @@ export default function TasksPage() {
                             <InputRightElement pointerEvents='none'>
                                 <FaSearch />
                             </InputRightElement>
-                            <Input tabIndex={2} onChange={(e) => setTitle(e.target.value)} variant={"filled"} type='text' placeholder='Feladat keresése...' />
+                            <Input tabIndex={2} onChange={(e) => setTitle(e.target.value)} variant={"filled"} type='text' placeholder={t('projectlist.label_search_task')} />
                         </InputGroup>
-                        <Select tabIndex={3} components={customComponents} isClearable={true} onChange={(e) => e ? setPriority(e.value) : setPriority(null)} variant="filled" placeholder={"Szűrés prioritás szerint..."} options={priorities} />
-                        <Select tabIndex={4} components={customComponents} isClearable={true} onChange={(e) => e ? setType(e.value) : setType(null)} variant="filled" placeholder={"Szűrés feladattípus szerint..."} options={issueTypes} />
+                        <Select tabIndex={3} components={customComponents} isClearable={true} onChange={(e) => e ? setPriority(e.value) : setPriority(null)} variant="filled" placeholder={t('projectlist.label_filter_priority')} options={priorities} />
+                        <Select tabIndex={4} components={customComponents} isClearable={true} onChange={(e) => e ? setType(e.value) : setType(null)} variant="filled" placeholder={t('stats.label_filter_issue_type')} options={issueTypes} />
                     </HStack>
                     <HStack>
                         <Input tabIndex={5} onChange={(e) => setStartDate(e.target.value)} variant="filled" w="200px" type="date" />
@@ -162,18 +165,18 @@ export default function TasksPage() {
                         <Table variant='striped'>
                             <Thead>
                                 <Tr>
-                                    <Th>Típus</Th>
-                                    <Th>Státusz</Th>
-                                    <Th>Feladat</Th>
-                                    <Th>Bejelentő</Th>
+                                    <Th>{t('stats.stats_table_issue_type')}</Th>
+                                    <Th>{t('stats.stats_table_state')}</Th>
+                                    <Th>{t('stats.stats_table_name')}</Th>
+                                    <Th>{t('stats.stats_table_issue_reporter')}</Th>
                                     <Th>
                                         <HStack>
-                                            <Text>Határidő</Text>
+                                            <Text>{t('stats.stats_table_deadline')}</Text>
                                             <IconButton size="sm" variant="ghost" onClick={() => setSortOrder(!sortOrder)} aria-label='Sort by date' icon={sortOrder ? <FaSortAmountUpAlt /> : < FaSortAmountDown />} />
                                         </HStack>
 
                                     </Th>
-                                    <Th>Prioritás</Th>
+                                    <Th>{t('stats.stats_table_priority')}</Th>
                                 </Tr>
                             </Thead>
                             <Tbody>
@@ -185,7 +188,7 @@ export default function TasksPage() {
                                         return order * (new Date(b.created).valueOf() - new Date(a.created).valueOf());
                                     })
                                     .map((i, k) => (
-                                        <Tooltip key={k} label={`Ugrás a(z) ${i.title} nevű feladatra`}>
+                                        <Tooltip key={k} label={t('stats.stats_jump_to_issue', { issuename: i.title })}>
                                             <Tr onClick={() => navigate(`/dashboard/${projectId}`, { replace: true, state: { id: i.id, boardId: i.boardId } })} _hover={{ opacity: 0.6, cursor: "pointer" }} >
                                                 <Td>{handleIssueTypeIcon(i.issueType.name)}</Td>
                                                 <Td>{i.boardName}</Td>

@@ -5,7 +5,6 @@ export const getUserProjects = async () => {
     const projects =
         await api.get<Array<ProjectResponse>>(`/Project/GetAll`)
     return projects
-
 }
 
 export const getProjectById = async (projectId: string) => {
