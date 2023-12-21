@@ -60,7 +60,7 @@ export default function RegisterPage() {
         try {
             await registerUser(data)
             toast({
-                title: 'Sikeres regisztráció.',
+                title: t('register.label_register_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -70,7 +70,7 @@ export default function RegisterPage() {
             }, 1000)
         } catch (error) {
             toast({
-                title: 'Sikertelen regisztráció.',
+                title: t('register.label_register_error'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,

@@ -215,18 +215,6 @@ export default function StatisticsPage() {
                                         </Tbody>
                                     </Table>
                                 </TableContainer>
-                                {/* <Bar
-                                    options={{ responsive: false }}
-                                    data={{
-                                        datasets: [
-                                            {
-                                                label: 'Feladatok száma',
-                                                data: board.reduce((acc: any, b) => (b.issues.forEach(issue => issue.assignedPeople.forEach(a => acc[a.personName] = (acc[a.personName] || 0) + 1)), acc), {}),
-                                                backgroundColor: '#42a4ff',
-                                            }
-                                        ]
-                                    }}
-                                /> */}
                             </CardBody>
                         </Card>
                         <Card variant={"filled"} align="center">
@@ -280,10 +268,11 @@ export default function StatisticsPage() {
                         <Checkbox onChange={() => setColumn(column ? "" : "100px")}>{t('stats.more_details')}</Checkbox>
                     </HStack>
                     <HStack>
-                        <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" viewMode={view as ViewMode} tasks={board.flatMap(b =>
+                        <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" preStepsCount={0} viewMode={view as ViewMode} tasks={board.flatMap(b =>
                         (b.issues.map(i => {
                             const cDate = moment(i.created);
                             const dDate = moment(i.dueDate);
+                            console.log(i)
                             return {
                                 id: i.id,
                                 name: i.title,

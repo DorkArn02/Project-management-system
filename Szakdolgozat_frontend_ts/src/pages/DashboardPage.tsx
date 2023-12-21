@@ -206,7 +206,6 @@ export default function Dashboard() {
                         <Button onClick={toggleColorMode} leftIcon={colorMode === 'light' ? <FaSun /> : <FaMoon />} variant="ghost">{opened ? t('sidebar.theme_btn') : ""}</Button>
                         <Button onClick={onOpen} variant={"ghost"} leftIcon={<BiLogOut />} mb={2}>{opened ? t('sidebar.logout_btn') : ""}</Button>
                     </Box>
-                    <Box p={1} color="red.400" fontWeight={"bold"} position={"absolute"} top={0} left={"50%"}>{import.meta.env.MODE === "development" ? "TESZT RENDSZER" : "ÉLES RENDSZER"}</Box>
                     <Outlet />
                 </Flex>
             </>

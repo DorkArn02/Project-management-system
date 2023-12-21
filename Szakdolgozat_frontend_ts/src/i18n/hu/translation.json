@@ -97,7 +97,27 @@
         "modal_edit_position": "Board poziciójának módosítása",
         "modal_edit_position_more": "Válassza ki azt a board-ot, amellyel helyet cserélne az aktuális board",
         "btn_add": "Hozzáadás",
-        "modal_add_subtask": "Ügy hozzárendelése"
+        "modal_add_subtask": "Ügy hozzárendelése",
+        "popup_board_add_success": "Oszlop hozzáadása a projekthez sikeres!",
+        "popup_board_add_error": "Hiba történt az oszlop hozzáadása során!",
+        "popup_issue_delete_success": "Feladat törlése sikeres!",
+        "popup_issue_delete_error": "Feladat törlése sikertelen!",
+        "popup_issue_add_success": "Feladat létrehozása sikeres",
+        "popup_board_delete_success": "Oszlop törlése sikeres!",
+        "popup_board_delete_error": "Oszlop törlése sikertelen!",
+        "popup_board_edit_title_success": "Oszlop címének módosítása sikeres!",
+        "popup_board_edit_title_error": "Oszlop címének módosítása sikertelen!",
+        "popup_issue_edit_success": "Feladat részletei sikeresen módusultak!",
+        "popup_comment_add_success": "Hozzászólás sikeresen rögzítve!",
+        "popup_comment_add_error": "Hozzászólás rögzítése sikertelen!",
+        "popup_comment_delete_success": "Hozzászólás törlése sikeres!",
+        "popup_comment_delete_error": "Hozzászólás törlése sikertelen!",
+        "popup_board_edit_pos_success": "Oszlop poziciója sikeresen módosítva!",
+        "popup_board_edit_pos_error": "Oszlop poziciójának módosítása sikertelen!",
+        "popup_issue_add_subtasks_success": "Hozzárendelt feladat hozzárendelése sikeres!",
+        "popup_issue_add_subtasks_error": "Hozzárendelt feladat hozzárendelése sikertelen!",
+        "popup_issue_delete_subtasks_success": "Hozzárendelt feladat leválasztása sikeres!",
+        "popup_issue_delete_subtasks_error": "Hozzárendelt feladat leválasztása sikertelen!"
     },
     "sidebar": {
         "projects_btn": "Projektek",
@@ -166,7 +186,10 @@
         "label_password_error": "Kérem adja meg a jelszavát!",
         "label_app_name": "Projekt menedzsment alkalmazás",
         "label_question": "Nincs fiókod?",
-        "label_forgotten_pwd": "Elfelejtett jelszó?"
+        "label_forgotten_pwd": "Elfelejtett jelszó?",
+        "label_login_success": "Sikeres bejelentkezés!",
+        "label_login_failed": "Sikertelen bejelentkezés!",
+        "label_login_failed_more": "Rossz e-mail cím vagy jelszó!"
     },
     "register": {
         "label_register": "Regisztráció",
@@ -182,6 +205,13 @@
         "label_first_name_error": "Kérem adja meg a vezetéknevét!",
         "label_back_to_login": "Vissza a bejelentkezéshez",
         "label_create_account": "Fiók létrehozása",
-        "label_app_name": "Projekt menedzsment alkalmazás"
+        "label_app_name": "Projekt menedzsment alkalmazás",
+        "label_register_success": "Fiók létrehozása sikeres!",
+        "label_register_error": "Sikertelen regisztráció!"
+    },
+    "gantt": {
+        "label_start": "Kezdet",
+        "label_end": "Vég",
+        "label_title": "Cím"
     }
 }

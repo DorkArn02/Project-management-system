@@ -186,7 +186,10 @@
         "label_password_error": "Please give your password!",
         "label_app_name": "Project management application",
         "label_question": "Don't have an account?",
-        "label_forgotten_pwd": "Forgot your password?"
+        "label_forgotten_pwd": "Forgot your password?",
+        "label_login_success": "Logged in successfully!",
+        "label_login_failed": "Login failed!",
+        "label_login_failed_more": "Bad e-mail or password"
     },
     "register": {
         "label_register": "Registration",
@@ -202,6 +205,13 @@
         "label_first_name_error": "Please give your first name!",
         "label_back_to_login": "Back to login screen",
         "label_create_account": "Create account",
-        "label_app_name": "Project management application"
+        "label_app_name": "Project management application",
+        "label_register_success": "Account created successfully!",
+        "label_register_error": "Registration failed!"
+    },
+    "gantt": {
+        "label_start": "Start date",
+        "label_end": "End date",
+        "label_title": "Title"
     }
 }

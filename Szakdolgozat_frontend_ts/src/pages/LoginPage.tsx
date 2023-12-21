@@ -35,7 +35,7 @@ export default function LoginPage() {
         try {
             const result = await loginUser(data)
             toast({
-                title: 'Sikeres bejelentkezés.',
+                title: t('login.label_login_success'),
                 status: 'success',
                 duration: 4000,
                 isClosable: true,
@@ -44,8 +44,8 @@ export default function LoginPage() {
         } catch (error) {
 
             toast({
-                title: 'Sikertelen bejelentkezés.',
-                description: "Rossz e-mail címet vagy jelszót adott meg.",
+                title: t('login.label_login_failed'),
+                description: t('login.label_login_failed_more'),
                 status: 'error',
                 duration: 4000,
                 isClosable: true,
