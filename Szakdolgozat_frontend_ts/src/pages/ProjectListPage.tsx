@@ -291,7 +291,9 @@ export default function ProjectListPage() {
 
         if (project && boards)
             try {
-                await addProjectBoard(project.id, { title: data.title, position: boards.length + 1 })
+                console.log(boards.length)
+
+                await addProjectBoard(project.id, { title: data.title, position: boards.length })
                 toast({
                     title: t('projectlist.popup_board_add_success'),
                     status: 'success',
@@ -934,7 +936,7 @@ export default function ProjectListPage() {
                     </ModalContent>
                 </Modal>
                 {/* Issue megtekintése initialFocusRef={initRef} */}
-                <Modal closeOnOverlayClick={true} size="5xl" isOpen={isOpenIssue} onClose={() => {
+                <Modal closeOnOverlayClick={true} size="5xl" initialFocusRef={initRef} isOpen={isOpenIssue} onClose={() => {
                     formRef.current!.requestSubmit()
                 }
                 }>
@@ -1336,7 +1338,7 @@ export default function ProjectListPage() {
                                             <Flex h="100%" {...provided.droppableProps}
                                                 ref={provided.innerRef} gap={5} direction={"column"} bg={colorMode === 'light' ? (snapshot.isDraggingOver ? "gray.100" : "gray.200") : (snapshot.isDraggingOver ? "#333" : "#444")}>
                                                 {
-                                                    i.issues.filter(i => (priority === null || i.priority.id == priority)).filter(i => i.title.toLowerCase().includes(search))
+                                                    i.issues.filter(i => (priority === null || i.priority.id == priority)).filter(i => i.title.includes(search))
                                                         .filter(elem => {
                                                             if (selectedPeople.filter(item => item.selected === true).length === 0) {
                                                                 return true

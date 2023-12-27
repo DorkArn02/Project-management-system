@@ -13,7 +13,6 @@ import { LoginResponse } from "../interfaces/interfaces.ts"
 const user: LoginResponse = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null
 export const SignalRContext = createSignalRContext();
 
-
 export const router = createBrowserRouter([
     {
         path: '/',

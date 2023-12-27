@@ -23,6 +23,7 @@ namespace Szakdolgozat_backend.AutoMapperProfiles
                 .ForMember(dest => dest.PersonName, opt => opt.MapFrom(src => $"{src.User.LastName} {src.User.FirstName}"));
             CreateMap<Project, ProjectCreatedDTO>();
             CreateMap<Project, ProjectResponseDTO>();
+            CreateMap<User, UserInfoDTO>();
             CreateMap<User, UserRegisterResponseDTO>();
             CreateMap<User, UserLoginResponseDTO>()
                 .ForMember(dest => dest.AccessToken, opt => opt.Ignore());

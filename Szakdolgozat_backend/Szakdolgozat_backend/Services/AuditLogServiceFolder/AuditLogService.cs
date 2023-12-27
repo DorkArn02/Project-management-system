@@ -1,5 +1,4 @@
-﻿
-using AutoMapper;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos.AuditLogDtos;
 using Szakdolgozat_backend.Exceptions;
@@ -70,7 +69,8 @@ namespace Szakdolgozat_backend.Services.AuditLogServiceFolder
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
 
-            List<AuditLog> auditLogs = await _db.AuditLogs.Where(x => x.ProjectId == projectId).ToListAsync();
+            List<AuditLog> auditLogs = await _db.AuditLogs.Where(x => x.ProjectId == projectId)
+                .Include(u=>u.User).ToListAsync();
 
             return _mapper.Map<List<AuditLogResponseDTO>>(auditLogs).OrderByDescending(a=>a.Created).ToList();
         }

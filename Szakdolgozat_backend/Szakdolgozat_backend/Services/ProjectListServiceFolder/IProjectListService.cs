@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Szakdolgozat_backend.Dtos.IssueDtos;
+﻿using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Dtos.ProjectListDtos;
 using Szakdolgozat_backend.Models;
 

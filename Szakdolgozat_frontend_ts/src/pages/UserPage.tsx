@@ -81,7 +81,7 @@ export default function UserPage() {
 
     if (user && ready)
         return (
-            <>
+            <Flex direction={["column", "column", "row"]} gap={"100px"}>
                 <Flex gap={"20px"} flexDirection={"column"} mt={5}>
                     <Breadcrumb>
                         <BreadcrumbItem>
@@ -140,6 +140,9 @@ export default function UserPage() {
                             </Stack>
                         </form>
                     </Flex>
+                </Flex>
+                <Flex mt={"65px"} direction={"column"}>
+                    <Heading size="lg">Nyelvi beállítások</Heading>
                     <FormControl>
                         <FormLabel>{t('users.label_user_language')}</FormLabel>
                         <Select onChange={(e) => handleLanguageChange(e.target.value)} defaultValue={i18n.language}>
@@ -149,6 +152,6 @@ export default function UserPage() {
                         </Select>
                     </FormControl>
                 </Flex>
-            </>
+            </Flex>
         )
 }

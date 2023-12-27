@@ -10,7 +10,7 @@
 
 ## Database structure
 
-![asd](diagramok/Copy%20of%20ER%20DIAGRAM%20SZAKDOGA.png)
+![database structure](diagramok/Copy%20of%20ER%20DIAGRAM%20SZAKDOGA.png)
 
 ## Project description
 
@@ -57,5 +57,7 @@ The goal of this application is to create a project management system where you 
 4. Build frontend and backend
 5. Create new site in IIS and new application pool in IIS
 6. Move built frontend code to IIS folder: `C:\inetpub\wwwroot\`
-7. Publish backend code in Visual Studio to `wwwroot` folder
-8. Start IIS site and application pool
+7. Publish backend built code in Visual Studio to `wwwroot` folder
+8. Create new application pool in IIS Manager
+9. Add new application to `Default Web Site` and select the previous created application pool
+10. Application should be available at `localhost:80`

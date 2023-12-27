@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Szakdolgozat_backend.Dtos.UserDtos;
 using Szakdolgozat_backend.Exceptions;
@@ -14,12 +15,14 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
         private readonly DbCustomContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserHelper _userHelper;
+        private readonly IMapper _mapper;
 
-        public UserService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper)
+        public UserService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper, IMapper mapper)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _userHelper = userHelper;
+            _mapper = mapper;
         }
 
         public async Task ChangeUserPassword([FromBody] ChangePasswordRequestDTO changePasswordRequestDTO)
@@ -44,42 +47,63 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
 
         public async Task<List<UserInfoDTO>> GetAllResults()
         {
-            List<User> users = await _db.Users.ToListAsync();
-            List<UserInfoDTO> result = new();
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
-            foreach (var user in users)
+            User? u = await _db.Users.FindAsync(userId);
+
+            if (u == null)
+                throw new NotFoundException("User not found.");
+
+            List<Guid> projectIds = await _db.Participants.Where(p => p.UserId == userId)
+                .Select(p => p.ProjectId).ToListAsync();
+
+            List<User> relatedUsers = new();
+
+            foreach(var projectID in projectIds)
             {
-                UserInfoDTO u = new()
-                {
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    Id = user.Id,
-                    LastName = user.LastName,
-                    Registered = user.Registered
-                };
+                List<Guid> userID = await _db.Participants
+                    .Where(p => p.ProjectId == projectID)
+                    .Select(p=>p.UserId).ToListAsync();
 
-                result.Add(u);
+                foreach(var id in userID)
+                {
+                    User user = await _db.Users.FindAsync(id);
+
+                    if(relatedUsers.Find(i=>i.Id == id) == null)
+                        relatedUsers.Add(user);
+                }
             }
-            return result;
+           return _mapper.Map<List<UserInfoDTO>>(relatedUsers);
         }
 
         public async Task<UserInfoDTO> GetUserById(Guid userId)
         {
-            var user = await _db.Users.FindAsync(userId);
+            Guid authorizedId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
-            if (user == null)
+            User? u = await _db.Users.FindAsync(authorizedId);
+
+            if (u == null)
                 throw new NotFoundException("User not found.");
 
-            UserInfoDTO u = new()
-            {
-                Email = user.Email,
-                FirstName = user.FirstName,
-                Id = user.Id,
-                LastName = user.LastName,
-                Registered = user.Registered
-            };
+            List<Guid> projectIds = await _db.Participants.Where(p => p.UserId == authorizedId)
+                .Select(p => p.ProjectId).ToListAsync();
 
-            return u;
+            User relatedUser = new();
+
+            foreach (var projectID in projectIds)
+            {
+                var participant = await _db.Participants
+                    .Where(p => p.ProjectId == projectID && p.UserId == userId)
+                    .FirstOrDefaultAsync();
+
+                if(participant.UserId != null)
+                {
+                    User user = await _db.Users.FindAsync(participant.UserId);
+                    relatedUser = user;
+                    break;
+                }
+            }
+            return _mapper.Map<UserInfoDTO>(relatedUser);
         }
     }
 }

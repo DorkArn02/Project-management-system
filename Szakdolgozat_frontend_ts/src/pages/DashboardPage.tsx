@@ -10,7 +10,7 @@ import {
     Modal,
     ModalOverlay, ModalBody, ModalFooter, ModalContent, ModalHeader,
     ModalCloseButton,
-    Popover, PopoverTrigger, PopoverHeader, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody, Divider, HStack, useToast
+    Popover, PopoverTrigger, PopoverHeader, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverBody, Divider, HStack
 } from '@chakra-ui/react';
 
 import { AiFillProject, AiOutlineProject } from "react-icons/ai";
@@ -54,8 +54,9 @@ export default function Dashboard() {
 
     const loadNotifications = async () => {
         const result = await getNotifications()
-        setNewMessage(false)
+        setNewNotifications(0)
         setNotification(result)
+        localStorage.setItem('notification', "0")
     }
 
 
@@ -64,27 +65,19 @@ export default function Dashboard() {
         await loadNotifications()
     }
 
-    const toast = useToast()
-
-    const [newMessage, setNewMessage] = useState(false);
-    const [sortOrder, setSortOrder] = useState(true);
+    const [newNotifications, setNewNotifications] = useState<number>(localStorage.getItem('notification') != null ? parseInt(localStorage.getItem('notification')!) : 0);
+    const [sortOrder, setSortOrder] = useState<boolean>(true);
 
     SignalRContext.useSignalREffect(
         "SendMessage",
-        (message) => {
-            toast({
-                title: message,
-                status: 'success',
-                duration: 4000,
-                isClosable: true,
-            })
-            setNewMessage(true)
+        () => {
+            let newNumber = newNotifications + 1
+            setNewNotifications(newNumber)
+            localStorage.setItem('notification', `${newNumber}`)
         },
         []);
 
-
     const { t, ready } = useTranslation()
-
 
     if (user == null) {
         return ""
@@ -149,7 +142,7 @@ export default function Dashboard() {
                         <Popover placement='right' isLazy>
                             <PopoverTrigger>
                                 <Button onClick={() => loadNotifications()} leftIcon={<FaBell />} variant="ghost" >{opened ? t('sidebar.notifications_btn') : <>
-                                    {newMessage ? <Box
+                                    {(newNotifications != null && newNotifications != 0) ? <Box
                                         position="absolute"
                                         bottom="-4px"
                                         right="5px"
@@ -162,7 +155,7 @@ export default function Dashboard() {
                                         alignItems="center"
                                     >
                                         <Text color="white" fontSize="xs">
-                                            !
+                                            {newNotifications}
                                         </Text>
                                     </Box> : ""}
                                 </>}</Button>

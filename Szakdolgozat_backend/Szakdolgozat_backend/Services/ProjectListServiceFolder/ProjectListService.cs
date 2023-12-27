@@ -86,7 +86,19 @@ namespace Szakdolgozat_backend.Services.ProjectListServiceFolder
 
             await _auditLogService.AddAuditLog(projectId, $"A(z) {projectList.Title} nevű oszlop el lett távolítva a projekt táblából.");
 
+            int deletedPos = projectList.Position;
+
             _db.ProjectLists.Remove(projectList);
+            await _db.SaveChangesAsync();
+
+            List<ProjectList> remaining = await _db.ProjectLists.Where(p => p.ProjectId == projectId)
+                .OrderBy(p=>p.Position).ToListAsync();
+
+            for(int i = 0; i < remaining.Count; i++)
+            {
+                remaining[i].Position = i;
+            }
+
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"User with id {userId} has removed list {projectList.Id} from project {p.Id}.");
