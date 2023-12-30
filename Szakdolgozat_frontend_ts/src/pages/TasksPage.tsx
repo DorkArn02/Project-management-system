@@ -11,6 +11,7 @@ import { BsFillBookmarkFill } from "react-icons/bs";
 import { FaSearch, FaSortAmountDown, FaSortAmountUpAlt } from "react-icons/fa";
 import { TbSubtask } from "react-icons/tb";
 import { useTranslation } from "react-i18next";
+import CustomPagination from "../components/CustomPagination";
 
 interface PriorityL {
     value: string,
@@ -108,6 +109,10 @@ export default function TasksPage() {
         { value: "4", label: "Subtask", icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> },
     ]
 
+    const [itemOffset, setItemOffset] = useState(0);
+    const itemsPerPage = 6
+    const endOffset = itemOffset + itemsPerPage;
+
     if (isLoading && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
             <Spinner size="xl" color="green.500" />
@@ -157,9 +162,13 @@ export default function TasksPage() {
                         <Input tabIndex={5} onChange={(e) => setStartDate(e.target.value)} variant="filled" w="200px" type="date" />
                         <Text>-</Text>
                         <Input tabIndex={6} onChange={(e) => setEndDate(e.target.value)} variant="filled" w="200px" type="date" />
-
                     </HStack>
-
+                    <CustomPagination
+                        setItemOffset={setItemOffset}
+                        itemOffset={itemOffset}
+                        itemsPerPage={itemsPerPage}
+                        items={tasks}
+                    />
 
                     <TableContainer>
                         <Table variant='striped'>
@@ -187,6 +196,7 @@ export default function TasksPage() {
                                         const order = sortOrder === true ? 1 : -1;
                                         return order * (new Date(b.created).valueOf() - new Date(a.created).valueOf());
                                     })
+                                    .slice(itemOffset, endOffset)
                                     .map((i, k) => (
                                         <Tooltip key={k} label={t('stats.stats_jump_to_issue', { issuename: i.title })}>
                                             <Tr onClick={() => navigate(`/dashboard/${projectId}`, { replace: true, state: { id: i.id, boardId: i.boardId } })} _hover={{ opacity: 0.6, cursor: "pointer" }} >

@@ -155,7 +155,12 @@
         "more_details": "More details",
         "monthly": "Monthly",
         "daily": "Daily",
-        "yearly": "Yearly"
+        "yearly": "Yearly",
+        "lowest": "Lowest",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "highest": "Highest"
     },
     "users": {
         "label_details": "User details",

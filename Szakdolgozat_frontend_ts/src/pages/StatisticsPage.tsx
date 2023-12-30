@@ -1,4 +1,4 @@
-import { Avatar, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Card, CardBody, CardHeader, Checkbox, Flex, Grid, HStack, Heading, Progress, Spinner, Table, Tooltip as ChakraTooltip, TableContainer, Tbody, Td, Text, Th, Thead, Tr, Stack, Divider } from "@chakra-ui/react";
+import { Avatar, Breadcrumb, BreadcrumbItem, BreadcrumbLink, Card, CardBody, CardHeader, Checkbox, Flex, Grid, HStack, Heading, Progress, Spinner, Table, Tooltip as ChakraTooltip, TableContainer, Tbody, Td, Text, Th, Thead, Tr, Stack, Divider, useColorMode, CardFooter } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getUserProjects } from "../api/project";
@@ -15,6 +15,7 @@ import TaskListHeader from "../components/TaskListHeader";
 import TaskListTable from "../components/TaskListTable";
 import { getAuditLogs } from "../api/audit";
 import { useTranslation } from "react-i18next";
+import CustomPagination from "../components/CustomPagination";
 
 ChartJS.register(
     CategoryScale,
@@ -50,14 +51,17 @@ export default function StatisticsPage() {
         queryFn: () => getAuditLogs(projectId).then(res => res.data),
         enabled: !!projectId
     })
+    const { colorMode } = useColorMode()
     const { t, ready } = useTranslation()
 
     const options: Array<{ label: string, value: string }> = [
-        { label: t('stats.daily'), value: ViewMode.Day },
+        // { label: t('stats.daily'), value: ViewMode.Day },
         { label: t('stats.monthly'), value: ViewMode.Month },
         { label: t('stats.yearly'), value: ViewMode.Year }
     ]
-
+    const [itemOffset, setItemOffset] = useState(0);
+    const itemsPerPage = 10
+    const endOffset = itemOffset + itemsPerPage;
 
     if (isLoadingProjects && ready) {
         return <Flex h="100vh" w="full" align="center" justify="center">
@@ -92,7 +96,6 @@ export default function StatisticsPage() {
             </HStack>
             {board && board.length > 0 && board.reduce((total, column) => total + column.issues.length, 0) > 0 ?
                 <>
-
                     <Grid p={10} gap={5} templateColumns={["repeat(1, 1fr)", "repeat(1, 1fr)", "repeat(2, 1fr)", "repeat(3, 1fr)"]}>
                         <Card variant={"filled"} align="center">
                             <CardHeader>
@@ -100,14 +103,37 @@ export default function StatisticsPage() {
                             </CardHeader>
                             <CardBody>
                                 <Bar
-                                    options={{ responsive: false }}
+                                    options={{
+                                        color: colorMode === "dark" ? "white" : "black", scales: {
+                                            y: {
+                                                min: 0,
+                                                ticks: {
+                                                    stepSize: 1,
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            },
+                                            x: {
+                                                ticks: {
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            }
+                                        },
+                                    }}
                                     data={{
                                         labels: board.map(i => i.title),
                                         datasets: [
                                             {
                                                 label: t('stats.number_of_tasks'),
                                                 data: board.map(i => i.issues.length),
-                                                backgroundColor: '#42a4ff',
+                                                backgroundColor: 'rgba(66, 164, 255,0.7)',
                                             },
                                         ]
                                     }}
@@ -125,11 +151,12 @@ export default function StatisticsPage() {
                                             responsive: false, plugins:
                                             {
                                                 legend: { position: "right" },
-                                            }
+                                            },
+                                            color: colorMode === "dark" ? "white" : "black"
                                         }
                                     }
                                     data={{
-                                        labels: ["Legalacsonyabb", "Alacsony", "Közepes", "Magas", "Legmagasabb"],
+                                        labels: [t('stats.lowest'), t('stats.low'), t('stats.medium'), t('stats.high'), t('stats.highest')],
                                         datasets: [
                                             {
                                                 label: t('stats.number_of_tasks'),
@@ -143,7 +170,8 @@ export default function StatisticsPage() {
                                                     'orange',
                                                     'red',
                                                 ],
-                                                borderWidth: 1
+                                                borderWidth: 1,
+                                                borderColor: colorMode === "dark" ? "white" : "black"
                                             }
                                         ],
                                     }}
@@ -154,16 +182,39 @@ export default function StatisticsPage() {
                             <CardHeader>
                                 <Heading size="md">{t('stats.stats_distribution_by_reporter')}</Heading>
                             </CardHeader>
-                            <CardBody>
+                            <CardBody alignContent={"center"}>
                                 <Bar
-                                    options={{ responsive: false }}
+                                    options={{
+                                        color: colorMode === "dark" ? "white" : "black", scales: {
+                                            y: {
+                                                min: 0,
+                                                ticks: {
+                                                    stepSize: 1,
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            },
+                                            x: {
+                                                ticks: {
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            }
+                                        },
+                                    }}
                                     data={{
                                         datasets: [
                                             {
                                                 label: t('stats.reported_tasks'),
                                                 data: board.flatMap(b => b.issues.map(i => i.reporterName))
                                                     .reduce((acc: any, name) => (acc[name] = (acc[name] || 0) + 1, acc), {}),
-                                                backgroundColor: '#42a4ff',
+                                                backgroundColor: 'rgba(66, 164, 255,0.7)',
                                             }
                                         ]
                                     }}
@@ -177,12 +228,12 @@ export default function StatisticsPage() {
                             </CardHeader>
                             <CardBody>
                                 <TableContainer>
-                                    <Table variant='simple'>
+                                    <Table variant='unstyled'>
                                         <Thead>
                                             <Tr>
-                                                <Th textAlign={"center"}>{t('stats.assigned_person')}</Th>
-                                                <Th textAlign={"center"}>{t('stats.distribution')}</Th>
-                                                <Th textAlign={"center"} isNumeric>{t('stats.tasks')}</Th>
+                                                <Th p={3} textAlign={"center"}>{t('stats.assigned_person')}</Th>
+                                                <Th p={3} textAlign={"center"}>{t('stats.distribution')}</Th>
+                                                <Th p={3} textAlign={"center"} isNumeric>{t('stats.tasks')}</Th>
                                             </Tr>
                                         </Thead>
                                         <Tbody>
@@ -221,16 +272,39 @@ export default function StatisticsPage() {
                             <CardHeader>
                                 <Heading size="md">{t('stats.stats_distribution_by_issue_type')}</Heading>
                             </CardHeader>
-                            <CardBody>
+                            <CardBody w="full">
                                 <Bar
-                                    options={{ responsive: false }}
+                                    options={{
+                                        color: colorMode === "dark" ? "white" : "black", scales: {
+                                            y: {
+                                                min: 0,
+                                                ticks: {
+                                                    stepSize: 1,
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            },
+                                            x: {
+                                                ticks: {
+                                                    color: colorMode === "dark" ? "white" : "black"
+                                                },
+                                                grid: {
+                                                    color: colorMode === "dark" ? "#4F5765" : "rgba(0, 0, 0, 0.1)",
+
+                                                }
+                                            }
+                                        },
+                                    }}
                                     data={{
                                         labels: ['Task', 'Story', 'Bug', 'Subtask'],
                                         datasets: [
                                             {
                                                 label: t('stats.number_of_tasks'),
                                                 data: board.reduce((acc: any, b) => (b.issues.forEach(issue => acc[issue.issueType.name] = (acc[issue.issueType.name] || 0) + 1), acc), {}),
-                                                backgroundColor: '#42a4ff',
+                                                backgroundColor: 'rgba(66, 164, 255,0.7)'
                                             }
                                         ]
                                     }}
@@ -241,25 +315,37 @@ export default function StatisticsPage() {
                             <CardHeader>
                                 <Heading size="md">{t('stats.stats_last_activity')}</Heading>
                             </CardHeader>
-                            <CardBody maxH={"400px"} overflow={"auto"}>
-                                {logging ?
-                                    <Stack>
-                                        {logging.length > 0 ? logging?.map((i, k) => {
-                                            return <><HStack key={k}>
-                                                <ChakraTooltip label={i.personName}>
-                                                    <Avatar name={i.personName} />
-                                                </ChakraTooltip>
-                                                <Stack spacing={"1px"}>
-                                                    <Text>{i.content}</Text>
-                                                    <Text>{moment(i.created).fromNow()}</Text>
-                                                </Stack>
-                                            </HStack>
-                                                <Divider />
-                                            </>
-                                        }) : <Text>{t('stats.stats_no_activities')}</Text>}
-                                    </Stack>
-                                    : ""}
-                            </CardBody>
+                            {logging ?
+                                <>
+                                    <CardBody scrollBehavior={"smooth"} overflowX={"hidden"} overflowY={"scroll"} maxH={"400px"}>
+                                        <Stack >
+                                            {logging.length > 0 ? logging
+                                                .slice(itemOffset, endOffset)
+                                                .map((i, k) => {
+                                                    return <><HStack key={k}>
+                                                        <ChakraTooltip label={i.personName}>
+                                                            <Avatar name={i.personName} />
+                                                        </ChakraTooltip>
+                                                        <Stack spacing={"1px"}>
+                                                            <Text>{i.content}</Text>
+                                                            <Text>{moment(i.created).fromNow()}</Text>
+                                                        </Stack>
+                                                    </HStack>
+                                                        <Divider />
+                                                    </>
+                                                }) : <Text>{t('stats.stats_no_activities')}</Text>}
+                                        </Stack>
+                                    </CardBody>
+                                    <CardFooter>
+                                        <CustomPagination
+                                            setItemOffset={setItemOffset}
+                                            itemOffset={itemOffset}
+                                            itemsPerPage={itemsPerPage}
+                                            items={logging}
+                                        />
+                                    </CardFooter>
+                                </>
+                                : ""}
                         </Card>
                     </Grid>
                     <Heading size="md">{t('stats.gantt')}</Heading>
@@ -267,12 +353,11 @@ export default function StatisticsPage() {
                         <Select variant="filled" onChange={(e) => setView(e ? e.value.valueOf() : "Day")} defaultValue={{ label: t('stats.monthly'), value: ViewMode.Month.valueOf() }} options={options} />
                         <Checkbox onChange={() => setColumn(column ? "" : "100px")}>{t('stats.more_details')}</Checkbox>
                     </HStack>
-                    <HStack>
-                        <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" preStepsCount={0} viewMode={view as ViewMode} tasks={board.flatMap(b =>
+                    <HStack overflow="scroll">
+                        <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" preStepsCount={1} viewMode={view as ViewMode} tasks={board.flatMap(b =>
                         (b.issues.map(i => {
                             const cDate = moment(i.created);
                             const dDate = moment(i.dueDate);
-                            console.log(i)
                             return {
                                 id: i.id,
                                 name: i.title,

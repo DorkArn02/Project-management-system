@@ -58,6 +58,7 @@ api.interceptors.response.use((response) => {
     return Promise.reject(error);
 });
 
+
 const parseJwt = (accessToken: string) => {
     try {
         return JSON.parse(atob(accessToken.split(".")[1]))

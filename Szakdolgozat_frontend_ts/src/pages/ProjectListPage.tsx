@@ -291,8 +291,6 @@ export default function ProjectListPage() {
 
         if (project && boards)
             try {
-                console.log(boards.length)
-
                 await addProjectBoard(project.id, { title: data.title, position: boards.length })
                 toast({
                     title: t('projectlist.popup_board_add_success'),
@@ -441,7 +439,6 @@ export default function ProjectListPage() {
         () => debounce(commentHandler, 300)
         , []);
 
-
     useEffect(() => {
         return () => {
             debouncedChangeHandler.cancel();
@@ -482,13 +479,22 @@ export default function ProjectListPage() {
                 isClosable: true,
             })
             updateProjectBoards()
-            onCloseAddIssue()
+            handleAddIssueClose()
         }
     }
 
     const handleAddIssueClose = () => {
         resetIssueCreate({
-            description: " "
+            description: " ",
+            assignedPeople: [],
+            issueTypeId: undefined,
+            dueDate: undefined,
+            position: undefined,
+            priorityId: undefined,
+            projectListId: undefined,
+            timeEstimate: undefined,
+            timeSpent: undefined,
+            title: ""
         })
         setAssignedPeople([])
         onCloseAddIssue()
@@ -936,7 +942,7 @@ export default function ProjectListPage() {
                     </ModalContent>
                 </Modal>
                 {/* Issue megtekintése initialFocusRef={initRef} */}
-                <Modal closeOnOverlayClick={true} size="5xl" initialFocusRef={initRef} isOpen={isOpenIssue} onClose={() => {
+                <Modal closeOnOverlayClick={true} size="5xl" autoFocus={false} isOpen={isOpenIssue} onClose={() => {
                     formRef.current!.requestSubmit()
                 }
                 }>

@@ -72,7 +72,9 @@ namespace Szakdolgozat_backend.Services.AuditLogServiceFolder
             List<AuditLog> auditLogs = await _db.AuditLogs.Where(x => x.ProjectId == projectId)
                 .Include(u=>u.User).ToListAsync();
 
-            return _mapper.Map<List<AuditLogResponseDTO>>(auditLogs).OrderByDescending(a=>a.Created).ToList();
+            return _mapper.Map<List<AuditLogResponseDTO>>(auditLogs)
+                .OrderByDescending(a=>a.Created)
+                .ToList();
         }
     }
 }

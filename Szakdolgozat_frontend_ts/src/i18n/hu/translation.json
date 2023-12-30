@@ -155,7 +155,12 @@
         "more_details": "Bővebb leírás",
         "monthly": "Havi",
         "daily": "Napi",
-        "yearly": "Éves"
+        "yearly": "Éves",
+        "lowest": "Legalacsonyabb",
+        "low": "Alacsony",
+        "medium": "Közepes",
+        "high": "Magas",
+        "highest": "Legmagasabb"
     },
     "users": {
         "label_details": "Saját profil adatok",

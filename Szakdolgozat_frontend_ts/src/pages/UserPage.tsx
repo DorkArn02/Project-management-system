@@ -145,7 +145,7 @@ export default function UserPage() {
                     <Heading size="lg">Nyelvi beállítások</Heading>
                     <FormControl>
                         <FormLabel>{t('users.label_user_language')}</FormLabel>
-                        <Select onChange={(e) => handleLanguageChange(e.target.value)} defaultValue={i18n.language}>
+                        <Select variant="filled" onChange={(e) => handleLanguageChange(e.target.value)} defaultValue={i18n.language}>
                             {languageOptions.map((i, k) => {
                                 return <option value={i.value} key={k}>{i.label}</option>
                             })}
