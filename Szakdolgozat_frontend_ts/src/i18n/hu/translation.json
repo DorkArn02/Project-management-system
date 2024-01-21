@@ -65,6 +65,7 @@
         "label_issue_type_more": "Feladat típusa...",
         "label_issue_type_error": "Kérem válasszon ki feladattípust",
         "label_issue_description": "Leírás",
+        "label_issue_description_plus": "Feladat leírása...",
         "label_issue_people": "Hozzárendelt személyek",
         "label_issue_people_more": "Hozzárendeltek kiválasztása...",
         "label_issue_time_estimate": "Becsült idő (óra)",

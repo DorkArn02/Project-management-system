@@ -28,6 +28,8 @@ import { NotificationResponse } from '../interfaces/interfaces';
 import { SignalRContext } from '../routes';
 import { useTranslation } from 'react-i18next';
 
+const getInitialNotificationCount = () => localStorage.getItem('notification') != null ? parseInt(localStorage.getItem('notification')!) : 0;
+
 export default function Dashboard() {
 
     const { user, logout } = useAuth()
@@ -65,7 +67,7 @@ export default function Dashboard() {
         await loadNotifications()
     }
 
-    const [newNotifications, setNewNotifications] = useState<number>(localStorage.getItem('notification') != null ? parseInt(localStorage.getItem('notification')!) : 0);
+    const [newNotifications, setNewNotifications] = useState<number>(getInitialNotificationCount());
     const [sortOrder, setSortOrder] = useState<boolean>(true);
 
     SignalRContext.useSignalREffect(

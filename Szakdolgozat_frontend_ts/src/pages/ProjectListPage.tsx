@@ -40,7 +40,7 @@ import {
     useColorMode,
     useDisclosure, useToast
 } from '@chakra-ui/react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Select as ChakraSelect, GroupBase, SelectComponentsConfig, chakraComponents } from "chakra-react-select"
 import debounce from "lodash/debounce"
 import moment from "moment"
@@ -176,8 +176,8 @@ export default function ProjectListPage() {
 
     const { register: registerBoardEdit, handleSubmit: handleSubmitBoardEdit, reset: resetBoardEdit, formState: { errors: errorsBoardEdit, isSubmitting: isSubmittingBoardEdit } } = useForm<ProjectListRequest>();
 
-    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields }, control: controlView } = useForm<IssueRequestView>({
-        shouldUnregister: true
+    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields, defaultValues }, control: controlView } = useForm<IssueRequestView>({
+        shouldUnregister: true,
     })
     const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm()
 
@@ -911,7 +911,7 @@ export default function ProjectListPage() {
                                     <FormControl isInvalid={Boolean(errorsIssueCreate.dueDate)}>
                                         <FormLabel>{t('projectlist.label_issue_deadline')}</FormLabel>
                                         <Input tabIndex={7} variant={"filled"} {...registerIssueCreate("dueDate", { required: false, valueAsDate: true, validate: (value) => value > (new Date()) })} type="date" />
-                                        <FormErrorMessage>{errorsIssueCreate.timeEstimate ? t('projectlist.label_issue_deadline_error') : ""}</FormErrorMessage>
+                                        <FormErrorMessage>{errorsIssueCreate.dueDate ? t('projectlist.label_issue_deadline_error') : ""}</FormErrorMessage>
                                     </FormControl>
                                 </Stack>
                             </ModalBody>

@@ -10,7 +10,6 @@ using Szakdolgozat_backend.Dtos.ProjectDtos;
 using Szakdolgozat_backend.Dtos.ProjectListDtos;
 using Szakdolgozat_backend.Dtos.UserDtos;
 using Szakdolgozat_backend.Models;
-using Szakdolgozat_backend.Services.AuditLogServiceFolder;
 
 namespace Szakdolgozat_backend.AutoMapperProfiles
 {

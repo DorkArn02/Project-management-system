@@ -105,5 +105,24 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
             }
             return _mapper.Map<UserInfoDTO>(relatedUser);
         }
+
+        public async Task UploadUserProfilePicture(UserProfilePictureDTO pictureDTO)
+        {
+            Guid authorizedId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
+
+            User? u = await _db.Users.FindAsync(authorizedId);
+
+            if (u == null)
+                throw new NotFoundException("User not found.");
+
+            var item = pictureDTO.profilePicture;
+
+            if (item.FileName == null || item.FileName.Length == 0)
+            {
+                throw new BadRequestException("File not selected");
+            }
+
+
+        }
     }
 }

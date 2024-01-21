@@ -65,6 +65,7 @@
         "label_issue_type_more": "Select issue type",
         "label_issue_type_error": "Please select issue type",
         "label_issue_description": "Description",
+        "label_issue_description_plus": "Issue description...",
         "label_issue_people": "Assignees",
         "label_issue_people_more": "Select assignees",
         "label_issue_time_estimate": "Time estimate (hour)",

@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { useEffect } from 'react';
 import { LoginResponse } from '../interfaces/interfaces';
 
 interface IAuthContext {
@@ -22,37 +21,28 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: IAuthContextProps) => {
-    const [user, setUser]
-        = useState<LoginResponse | null>(localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null)
+    const [user, setUser] = useState<LoginResponse | null>(localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")!) : null)
 
-    useEffect(() => {
-        if (user) {
-            localStorage.setItem('user', JSON.stringify(user))
-        }
-    }, [user])
-
-    const login = (userObject: LoginResponse) => {
+    const login = useCallback((userObject: LoginResponse) => {
         setUser(userObject)
-        axios.defaults.headers.common['Authorization'] = `Bearer ${userObject.accessToken}`
-    }
+    }, [])
 
-    const logout = () => {
+    const logout = useCallback(() => {
         setUser(null)
         localStorage.removeItem("user")
-        delete axios.defaults.headers.common['Authorization'];
-    }
+    }, [])
 
-    const parseJwt = () => {
+    const parseJwt = useMemo(() => {
         try {
             return JSON.parse(atob(user!.accessToken.split(".")[1]))
         } catch (e) {
             return null
         }
-    }
+    }, [user])
 
-    const isAccessTokenExpired = () => {
+    const isAccessTokenExpired = useCallback(() => {
         if (user) {
-            const decodedJwt = parseJwt()
+            const decodedJwt = parseJwt
             if (decodedJwt.exp * 1000 < Date.now()) {
                 return true
             } else {
@@ -60,7 +50,16 @@ export const AuthProvider = ({ children }: IAuthContextProps) => {
             }
         }
         return false
-    }
+    }, [user, parseJwt])
+
+    useEffect(() => {
+        if (user) {
+            localStorage.setItem('user', JSON.stringify(user))
+            axios.defaults.headers.common['Authorization'] = `Bearer ${user.accessToken}`
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
+        }
+    }, [user])
 
     return (
         <AuthContext.Provider value={{ user, login, logout, isAccessTokenExpired, setUser }}>

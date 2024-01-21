@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import JoditEditor from "jodit-react";
 import "../assets/styles.css"
+import { useTranslation } from 'react-i18next';
 
 interface EditorComponentProps {
     data: string,
@@ -54,6 +55,8 @@ export default function EditorComponent({ data, setData, theme, toolbar, tabInde
         "|",
     ];
 
+    const { t, ready } = useTranslation()
+
     const editorConfig: any = useMemo(() => ({
         readonly: false,
         toolbar: toolbar,
@@ -77,17 +80,18 @@ export default function EditorComponent({ data, setData, theme, toolbar, tabInde
         uploader: {
             insertImageAsBase64URI: true
         },
-        placeholder: 'Feladat leírása...',
+        placeholder: t("projectlist.label_issue_description_plus"),
         width: 800,
         height: 550
     }), []
     )
 
-    return (
-        <JoditEditor
-            value={data}
-            config={editorConfig}
-            onBlur={(value: string) => setData(value)}
-        />
-    )
+    if (ready)
+        return (
+            <JoditEditor
+                value={data}
+                config={editorConfig}
+                onBlur={(value: string) => setData(value)}
+            />
+        )
 }

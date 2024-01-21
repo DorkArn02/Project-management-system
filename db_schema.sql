@@ -1,0 +1,195 @@
+IF NOT EXISTS(SELECT 1 FROM sys.databases WHERE name='PM_PROD_DB')
+    CREATE DATABASE PM_PROD_DB
+GO
+USE PM_PROD_DB
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[users]') AND type in (N'U'))
+BEGIN
+CREATE TABLE users( 
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	FirstName NVARCHAR(50) NOT NULL,
+	LastName NVARCHAR(50) NOT NULL,
+	PasswordHash NVARCHAR(255) NOT NULL,
+	Email NVARCHAR(100) NOT NULL UNIQUE,
+	Registered DATETIME NOT NULL,
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[roles]') AND type in (N'U'))
+BEGIN
+CREATE TABLE roles(
+	Id INT PRIMARY KEY IDENTITY,
+	Name NVARCHAR(50) NOT NULL,
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[projects]') AND type in (N'U'))
+BEGIN
+CREATE TABLE projects(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	Title NVARCHAR(50) NOT NULL,
+	Description TEXT,
+	Created DATETIME NOT NULL,
+	Updated DATETIME NOT NULL,
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[participants]') AND type in (N'U'))
+BEGIN
+CREATE TABLE participants(
+	Id INT PRIMARY KEY IDENTITY,
+	UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id) ON DELETE CASCADE,
+	ProjectId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projects(Id) ON DELETE CASCADE,
+	RoleId INT NOT NULL FOREIGN KEY REFERENCES roles(Id) ON DELETE CASCADE
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[projectLists]') AND type in (N'U'))
+BEGIN
+CREATE TABLE projectLists(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	Title NVARCHAR(50) NOT NULL,
+	Position INT NOT NULL,
+	ProjectId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projects(Id)
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[priorities]') AND type in (N'U'))
+BEGIN
+CREATE TABLE priorities(
+	Id INT PRIMARY KEY IDENTITY,
+	Name NVARCHAR(50) NOT NULL,
+	Lvl INT UNIQUE NOT NULL,
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[issueTypes]') AND type in (N'U'))
+BEGIN
+CREATE TABLE issueTypes(
+	Id INT IDENTITY PRIMARY KEY,
+	Name NVARCHAR(50)
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[issues]') AND type in (N'U'))
+BEGIN
+CREATE TABLE issues(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	Title NVARCHAR(50) NOT NULL,
+	Description TEXT,
+	Created DATETIME NOT NULL,
+	Updated DATETIME NOT NULL,
+	DueDate DATETIME,
+	Position INT NOT NULL,
+	TimeEstimate INT,
+	TimeSpent INT,
+	ProjectId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projects(Id) ON DELETE CASCADE,
+	ProjectListId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projectLists(Id) ON DELETE CASCADE,
+	UserId UNIQUEIDENTIFIER FOREIGN KEY REFERENCES users(Id) ON DELETE SET NULL,
+	PriorityId INT FOREIGN KEY REFERENCES priorities(Id) ON DELETE SET NULL,
+	ParentIssueId UNIQUEIDENTIFIER FOREIGN KEY REFERENCES issues(Id),
+	IssueTypeId INT FOREIGN KEY REFERENCES issueTypes(Id)
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[assignedPeople]') AND type in (N'U'))
+BEGIN
+CREATE TABLE assignedPeople(
+	Id INT IDENTITY PRIMARY KEY,
+	IssueId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES issues(Id) ON DELETE CASCADE,
+	UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id) ON DELETE CASCADE
+);	
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[comments]') AND type in (N'U'))
+BEGIN
+CREATE TABLE comments(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	Content TEXT NOT NULL,
+	Created DATETIME NOT NULL,
+	Updated DATETIME NOT NULL,
+	UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id) ON DELETE CASCADE,
+	IssueId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES issues(Id) ON DELETE CASCADE
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[notifications]') AND type in (N'U'))
+BEGIN
+CREATE TABLE notifications(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	Content TEXT NOT NULL,
+	Created DATETIME NOT NULL,
+	UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id), -- Akinek szól, lehet üres, akkor sima audit log
+	ModifierId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id), -- Módosító neve
+	ProjectId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projects(Id) ON DELETE CASCADE,
+);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[auditLogs]') AND type in (N'U'))
+BEGIN
+CREATE TABLE auditLogs(
+	Id UNIQUEIDENTIFIER PRIMARY KEY,
+	UserId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES users(Id),
+	Created DATETIME NOT NULL,
+	Content TEXT NOT NULL,
+	ProjectId UNIQUEIDENTIFIER NOT NULL FOREIGN KEY REFERENCES projects(Id) ON DELETE CASCADE,
+)
+END
+
+IF NOT EXISTS (SELECT * FROM issueTypes WHERE Name = 'Task')
+BEGIN
+    INSERT INTO issueTypes (Name) VALUES ('Task');
+END
+IF NOT EXISTS (SELECT * FROM issueTypes WHERE Name = 'Story')
+BEGIN
+    INSERT INTO issueTypes (Name) VALUES ('Story');
+END
+IF NOT EXISTS (SELECT * FROM issueTypes WHERE Name = 'Bug')
+BEGIN
+    INSERT INTO issueTypes (Name) VALUES ('Bug');
+END
+IF NOT EXISTS (SELECT * FROM issueTypes WHERE Name = 'Subtask')
+BEGIN
+    INSERT INTO issueTypes (Name) VALUES ('Subtask');
+END
+
+IF NOT EXISTS (SELECT * FROM roles WHERE Name = 'Owner')
+BEGIN
+    INSERT INTO roles (Name) VALUES ('Owner');
+END
+IF NOT EXISTS (SELECT * FROM roles WHERE Name = 'Member')
+BEGIN
+    INSERT INTO roles (Name) VALUES ('Member');
+END
+
+IF NOT EXISTS (SELECT * FROM priorities WHERE Name = 'Legalacsonyabb')
+BEGIN
+    INSERT INTO priorities (Name, Lvl) VALUES ('Legalacsonyabb', 1);
+END
+IF NOT EXISTS (SELECT * FROM priorities WHERE Name = 'Alacsony')
+BEGIN
+    INSERT INTO priorities (Name, Lvl) VALUES ('Alacsony', 2);
+END
+IF NOT EXISTS (SELECT * FROM priorities WHERE Name = 'Közepes')
+BEGIN
+    INSERT INTO priorities (Name, Lvl) VALUES ('Közepes', 3);
+END
+IF NOT EXISTS (SELECT * FROM priorities WHERE Name = 'Magas')
+BEGIN
+    INSERT INTO priorities (Name, Lvl) VALUES ('Magas', 4);
+END
+IF NOT EXISTS (SELECT * FROM priorities WHERE Name = 'Legmagasabb')
+BEGIN
+    INSERT INTO priorities (Name, Lvl) VALUES ('Legmagasabb', 5);
+END
+
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'DeleteProjectAndLists')
+BEGIN
+    EXEC('CREATE PROCEDURE DeleteProjectAndLists
+    @ProjectId UNIQUEIDENTIFIER
+AS
+BEGIN
+    DELETE FROM projectLists
+    WHERE ProjectId = @ProjectId;
+END');
+END

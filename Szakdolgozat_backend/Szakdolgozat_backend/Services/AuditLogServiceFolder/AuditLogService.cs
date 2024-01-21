@@ -22,58 +22,49 @@ namespace Szakdolgozat_backend.Services.AuditLogServiceFolder
             _mapper = mapper;
         }
 
-        public async Task AddAuditLog(Guid projectId, string content)
+        private async Task<(User, Project)> GetUserAndProject(Guid userId, Guid projectId)
         {
-            Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
-
             User? user = await _db.Users.FindAsync(userId);
-
             if (user == null)
                 throw new NotFoundException($"User with id {userId} not found.");
 
-            Project? p = await _db.Projects.FindAsync(projectId);
-
-            if (p == null)
+            Project? project = await _db.Projects.FindAsync(projectId);
+            if (project == null)
                 throw new NotFoundException($"Project with id {projectId} not found.");
 
             if (!_userHelper.IsUserMemberOfProject(userId, projectId))
                 throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
 
+            return (user, project);
+        }
+
+        public async Task AddAuditLog(Guid projectId, string content)
+        {
+            Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
+            (User user, Project project) = await GetUserAndProject(userId, projectId);
+
             AuditLog auditLog = new()
             {
                 Content = content,
-                Project = p,
+                Project = project,
                 User = user,
                 Created = DateTime.Now,
             };
 
             await _db.AuditLogs.AddAsync(auditLog);
-
             await _db.SaveChangesAsync();
         }
 
         public async Task<List<AuditLogResponseDTO>> GetAuditLogs(Guid projectId)
         {
             Guid userId = _userHelper.GetAuthorizedUserGuid2(_contextAccessor);
-
-            User? user = await _db.Users.FindAsync(userId);
-
-            if (user == null)
-                throw new NotFoundException($"User with id {userId} not found.");
-
-            Project? p = await _db.Projects.FindAsync(projectId);
-
-            if (p == null)
-                throw new NotFoundException($"Project with id {projectId} not found.");
-
-            if (!_userHelper.IsUserMemberOfProject(userId, projectId))
-                throw new Exceptions.UnauthorizedAccessException($"User with id {userId} is not member of project.");
+            (User user, Project project) = await GetUserAndProject(userId, projectId);
 
             List<AuditLog> auditLogs = await _db.AuditLogs.Where(x => x.ProjectId == projectId)
-                .Include(u=>u.User).ToListAsync();
+                .Include(u => u.User).ToListAsync();
 
             return _mapper.Map<List<AuditLogResponseDTO>>(auditLogs)
-                .OrderByDescending(a=>a.Created)
+                .OrderByDescending(a => a.Created)
                 .ToList();
         }
     }
