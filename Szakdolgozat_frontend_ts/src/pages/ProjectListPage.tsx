@@ -40,7 +40,7 @@ import {
     useColorMode,
     useDisclosure, useToast
 } from '@chakra-ui/react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Select as ChakraSelect, GroupBase, SelectComponentsConfig, chakraComponents } from "chakra-react-select"
 import debounce from "lodash/debounce"
 import moment from "moment"
@@ -176,7 +176,7 @@ export default function ProjectListPage() {
 
     const { register: registerBoardEdit, handleSubmit: handleSubmitBoardEdit, reset: resetBoardEdit, formState: { errors: errorsBoardEdit, isSubmitting: isSubmittingBoardEdit } } = useForm<ProjectListRequest>();
 
-    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields, defaultValues }, control: controlView } = useForm<IssueRequestView>({
+    const { register: registerView, handleSubmit: handleSubmitView, reset: resetView, formState: { errors: errorsView, isDirty, dirtyFields }, control: controlView } = useForm<IssueRequestView>({
         shouldUnregister: true,
     })
     const { handleSubmit: handleSubmitDelete, formState: { isSubmitting: isSubmittingDelete } } = useForm()

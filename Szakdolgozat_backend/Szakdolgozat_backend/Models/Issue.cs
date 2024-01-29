@@ -42,7 +42,7 @@ public partial class Issue
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
 
     [JsonIgnore]
-    public virtual Priority? Priority { get; set; }
+    public virtual Priority Priority { get; set; }
     [JsonIgnore]
     public virtual Project Project { get; set; } = null!;
     [JsonIgnore]

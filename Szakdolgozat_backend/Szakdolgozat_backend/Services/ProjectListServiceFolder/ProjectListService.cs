@@ -1,7 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Szakdolgozat_backend.Dtos.AssignedPersonDtos;
-using Szakdolgozat_backend.Dtos.CommentDtos;
 using Szakdolgozat_backend.Dtos.IssueDtos;
 using Szakdolgozat_backend.Dtos.ProjectListDtos;
 using Szakdolgozat_backend.Exceptions;

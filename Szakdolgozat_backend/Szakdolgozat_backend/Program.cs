@@ -47,7 +47,6 @@ builder.Services.AddControllers()
 {
     options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
 });
-
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
@@ -153,6 +152,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 app.UseCors("MyPolicy");
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

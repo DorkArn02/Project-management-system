@@ -9,6 +9,6 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
         Task<List<UserInfoDTO>> GetAllResults();
         Task ChangeUserPassword([FromBody] ChangePasswordRequestDTO changePasswordRequestDTO);
 
-        Task UploadUserProfilePicture(UserProfilePictureDTO pictureDTO);
+        Task UploadUserProfilePicture(IFormFile pictureDTO);
     }
 }

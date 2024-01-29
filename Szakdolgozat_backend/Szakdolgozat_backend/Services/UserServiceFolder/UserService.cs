@@ -16,13 +16,15 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IUserHelper _userHelper;
         private readonly IMapper _mapper;
+        private readonly IHostEnvironment _hostingEnvironment;
 
-        public UserService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper, IMapper mapper)
+        public UserService(DbCustomContext db, IHttpContextAccessor httpContextAccessor, IUserHelper userHelper, IMapper mapper, IHostEnvironment hostingEnvironment)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _userHelper = userHelper;
             _mapper = mapper;
+            _hostingEnvironment = hostingEnvironment;
         }
 
         public async Task ChangeUserPassword([FromBody] ChangePasswordRequestDTO changePasswordRequestDTO)
@@ -106,7 +108,7 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
             return _mapper.Map<UserInfoDTO>(relatedUser);
         }
 
-        public async Task UploadUserProfilePicture(UserProfilePictureDTO pictureDTO)
+        public async Task UploadUserProfilePicture(IFormFile pictureDTO)
         {
             Guid authorizedId = _userHelper.GetAuthorizedUserGuid2(_httpContextAccessor);
 
@@ -115,14 +117,23 @@ namespace Szakdolgozat_backend.Services.UserServiceFolder
             if (u == null)
                 throw new NotFoundException("User not found.");
 
-            var item = pictureDTO.profilePicture;
+            var item = pictureDTO;
 
             if (item.FileName == null || item.FileName.Length == 0)
             {
                 throw new BadRequestException("File not selected");
             }
 
-
+            string uploads = Path.Combine(_hostingEnvironment.ContentRootPath, "wwwroot");
+            if (item.Length > 0)
+            {
+                string extension = Path.GetExtension(item.FileName);
+                string filePath = Path.Combine(uploads, $"{u.Id}{extension}");
+                using (Stream fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await item.CopyToAsync(fileStream);
+                }
+            }
         }
     }
 }

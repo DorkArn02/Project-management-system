@@ -40,5 +40,13 @@ namespace Szakdolgozat_backend.Controllers
 
             return Ok("Password changed");
         }
+
+        [HttpPost("UploadUserProfilePicture")]
+        public async Task<IActionResult> UploadUserProfilePicture(IFormFile pictureDTO)
+        {
+            await _userService.UploadUserProfilePicture(pictureDTO);
+
+            return Ok("Profile uploaded");
+        }
     }
 }

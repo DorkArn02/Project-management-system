@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Szakdolgozat_backend.Dtos.UserDtos;
+﻿using Szakdolgozat_backend.Dtos.UserDtos;
 
 namespace Szakdolgozat_backend.Services.AuthServiceFolder
 {

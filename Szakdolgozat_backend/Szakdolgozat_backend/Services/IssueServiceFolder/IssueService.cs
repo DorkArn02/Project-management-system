@@ -390,6 +390,19 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (i == null)
                 throw new NotFoundException($"Issue with id {issueId} not found.");
 
+            var childrenIssue = await _db.Issues
+                .Where(g => g.ParentIssueId == i.Id).ToListAsync();
+
+            foreach(var child in childrenIssue)
+            {
+                child.ParentIssueId = null;
+                child.ParentIssue = null;
+            }
+
+            _db.Issues.UpdateRange(childrenIssue);
+
+            await _db.SaveChangesAsync();
+
             await _auditLogService.AddAuditLog(projectId, $"A(z) {i.Title} nevű feladatot törölte.");
 
             _db.Issues.Remove(i);
