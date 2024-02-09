@@ -89,7 +89,7 @@
         "label_issue_updated": "Updated",
         "label_issue_remove_subtask": "Remove subtask",
         "tooltip_delete_task": "Delete task",
-        "tooltip_close_task": "Close preview",
+        "tooltip_close_task": "Close preview and cancel edit",
         "tooltip_navigate_parent_task": "Navigate to parent task",
         "modal_edit_name": "Edit board name",
         "btn_edit": "Edit",

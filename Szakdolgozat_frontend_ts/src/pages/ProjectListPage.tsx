@@ -1,11 +1,9 @@
 import {
     Avatar,
-    AvatarGroup,
-    Breadcrumb,
+    AvatarGroup, Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
-    Button,
-    Checkbox,
+    Button, Checkbox,
     Divider,
     Flex,
     FormControl,
@@ -965,8 +963,29 @@ export default function ProjectListPage() {
                                     </Tooltip>
 
                                     <Tooltip label={t('projectlist.tooltip_close_task')}>
-                                        <IconButton ref={initRef} aria-label='Save issue' type="submit" size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
+                                        <IconButton ref={initRef} aria-label='Save issue' onClick={onCloseIssue} size="md" right={2} top={5} position={"absolute"} variant="ghost" icon={<ImCross />} />
                                     </Tooltip>
+
+                                    {/* {isDirty ?
+                                        <Stack position="fixed" bottom="5" zIndex={1000} justify="center" p={4} spacing={4} align="center" >
+                                            <Card variant={"outline"}>
+                                                <CardHeader>
+                                                    <Text>Nem mentett módosításai vannak</Text>
+                                                </CardHeader>
+                                                <CardFooter>
+                                                    <HStack w="full" justify="center">
+                                                        <Button colorScheme="blue">
+                                                            Elment
+                                                        </Button>
+                                                        <Button colorScheme="red" >
+                                                            Visszavon
+                                                        </Button>
+                                                    </HStack>
+                                                </CardFooter>
+                                            </Card>
+                                        </Stack>
+                                        : ""} */}
+
                                     {currentIssue.issueType.name === 'Subtask' && currentIssue.parentIssueId != null ?
                                         <Tooltip label={t('projectlist.tooltip_navigate_parent_task')}>
                                             <IconButton aria-label='Navigate to parent issue' onClick={() => handleOpenParentIssue(currentIssue)} size="md" right={100} top={5} position={"absolute"} variant="ghost" icon={<FaExternalLinkAlt />} />

@@ -89,7 +89,7 @@
         "label_issue_updated": "Frissítve",
         "label_issue_remove_subtask": "Hozzárendelt ügy eltávolítása",
         "tooltip_delete_task": "Ügy törlése",
-        "tooltip_close_task": "Előnézet bezárása",
+        "tooltip_close_task": "Előnézet bezárása és módosítások elvetése",
         "tooltip_navigate_parent_task": "Navigálás a szűlő feladatra",
         "modal_edit_name": "Board nevének módosítása",
         "btn_edit": "Módosít",

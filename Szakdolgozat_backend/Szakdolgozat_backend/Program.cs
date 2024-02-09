@@ -37,23 +37,29 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 
 builder.Services.AddDbContext<DbCustomContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         sqlServerOptionsAction: sqlOptions =>
         {
             sqlOptions.EnableRetryOnFailure();
         }));
+
 builder.Services.AddControllers()
-.AddNewtonsoftJson(options =>
-{
-    options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-});
+        .AddNewtonsoftJson(options =>
+        {
+            options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+        });
+
 builder.Services.AddSignalR();
-builder.Services.AddCors(options =>
+
+if (builder.Environment.IsDevelopment())
 {
-    options.AddPolicy("MyPolicy",
+    builder.Services.AddCors(options =>
+    {
+
+        options.AddPolicy("MyPolicy",
         builder =>
         {
-            builder.WithOrigins("http://127.0.0.1:5173", 
+            builder.WithOrigins("http://127.0.0.1:5173",
                 "http://localhost:5173",
                 "https://localhost:7093",
                 "https://localhost:80",
@@ -62,7 +68,9 @@ builder.Services.AddCors(options =>
                    .AllowAnyHeader()
                    .AllowCredentials();
         });
-});
+    });
+}
+
 
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
@@ -71,36 +79,30 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 });
 
 builder.Services.AddAutoMapper(typeof(Program));
+
 builder.Logging.ClearProviders();
+builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
+loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
 
-if(builder.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment())
 {
-    builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
-    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
-}
-else
-{
-    builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
-    loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
-}
-
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
+    builder.Services.AddSwaggerGen(c =>
     {
-        Title = "Szakdolgozat app",
-        Version = "v1"
-    });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Bearer Authentication with JWT Token",
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+        c.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "Szakdolgozat app",
+            Version = "v1"
+        });
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Bearer Authentication with JWT Token",
+        });
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement {
         {
             new OpenApiSecurityScheme {
                 Reference = new OpenApiReference {
@@ -111,7 +113,9 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
-});
+    });
+}
+
 
 builder.Services.AddHttpContextAccessor();
 
@@ -144,16 +148,15 @@ builder.Services.AddDistributedMemoryCache();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("MyPolicy");
 }
-app.UseCors("MyPolicy");
+
 app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
