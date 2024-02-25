@@ -118,7 +118,16 @@
         "popup_issue_add_subtasks_success": "Hozzárendelt feladat hozzárendelése sikeres!",
         "popup_issue_add_subtasks_error": "Hozzárendelt feladat hozzárendelése sikertelen!",
         "popup_issue_delete_subtasks_success": "Hozzárendelt feladat leválasztása sikeres!",
-        "popup_issue_delete_subtasks_error": "Hozzárendelt feladat leválasztása sikertelen!"
+        "popup_issue_delete_subtasks_error": "Hozzárendelt feladat leválasztása sikertelen!",
+        "priority_lowest": "Legalacsonyabb",
+        "priority_low": "Alacsony",
+        "priority_medium": "Közepes",
+        "priority_high": "Magas",
+        "priority_highest": "Legmagasabb",
+        "type_issue": "Feladat",
+        "type_story": "Story",
+        "type_subtask": "Alfeladat",
+        "type_bug": "Bug"
     },
     "sidebar": {
         "projects_btn": "Projektek",
@@ -181,6 +190,7 @@
         "label_logout_confirmation": "Kijelentkezés megerősítése",
         "label_logout": "Kijelentkezés",
         "label_logout_more": "Biztos vagy benne?",
+        "label_user_language1": "Nyelvi beállítások",
         "label_user_language": "Nyelv változtatás",
         "label_language_changed": "A nyelv megváltoztatva erre: {{lang}}"
     },

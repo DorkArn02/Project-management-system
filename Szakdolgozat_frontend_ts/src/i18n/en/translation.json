@@ -118,7 +118,16 @@
         "popup_issue_add_subtasks_success": "Subtask connected successfully!",
         "popup_issue_add_subtasks_error": "Subtask connection failed!",
         "popup_issue_delete_subtasks_success": "Subtask disconnected successfully!",
-        "popup_issue_delete_subtasks_error": "Subtask disconnection failed!"
+        "popup_issue_delete_subtasks_error": "Subtask disconnection failed!",
+        "priority_lowest": "Lowest",
+        "priority_low": "Low",
+        "priority_medium": "Medium",
+        "priority_high": "High",
+        "priority_highest": "Highest",
+        "type_issue": "Task",
+        "type_story": "Story",
+        "type_subtask": "Subtask",
+        "type_bug": "Bug"
     },
     "sidebar": {
         "projects_btn": "Projects",
@@ -181,6 +190,7 @@
         "label_logout_confirmation": "Confirm logout",
         "label_logout": "Log out",
         "label_logout_more": "Are you sure?",
+        "label_user_language1": "Language settings",
         "label_user_language": "Change language",
         "label_language_changed": "Language changed to {{lang}}"
     },

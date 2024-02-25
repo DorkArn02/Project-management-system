@@ -5,8 +5,8 @@
 
 ## Project details
 
-- Backend: .NET Core 6 Web API
-- Frontend: React Typescript (vite.js)
+- Backend: **.NET Core 6 Web API**
+- Frontend: **React Typescript (vite.js)**
 
 ## Database structure
 
@@ -14,7 +14,7 @@
 
 ## Project description
 
-The goal of this application is to create a project management system where you can manage your projects and invite others to your projects to share the workflow
+The goal of this application is to create a **project management system** where you can **manage** your projects and **invite** others to your **projects** to **share** the **workflow**.
 
 - User authentication/authorization
 - Project
@@ -48,12 +48,46 @@ The goal of this application is to create a project management system where you 
   - Light theme
   - Dark theme
 
+## Project images
+
+![Login screen](readme_images/loginscreen.png)
+
+![Project list screen](readme_images/projectsscreen.png)
+
+![alt text](readme_images/changeprojectdetails.png)
+
+![alt text](readme_images/manageprojectmembers.png)
+
+![Project kanban table screen](readme_images/kanbantable.png)
+
+![alt text](readme_images/addissue1.png)
+
+![alt text](readme_images/addissue2.png)
+
+![alt text](readme_images/viewissue.png)
+
+![alt text](readme_images/viewissue2.png)
+
+![alt text](readme_images/addsubtasktoissue.png)
+
+![alt text](readme_images/connectedtasks.png)
+
+![alt text](readme_images/usertasksscreen.png)
+
+![alt text](readme_images/statsscreen.png)
+
+![alt text](readme_images/statsscreen2.png)
+
+![alt text](readme_images/ganttscreen.png)
+
+![alt text](readme_images/userscreen.png)
+
 ## How to deploy application
 
 1. Install SQL Server Management Studio 19
 2. Install Internet Information Services Manager 10
 3. Create new database in SSMS then run
-`db_teszt.sql` in database
+`db_schema.sql` in database
 4. Build frontend and backend
 5. Create new site in IIS and new application pool in IIS
 6. Move built frontend code to IIS folder: `C:\inetpub\wwwroot\`

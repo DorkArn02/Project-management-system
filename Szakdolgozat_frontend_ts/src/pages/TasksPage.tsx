@@ -95,18 +95,18 @@ export default function TasksPage() {
     }
 
     const priorities = [
-        { value: "1", label: "Legalacsonyabb", icon: <Icon mr={2} as={FcLowPriority} /> },
-        { value: "2", label: "Alacsony", icon: <Icon mr={2} as={FcLowPriority} /> },
-        { value: "3", label: "Közepes", icon: <Icon mr={2} as={FcMediumPriority} /> },
-        { value: "4", label: "Magas", icon: <Icon mr={2} as={FcHighPriority} /> },
-        { value: "5", label: "Legmagasabb", icon: <Icon mr={2} as={FcHighPriority} /> },
+        { value: "1", label: t("projectlist.priority_lowest"), icon: <Icon mr={2} as={FcLowPriority} /> },
+        { value: "2", label: t("projectlist.priority_low"), icon: <Icon mr={2} as={FcLowPriority} /> },
+        { value: "3", label: t("projectlist.priority_medium"), icon: <Icon mr={2} as={FcMediumPriority} /> },
+        { value: "4", label: t("projectlist.priority_high"), icon: <Icon mr={2} as={FcHighPriority} /> },
+        { value: "5", label: t("projectlist.priority_highest"), icon: <Icon mr={2} as={FcHighPriority} /> },
     ]
 
     const issueTypes = [
-        { value: "1", label: "Feladat", icon: <Icon mr={2} as={AiFillCheckSquare} color='#42a4ff' /> },
-        { value: "2", label: "Story", icon: <Icon mr={2} as={BsFillBookmarkFill} color='#c5ff3d' /> },
-        { value: "3", label: "Bug", icon: <Icon mr={2} as={AiFillBug} color='#eb5757' /> },
-        { value: "4", label: "Subtask", icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> },
+        { value: "1", label: t("projectlist.type_issue"), icon: <Icon mr={2} as={AiFillCheckSquare} color='#42a4ff' /> },
+        { value: "2", label: t("projectlist.type_story"), icon: <Icon mr={2} as={BsFillBookmarkFill} color='#c5ff3d' /> },
+        { value: "3", label: t("projectlist.type_bug"), icon: <Icon mr={2} as={AiFillBug} color='#eb5757' /> },
+        { value: "4", label: t("projectlist.type_subtask"), icon: <Icon mr={2} as={TbSubtask} color='#42a4ff' /> }
     ]
 
     const [itemOffset, setItemOffset] = useState(0);

@@ -142,7 +142,7 @@ export default function UserPage() {
                     </Flex>
                 </Flex>
                 <Flex mt={"65px"} direction={"column"}>
-                    <Heading size="lg">Nyelvi beállítások</Heading>
+                    <Heading size="lg">{t('users.label_user_language1')}</Heading>
                     <FormControl>
                         <FormLabel>{t('users.label_user_language')}</FormLabel>
                         <Select variant="filled" onChange={(e) => handleLanguageChange(e.target.value)} defaultValue={i18n.language}>
