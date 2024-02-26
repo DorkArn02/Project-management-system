@@ -3,6 +3,10 @@
 - Thesis project for **Computer Science BSc**
 - Author: **Dorkó Arnold**
 
+## Abstract
+
+This is my final year project for Computer Science BSc thesis.
+
 ## Project details
 
 - Backend: **.NET Core 6 Web API**
@@ -10,7 +14,7 @@
 
 ## Database structure
 
-![database structure](diagramok/Copy%20of%20ER%20DIAGRAM%20SZAKDOGA.png)
+![database structure](diagramok/ER%20diagram.png)
 
 ## Project description
 
@@ -90,8 +94,9 @@ The goal of this application is to create a **project management system** where 
 `db_schema.sql` in database
 4. Build frontend and backend
 5. Create new site in IIS and new application pool in IIS
+(application pool name: Szakdolgozat_backend, .NET CLR version: No managed code, managed pipeline mode: integrated, identity: LocalSystem)
 6. Move built frontend code to IIS folder: `C:\inetpub\wwwroot\`
-7. Publish backend built code in Visual Studio to `wwwroot` folder
+7. Publish backend built code in Visual Studio to `wwwroot` folder (publish to folder option on project)
 8. Create new application pool in IIS Manager
-9. Add new application to `Default Web Site` and select the previous created application pool
+9. Add new application to `Default Web Site` and select the previous created application pool (path: C:\inetpub\wwwroot\api, application pool: Szakdolgozat_backend)
 10. Application should be available at `localhost:80`
