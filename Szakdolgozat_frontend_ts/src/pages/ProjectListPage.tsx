@@ -64,6 +64,7 @@ import EditorComponent from '../components/EditorComponent'
 import { addCommentToIssue, deleteCommentFromIssue } from '../api/user'
 import { TbSubtask } from "react-icons/tb"
 import { useTranslation } from 'react-i18next'
+import { SignalRContext } from '../routes'
 
 interface PriorityL {
     value: string,
@@ -154,6 +155,14 @@ export default function ProjectListPage() {
             setSelectedPeople(arr2)
         }
     }, [project, boards])
+
+    SignalRContext.useSignalREffect(
+        "SendStatusChange",
+        () => {
+            console.log("refetch!")
+            refetchProjectLists()
+        },
+        []);
 
     // CHAKRA
     const { colorMode } = useColorMode()

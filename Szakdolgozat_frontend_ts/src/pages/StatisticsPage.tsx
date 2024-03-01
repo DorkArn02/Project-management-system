@@ -358,11 +358,13 @@ export default function StatisticsPage() {
                         (b.issues.map(i => {
                             const cDate = moment(i.created);
                             const dDate = moment(i.dueDate);
+                            // console.log(cDate)
+                            // console.log(dDate)
                             return {
                                 id: i.id,
                                 name: i.title,
-                                start: new Date(cDate.year(), cDate.month(), cDate.date()),
-                                end: new Date(dDate.year(), dDate.month(), dDate.date()),
+                                start: new Date(cDate.year(), cDate.month(), cDate.date()), //cDate.year(), cDate.month(), cDate.date()
+                                end: new Date(dDate.year(), dDate.month(), dDate.date()),//dDate.year(), dDate.month(), dDate.date()
                                 type: "task",
                                 dependencies: [i.parentIssueId!],
                                 progress: Math.round((i.timeSpent / i.timeEstimate) * 100),

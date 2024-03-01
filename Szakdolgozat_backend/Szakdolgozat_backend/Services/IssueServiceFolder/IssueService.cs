@@ -334,6 +334,15 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             await _auditLogService.AddAuditLog(projectId, $"A(z) {issue.Title} nevű feladat állapotát megváltoztatta.");
 
             _logger.LogInformation($"Issue status has changed by {userId} in project {projectId}.");
+
+            List<Participant> participants = await _db.Participants
+                .Where(p => p.ProjectId == projectId && p.UserId != userId).ToListAsync();
+
+            foreach (var pa in participants)
+            {
+                Console.WriteLine(pa.UserId.ToString());
+                await _messageHub.Clients.User(pa.UserId.ToString()).SendStatusChange("Refetch!");
+            }
         }
 
         public async Task ChangePositionInColumn(Guid projectId, Guid columnId, Dictionary<Guid, int> positions)
@@ -352,7 +361,7 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             if (column == null)
                 throw new NotFoundException("Column not found.");
 
-            foreach(var t in positions)        
+            foreach (var t in positions)        
             {
                 Issue? temp = await _db.Issues.FindAsync(t.Key);
                 if(temp != null)
@@ -363,6 +372,17 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
 
             await _db.SaveChangesAsync();
             _logger.LogInformation($"Issue position has changed by {userId} in project {projectId}.");
+
+
+            List<Participant> participants = await _db.Participants
+                .Where(p => p.ProjectId == projectId && p.UserId != userId).ToListAsync();
+
+            foreach (var pa in participants)
+            {
+                Console.WriteLine(pa.UserId.ToString());
+                await _messageHub.Clients.User(pa.UserId.ToString()).SendStatusChange("Refetch!");
+            }
+
         }
 
         public async Task DeleteIssueFromProjectList(Guid projectId, Guid projectListId, Guid issueId)
@@ -617,6 +637,16 @@ namespace Szakdolgozat_backend.Services.IssueServiceFolder
             await _db.SaveChangesAsync();
 
             _logger.LogInformation($"Issue {issueId} details changed by user {userId}.");
+
+            List<Participant> participants = await _db.Participants
+                .Where(p => p.ProjectId == projectId && p.UserId != userId).ToListAsync();
+
+            foreach (var pa in participants)
+            {
+                Console.WriteLine(pa.UserId.ToString());
+                await _messageHub.Clients.User(pa.UserId.ToString()).SendStatusChange("Refetch!");
+            }
+
             return i;
         }
     }
