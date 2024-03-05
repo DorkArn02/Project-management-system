@@ -24,22 +24,27 @@ import moment from 'moment';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { deleteNotification, getNotifications } from '../api/user';
-import { NotificationResponse } from '../interfaces/interfaces';
-import { SignalRContext } from '../routes';
+import { LoginResponse, NotificationResponse } from '../interfaces/interfaces';
 import { useTranslation } from 'react-i18next';
+import { createSignalRContext } from 'react-signalr';
+import { api } from '../api';
 
 const getInitialNotificationCount = () => localStorage.getItem('notification') != null ? parseInt(localStorage.getItem('notification')!) : 0;
+export const SignalRContext = createSignalRContext();
+
+const getStr = () => {
+    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIzNjg1ZmI4YS1lNWNjLTRhYjItYTcxMy0wOGRjMTljMzZjYzQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9zdXJuYW1lIjoiQXJub2xkIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZ2l2ZW5uYW1lIjoiRG9ya8OzIiwiZXhwIjoxNzA5MzkyNjIwLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MDkzLyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMC8ifQ.p4ShtpK6CuOaTjDsL3067SO8f4lxKg7JbsVW3lxfNWk"
+}
 
 export default function Dashboard() {
 
-    const { user, logout } = useAuth()
+    const { user, logout, login } = useAuth()
     const navigate = useNavigate()
     const storedValue = localStorage.getItem("opened");
     const initialValue = storedValue ? JSON.parse(storedValue) : false;
     const [opened, setOpened] = useState<boolean>(initialValue);
     const { colorMode, toggleColorMode } = useColorMode()
     const { isOpen, onOpen, onClose } = useDisclosure()
-
 
     useEffect(() => {
         if (!user) {
@@ -85,7 +90,33 @@ export default function Dashboard() {
         return ""
     } else if (ready)
         return (
-            <>
+            <SignalRContext.Provider
+                connectEnabled={!!user.accessToken}
+                accessTokenFactory={() => user.accessToken}
+                dependencies={[user.accessToken]}
+                automaticReconnect={true}
+                transport={1}
+                skipNegotiation={true}
+                onOpen={() => {
+                    console.log("CONNECTED OPEN! ")
+                }}
+                onClosed={() => {
+                    console.log("CLOSED")
+                }}
+                onReconnect={() => {
+                    console.log("RECONNECT")
+                }}
+                onError={async () => {
+                    const access_token = await api.get(`/Auth/refresh`, { withCredentials: true });
+                    if (access_token.data) {
+                        const tmpUser = JSON.parse(localStorage.getItem("user") || "")
+                        const newUser = { ...tmpUser, accessToken: access_token.data } as LoginResponse
+                        localStorage.setItem("user", JSON.stringify(newUser))
+                        login!(newUser!)
+                        api.defaults.headers.common['Authorization'] = `Bearer ${access_token.data}`
+                    }
+                }}
+                url={import.meta.env.MODE === "development" ? "https://localhost:7093/notify" : "http://localhost:80/api/notify"}>
                 <Modal isOpen={isOpen} onClose={onClose}>
                     <ModalOverlay />
                     <ModalContent>
@@ -203,6 +234,6 @@ export default function Dashboard() {
                     </Box>
                     <Outlet />
                 </Flex>
-            </>
+            </SignalRContext.Provider>
         )
 }

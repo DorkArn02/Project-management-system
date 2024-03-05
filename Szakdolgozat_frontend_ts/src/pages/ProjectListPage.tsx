@@ -64,7 +64,7 @@ import EditorComponent from '../components/EditorComponent'
 import { addCommentToIssue, deleteCommentFromIssue } from '../api/user'
 import { TbSubtask } from "react-icons/tb"
 import { useTranslation } from 'react-i18next'
-import { SignalRContext } from '../routes'
+import { SignalRContext } from "./DashboardPage"
 
 interface PriorityL {
     value: string,
