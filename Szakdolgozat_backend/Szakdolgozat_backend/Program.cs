@@ -63,7 +63,8 @@ if (builder.Environment.IsDevelopment())
                 "http://localhost:5173",
                 "https://localhost:7093",
                 "https://localhost:80",
-                "http://localhost:80")
+                "http://localhost:80",
+                "https://pmsystemptefrontend.azurewebsites.net")
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();

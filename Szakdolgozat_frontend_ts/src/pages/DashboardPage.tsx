@@ -120,7 +120,7 @@ export default function Dashboard() {
                         console.log("RENEWED tokens!")
                     }
                 }}
-                url={import.meta.env.MODE === "development" ? "https://localhost:7093/notify" : "http://localhost:80/api/notify"}>
+                url={import.meta.env.MODE === "development" ? "https://localhost:7093/notify" : "https://pmsystempte.azurewebsites.net/notify"}>
                 <Modal isOpen={isOpen} onClose={onClose}>
                     <ModalOverlay />
                     <ModalContent>

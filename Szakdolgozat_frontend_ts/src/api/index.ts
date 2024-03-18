@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export const api = axios.create({
-    baseURL: import.meta.env.MODE === "development" ? 'https://localhost:7093/api' : "/api/api",
+    baseURL: import.meta.env.MODE === "development" ? 'https://localhost:7093/api' : "https://pmsystempte.azurewebsites.net/api/",
     withCredentials: true,
     headers: {
         "Content-type": "application/json",
