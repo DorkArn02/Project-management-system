@@ -32,9 +32,9 @@ import { api } from '../api';
 const getInitialNotificationCount = () => localStorage.getItem('notification') != null ? parseInt(localStorage.getItem('notification')!) : 0;
 export const SignalRContext = createSignalRContext();
 
-const getStr = () => {
-    return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIzNjg1ZmI4YS1lNWNjLTRhYjItYTcxMy0wOGRjMTljMzZjYzQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9zdXJuYW1lIjoiQXJub2xkIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZ2l2ZW5uYW1lIjoiRG9ya8OzIiwiZXhwIjoxNzA5MzkyNjIwLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MDkzLyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMC8ifQ.p4ShtpK6CuOaTjDsL3067SO8f4lxKg7JbsVW3lxfNWk"
-}
+// const getStr = () => {
+//     return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZWlkZW50aWZpZXIiOiIzNjg1ZmI4YS1lNWNjLTRhYjItYTcxMy0wOGRjMTljMzZjYzQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9zdXJuYW1lIjoiQXJub2xkIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvZ2l2ZW5uYW1lIjoiRG9ya8OzIiwiZXhwIjoxNzA5NjQxNTQzLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MDkzLyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDIwMC8ifQ.ulW0fr-u_wHxC00-kVBN60VCG6Zpbdb7F2OkgF6-6-Y"
+// }
 
 export default function Dashboard() {
 
@@ -108,12 +108,16 @@ export default function Dashboard() {
                 }}
                 onError={async () => {
                     const access_token = await api.get(`/Auth/refresh`, { withCredentials: true });
+                    console.log(access_token.status)
+                    console.log(access_token.data)
+                    console.log("DEBUG!")
                     if (access_token.data) {
                         const tmpUser = JSON.parse(localStorage.getItem("user") || "")
                         const newUser = { ...tmpUser, accessToken: access_token.data } as LoginResponse
                         localStorage.setItem("user", JSON.stringify(newUser))
                         login!(newUser!)
                         api.defaults.headers.common['Authorization'] = `Bearer ${access_token.data}`
+                        console.log("RENEWED tokens!")
                     }
                 }}
                 url={import.meta.env.MODE === "development" ? "https://localhost:7093/notify" : "http://localhost:80/api/notify"}>
