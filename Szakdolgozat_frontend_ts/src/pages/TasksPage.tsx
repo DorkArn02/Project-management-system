@@ -43,7 +43,6 @@ export default function TasksPage() {
     const [endDate, setEndDate] = useState<string | null>(null)
     const [sortOrder, setSortOrder] = useState(true);
 
-
     const { data: projects, isLoading } = useQuery({
         queryKey: ['getUserProjects2'],
         queryFn: () => getUserProjects().then(res => res.data.map(i => {
@@ -186,12 +185,13 @@ export default function TasksPage() {
 
                                     </Th>
                                     <Th>{t('stats.stats_table_priority')}</Th>
+                                    <Th>{t('stats.stats_time_spent')}</Th>
                                 </Tr>
                             </Thead>
                             <Tbody>
                                 {tasks.filter(i => i.title.includes(title)).filter(i => (priority == null || i.priority.id == parseInt(priority))).filter(i => (type == null || i.issueType.id == parseInt(type)))
-                                    .filter(i => (startDate == null || moment(i.dueDate).isAfter(startDate)))
-                                    .filter(i => (endDate == null || moment(i.dueDate).isBefore(endDate)))
+                                    .filter(i => (startDate == null || moment(i.dueDate).isAfter(startDate) || startDate.length == 0))
+                                    .filter(i => (endDate == null || moment(i.dueDate).isBefore(endDate) || endDate.length == 0))
                                     .sort((a, b) => {
                                         const order = sortOrder === true ? 1 : -1;
                                         return order * (new Date(b.created).valueOf() - new Date(a.created).valueOf());
@@ -206,6 +206,7 @@ export default function TasksPage() {
                                                 <Td>{i.reporterName}</Td>
                                                 <Td>{moment(i.dueDate).format("YYYY/MM/DD")}</Td>
                                                 <Td>{handlePriorityIcon(i.priority.name)}</Td>
+                                                <Td>{i.timeSpent ? <Text>{i.timeSpent} h</Text> : "-"}</Td>
                                             </Tr>
                                         </Tooltip>
                                     ))}

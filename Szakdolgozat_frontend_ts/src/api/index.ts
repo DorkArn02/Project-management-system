@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export const api = axios.create({
-    baseURL: import.meta.env.MODE === "development" ? 'https://localhost:7093/api' : "https://pmsystempte.azurewebsites.net/api/",
+    baseURL: import.meta.env.MODE === "development" ? `${import.meta.env.VITE_BACKEND_URL_TEST}` : `${import.meta.env.VITE_BACKEND_URL_PROD}`,
     withCredentials: true,
     headers: {
         "Content-type": "application/json",

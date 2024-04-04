@@ -170,7 +170,8 @@
         "low": "Alacsony",
         "medium": "Közepes",
         "high": "Magas",
-        "highest": "Legmagasabb"
+        "highest": "Legmagasabb",
+        "stats_time_spent": "Eltöltött idő"
     },
     "users": {
         "label_details": "Saját profil adatok",

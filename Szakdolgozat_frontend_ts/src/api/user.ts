@@ -16,7 +16,6 @@ export const deleteCommentFromIssue = async (projectId: string, issueId: string,
     return result
 }
 
-
 export const getNotifications = async () => {
     const result = await api.get("/Notification")
     return result.data

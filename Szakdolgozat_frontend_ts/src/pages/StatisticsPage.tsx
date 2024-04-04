@@ -353,7 +353,7 @@ export default function StatisticsPage() {
                         <Select variant="filled" onChange={(e) => setView(e ? e.value.valueOf() : "Day")} defaultValue={{ label: t('stats.monthly'), value: ViewMode.Month.valueOf() }} options={options} />
                         <Checkbox onChange={() => setColumn(column ? "" : "100px")}>{t('stats.more_details')}</Checkbox>
                     </HStack>
-                    <HStack overflow="scroll">
+                    <HStack width={"full"} overflow="scroll">
                         <Gantt TaskListTable={TaskListTable} TaskListHeader={TaskListHeader} TooltipContent={TooltipContent} listCellWidth={column} locale="hu" preStepsCount={1} viewMode={view as ViewMode} tasks={board.flatMap(b =>
                         (b.issues.map(i => {
                             const cDate = moment(i.created);

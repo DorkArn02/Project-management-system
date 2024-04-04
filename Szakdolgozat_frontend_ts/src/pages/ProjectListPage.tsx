@@ -126,11 +126,13 @@ export default function ProjectListPage() {
     const formRef = useRef<HTMLFormElement>(null)
     const initRef = useRef(null)
 
+    const [dontOpen, setDontOpen] = useState<boolean>(false)
+
     const navigate = useNavigate()
     const { state } = useLocation();
 
     useEffect(() => {
-        if (state && boards) {
+        if (state && boards && !dontOpen) {
             let obj = boards?.filter(i => i.id == state.boardId)
 
             if (obj.length != 0) {
@@ -159,7 +161,6 @@ export default function ProjectListPage() {
     SignalRContext.useSignalREffect(
         "SendStatusChange",
         () => {
-            console.log("refetch!")
             refetchProjectLists()
         },
         []);
@@ -659,6 +660,7 @@ export default function ProjectListPage() {
         resetView()
         setComment("")
         setAssignedPeople([])
+        setDontOpen(true)
         onCloseIssue()
     }
 
@@ -1316,7 +1318,7 @@ export default function ProjectListPage() {
                         </InputGroup>
                         <AvatarGroup userSelect={'none'} size={"md"}>
                             {selectedPeople && selectedPeople.map((i, k) => {
-                                return <Tooltip label={i.label}><Avatar borderWidth={3} borderColor={i.selected ? "blue" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} /></Tooltip>
+                                return <Tooltip label={i.label}><Avatar borderWidth={4} borderColor={i.selected ? "green" : ""} onClick={() => handleFilterPeople(i.id)} _hover={{ opacity: 0.8, cursor: "pointer" }} name={i.label} key={k} /></Tooltip>
                             })}
                         </AvatarGroup>
                         <ChakraSelect components={customComponents} placeholder={t('projectlist.label_filter_priority')} onChange={(e) => handlePriorityFilter(e)} isClearable={true} variant='filled' options={priorities} name='priorities' />

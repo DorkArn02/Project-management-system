@@ -30,8 +30,6 @@ export interface LoginResponse {
     accessToken: string;
 }
 
-//--------------------------------
-
 export interface ProjectRequest {
     title: string;
     description: string;
@@ -58,8 +56,6 @@ export interface ParticipantResponse {
     firstName: string;
     lastName: string;
 }
-
-//--------------------------------
 
 export interface ProjectListRequest {
     title: string;
@@ -157,8 +153,6 @@ export interface PriorityResponse {
     lvl: number;
 }
 
-//--------------------------------
-
 export interface NotificationResponse {
     id: string;
     content: string;
@@ -171,8 +165,6 @@ export interface NotificationResponse {
     issueName: string;
     personName: string;
 }
-
-//--------------------------------
 
 export interface Task {
     id: string;
@@ -193,14 +185,12 @@ export interface Task {
     boardId: string
 }
 
-//--
 export interface PasswordChangeRequest {
     oldPassword: string;
     password1: string;
     password2: string;
 }
 
-//--
 export interface AuditLogResponse {
     id: string,
     userId: string,
