@@ -86,17 +86,15 @@ The goal of this application is to create a **project management system** where 
 
 ![alt text](readme_images/userscreen.png)
 
-## How to deploy application
+## How to deploy application (IIS)
 
 1. Install SQL Server Management Studio 19
 2. Install Internet Information Services Manager 10
-3. Create new database in SSMS then run
-`db_schema.sql` in database
-4. Build frontend and backend
+3. Open SSMS then run
+`db_schema.sql` in database and grant SQL access to LocalSystem
+4. Download `wwwroot.zip` from Releases and unzip into `C:\inetpub\wwwroot` folder
 5. Create new site in IIS and new application pool in IIS
 (application pool name: Szakdolgozat_backend, .NET CLR version: No managed code, managed pipeline mode: integrated, identity: LocalSystem)
-6. Move built frontend code to IIS folder: `C:\inetpub\wwwroot\`
-7. Publish backend built code in Visual Studio to `wwwroot` folder (publish to folder option on project)
-8. Create new application pool in IIS Manager
-9. Add new application to `Default Web Site` and select the previous created application pool (path: C:\inetpub\wwwroot\api, application pool: Szakdolgozat_backend)
-10. Application should be available at `localhost:80`
+6. Create new application pool in IIS Manager
+7. Add new application to `Default Web Site` and select the previous created application pool (path: C:\inetpub\wwwroot\api, application pool: Szakdolgozat_backend)
+8. Application should be available at `localhost:80`
